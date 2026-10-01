@@ -1,34 +1,44 @@
 // ============================================
 // TW Fantasy Official League
 // Weekly Live Sync Script (Accurate Selling Price & Quota Optimized)
+// Standard: Native ES Module (import syntax for Node.js v20/v22)
+// Architecture: Multi-Tier Quota Diff Sync Engine
 // ============================================
 
-const admin = require("firebase-admin");
-const axios = require("axios");
-const { DiffWriter } = require("./lib/diff-sync");
+import { initializeApp, cert, getApps } from "firebase-admin/app";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import axios from "axios";
+import { DiffWriter } from "./lib/diff-sync.js";
 
-if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
+// === Firebase Admin Initialization (Safe Modular Subpaths) ===
+const rawServiceAccount = process.env.FIREBASE_SERVICE_ACCOUNT;
+
+if (!rawServiceAccount) {
   console.error("❌ Error: FIREBASE_SERVICE_ACCOUNT Environment Variable မတွေ့ရှိပါဗျာ။");
   process.exit(1);
 }
 
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-if (admin.apps.length === 0) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-  });
-}
-const db = admin.firestore();
-let diffTeams, diffPoints; // main() ထဲမှာ load လုပ်မယ်
+const serviceAccount = typeof rawServiceAccount === "string"
+  ? JSON.parse(rawServiceAccount)
+  : rawServiceAccount;
 
+const app = getApps().length === 0
+  ? initializeApp({ credential: cert(serviceAccount) })
+  : getApps()[0];
+
+const db = getFirestore(app);
+let diffTeams, diffPoints;
+
+// === FPL API Endpoints ===
 const FPL_BASE = "https://fantasy.premierleague.com/api";
 const BOOTSTRAP_URL = `${FPL_BASE}/bootstrap-static/`;
 
+// === Helper: Exponential Backoff Fetcher ===
 async function fplFetch(url, retries = 3) {
   for (let i = 0; i < retries; i++) {
     try {
       const res = await axios.get(url, {
-        headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) TW-Fantasy-Sync/1.0" },
+        headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) TW-Fantasy-Sync/2.0" },
         timeout: 9000
       });
       return res.data;
@@ -39,15 +49,16 @@ async function fplFetch(url, retries = 3) {
   }
 }
 
+// 🤖 Auto-Detect Gameweek Lifecycle Engine
 function getGameweekInfo(bootstrap) {
-  const currentEvent = bootstrap.events.find((e) => e.is_current);
+  const currentEvent = bootstrap.events.find((e) => e.is_current === true);
   if (currentEvent) {
     return {
       gw: currentEvent.id,
       averagePoints: currentEvent.average_entry_score || 0
     };
   }
-  const nextEvent = bootstrap.events.find((e) => e.is_next);
+  const nextEvent = bootstrap.events.find((e) => e.is_next === true);
   if (nextEvent) {
     const prevFinished = bootstrap.events.filter(e => e.finished).pop();
     return {
@@ -73,7 +84,7 @@ function buildPlayerInfoMap(bootstrap) {
 
   const teamCodeMap = {};
   bootstrap.teams.forEach((t) => {
-    const rawShortName = t.short_name.toLowerCase();
+    const rawShortName = (t.short_name || "").toLowerCase().trim();
     teamCodeMap[t.id] = officialTeamTranslateMap[rawShortName] || rawShortName;
   });
 
@@ -94,7 +105,6 @@ function buildPlayerInfoMap(bootstrap) {
     const currentPrice = parseFloat((el.now_cost / 10).toFixed(1));
     
     // 💡 FPL စတင်ချိန် မူလဈေးရင်းကို အတိအကျ တွက်ချက်ခြင်း
-    // cost_change_start သည် Season စတင်ချိန်မှစ၍ တက်/ကျ ပမာဏ ဖြစ်သည် (ဥပမာ +2 ဆိုလျှင် 0.2m တက်ထားခြင်း)
     const costChangeFromStart = el.cost_change_start !== undefined ? el.cost_change_start : 0;
     const initialPrice = parseFloat(((el.now_cost - costChangeFromStart) / 10).toFixed(1));
 
@@ -140,7 +150,7 @@ function calculateSellingPrice(purchasePrice, currentPrice) {
   
   if (cPrice <= pPrice) return cPrice;
   
-  // 0.2 တက်မှ 0.1 ရမည့် သင်္ချာဖော်မြူလာ
+  // 0.2 တက်မှ 0.1 ရမည့် သင်္ချာဖော်မြူလာ (50% profit margin)
   const profit = Math.round((cPrice - pPrice) * 10);
   const profitGain = Math.floor(profit / 2) / 10;
   return parseFloat((pPrice + profitGain).toFixed(1));
@@ -156,7 +166,6 @@ async function syncUserTeam(fplId, gw, gwAverage, livePointsMap, playerInfoMap) 
     try {
       const tData = await fplFetch(`${FPL_BASE}/entry/${fplId}/transfers/`);
       if (Array.isArray(tData)) {
-        // အသစ်ဆုံး transfer ကို ထိပ်ဆုံးရောက်အောင် sort ပြုလုပ်ခြင်း
         transferHistory = tData.sort((a, b) => new Date(b.time) - new Date(a.time));
       }
     } catch (_) {
@@ -218,7 +227,6 @@ async function syncUserTeam(fplId, gw, gwAverage, livePointsMap, playerInfoMap) 
       if (latestBuy && latestBuy.element_in_cost) {
         purchasePrice = parseFloat((latestBuy.element_in_cost / 10).toFixed(1));
       } else {
-        // Transfer မလုပ်ဘဲ Season စကတည်းက ပါလာသော ကစားသမားဖြစ်ပါက မူလစတင်ဈေး (Initial Cost) ကို ဝယ်ဈေးအဖြစ် သတ်မှတ်မည်
         purchasePrice = pInfo.initialPrice > 0 ? pInfo.initialPrice : currentPrice;
       }
 
@@ -231,10 +239,10 @@ async function syncUserTeam(fplId, gw, gwAverage, livePointsMap, playerInfoMap) 
         fullName: pInfo.fullName,
         position: pInfo.position,
         teamCode: pInfo.teamCode,
-        currentPrice: currentPrice,       // 👈 လက်ရှိပေါက်ဈေး
-        purchasePrice: purchasePrice,     // 👈 ဝယ်ယူခဲ့သောဈေး
-        sellingPrice: sellingPrice,       // 👈 ရောင်းရမည့်ဈေး (50% profit margin)
-        price: currentPrice,              // Default price
+        currentPrice: currentPrice,       // လက်ရှိပေါက်ဈေး
+        purchasePrice: purchasePrice,     // ဝယ်ယူခဲ့သောဈေး
+        sellingPrice: sellingPrice,       // ရောင်းရမည့်ဈေး (50% profit margin)
+        price: currentPrice,
         multiplier: effectiveMultiplier,
         isCaptain: p.is_captain,
         isVice: p.is_vice_captain,
@@ -265,7 +273,12 @@ async function syncUserTeam(fplId, gw, gwAverage, livePointsMap, playerInfoMap) 
       activeChip: activeChip,
       picks: picks,
     };
-    if (diffTeams.changed(fplId, teamPayload)) await db.collection("liveTeams").doc(String(fplId)).set({ ...teamPayload, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+    if (diffTeams.changed(fplId, teamPayload)) {
+      await db.collection("liveTeams").doc(String(fplId)).set({
+        ...teamPayload,
+        updatedAt: FieldValue.serverTimestamp()
+      }, { merge: true });
+    }
 
     const pointsPayload = {
       fplTeamId: fplId,
@@ -279,7 +292,12 @@ async function syncUserTeam(fplId, gw, gwAverage, livePointsMap, playerInfoMap) 
       activeChip: activeChip,
       captainPoints: captainPoints,
     };
-    if (diffPoints.changed(fplId, pointsPayload)) await db.collection("livePoints").doc(String(fplId)).set({ ...pointsPayload, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+    if (diffPoints.changed(fplId, pointsPayload)) {
+      await db.collection("livePoints").doc(String(fplId)).set({
+        ...pointsPayload,
+        updatedAt: FieldValue.serverTimestamp()
+      }, { merge: true });
+    }
 
     console.log(`✅ Synced Team: ${fplId} (Picks: ${picks.length})`);
     return true;
@@ -290,7 +308,9 @@ async function syncUserTeam(fplId, gw, gwAverage, livePointsMap, playerInfoMap) 
 }
 
 async function main() {
-  console.log("🚀 TW Fantasy — Weekly Live Sync Starting...");
+  console.log("🚀 TW Fantasy — Weekly Live Sync Starting (ES Module Mode)...");
+  console.log("Time:", new Date().toISOString());
+
   try {
     const bootstrap = await fplFetch(BOOTSTRAP_URL);
     const { gw: targetWeek, averagePoints: gwAverage } = getGameweekInfo(bootstrap);
@@ -318,14 +338,16 @@ async function main() {
       await new Promise((r) => setTimeout(r, 400));
     }
 
+    // 💡 Diff State များကို main function အတွင်း စနစ်တကျ သိမ်းဆည်းခြင်း
+    await diffTeams.save();
+    await diffPoints.save();
+
     console.log(`🎉 Sync Complete — Success: ${successCount}, Failed: ${failCount}`);
     process.exit(0);
   } catch (err) {
-    console.error("🔥 Fatal Error:", err.message);
+    console.error("🔥 Fatal Error in Weekly Live Sync:", err.message);
     process.exit(1);
   }
 }
 
-    await diffTeams.save();
-    await diffPoints.save();
 main();
