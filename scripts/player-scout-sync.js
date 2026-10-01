@@ -1,18 +1,19 @@
 // ============================================
 // TW Fantasy Official League
-// Player Scout & Comprehensive Gameweek Sync Engine
-// Architecture: Unified 1-Document Quota Saver (Write = 1 Quota, Read = 1 Quota)
-// Payload Size: ~280KB (<1MB Firestore Document Threshold)
+// Player Scout Sync Engine (All Advanced Metrics + Next 3 Fixtures)
+// Target: scoutPlayers/allPlayers (Unified 1-Document Architecture)
+// Size: ~295KB (<1MB Firestore Document Limit) | Quota: 1 Write Operation Only
 // ============================================
 
-const admin = require("firebase-admin");
+const { initializeApp, cert, getApps } = require("firebase-admin/app");
+const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 const { DiffWriter } = require("./lib/diff-sync");
 
-// === Firebase Admin Initialization ===
+// === Firebase Admin Initialization (Modern Subpath Standards) ===
 const rawServiceAccount = process.env.FIREBASE_SERVICE_ACCOUNT;
 
 if (!rawServiceAccount) {
-  console.error("🔥 Error: FIREBASE_SERVICE_ACCOUNT environment variable is missing.");
+  console.error("❌ Error: FIREBASE_SERVICE_ACCOUNT Environment Variable မတွေ့ရှိပါဗျာ။");
   process.exit(1);
 }
 
@@ -20,50 +21,49 @@ const serviceAccount = typeof rawServiceAccount === "string"
   ? JSON.parse(rawServiceAccount)
   : rawServiceAccount;
 
-if (admin.apps.length === 0) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-  });
-}
-const db = admin.firestore();
+const app = getApps().length === 0
+  ? initializeApp({ credential: cert(serviceAccount) })
+  : getApps()[0];
+
+const db = getFirestore(app);
 
 // === FPL API Endpoints ===
 const FPL_BASE = "https://fantasy.premierleague.com/api";
 const BOOTSTRAP_URL = `${FPL_BASE}/bootstrap-static/`;
 const FIXTURES_URL = `${FPL_BASE}/fixtures/`;
 
-// === Helper: Exponential Backoff API Fetcher ===
+// === Helper: Exponential Backoff Fetcher ===
 async function fplFetch(url, retries = 3) {
   for (let i = 0; i < retries; i++) {
     try {
       const res = await fetch(url, {
-        headers: { "User-Agent": "Mozilla/5.0 TW-Fantasy-Sync/2.0 (High-Performance)" },
+        headers: { "User-Agent": "Mozilla/5.0 TW-Fantasy-Sync/2.0 (Full-Scout-Data)" },
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return await res.json();
     } catch (err) {
       console.log(`⚠️ Fetch failed (${i + 1}/${retries}): ${url}`);
       if (i === retries - 1) throw err;
-      await new Promise((r) => setTimeout(r, 1500));
+      await new Promise((r) => setTimeout(r, 1200));
     }
   }
 }
 
-// === Step 1: Detailed Gameweek Lifecycle & Meta Intelligence ===
-function extractGameweekDetails(events = []) {
-  const currentEvent = events.find((e) => e.is_current) 
-    || events.find((e) => e.is_next) 
+// 🤖 Auto-Detect Current Gameweek Lifecycle Engine
+function autoDetectGameweek(events = []) {
+  const currentEvent = events.find((e) => e.is_current === true) 
+    || events.find((e) => e.is_next === true) 
     || events.filter((e) => e.finished).pop() 
     || events[0] 
     || {};
 
-  const nextEvent = events.find((e) => e.is_next) || null;
+  const nextEvent = events.find((e) => e.is_next === true) || null;
 
   return {
     id: currentEvent.id || 1,
     name: currentEvent.name || `Gameweek ${currentEvent.id || 1}`,
     deadlineTime: currentEvent.deadline_time || null,
-    deadlineTimeEpoch: currentEvent.deadline_time ? new Date(currentEvent.deadline_time).getTime() : 0,
+    deadlineEpoch: currentEvent.deadline_time ? new Date(currentEvent.deadline_time).getTime() : 0,
     isCurrent: Boolean(currentEvent.is_current),
     isNext: Boolean(currentEvent.is_next),
     isFinished: Boolean(currentEvent.finished),
@@ -85,7 +85,7 @@ function extractGameweekDetails(events = []) {
       id: nextEvent.id,
       name: nextEvent.name,
       deadlineTime: nextEvent.deadline_time,
-      deadlineTimeEpoch: new Date(nextEvent.deadline_time).getTime(),
+      deadlineEpoch: new Date(nextEvent.deadline_time).getTime(),
     } : null,
   };
 }
@@ -101,8 +101,8 @@ function buildTeamMaps(bootstrap) {
   return { teamCodeMap, teamNameMap };
 }
 
-// === Step 3: Global Fixtures Schedule (အသင်း ၂၀ စာ Root Level တွင် ၁ ကြိမ်သာ ထည့်သွင်းခြင်း) ===
-function buildGlobalFixturesMap(fixtures, currentGwId, teamNameMap, teamCodeMap) {
+// === Step 3: Next Fixtures (လာမည့် ၃ ပွဲတိတိသာ အသင်း ၂၀ စာ Buffer ပြုလုပ်ခြင်း) ===
+function buildNext3FixturesMap(fixtures, currentGwId, teamNameMap, teamCodeMap) {
   const upcoming = fixtures
     .filter((f) => !f.finished && f.event && f.event >= currentGwId)
     .sort((a, b) => a.event - b.event);
@@ -113,15 +113,16 @@ function buildGlobalFixturesMap(fixtures, currentGwId, teamNameMap, teamCodeMap)
       (f) => f.team_h === teamId || f.team_a === teamId
     );
 
-    teamFixturesMap[teamId] = teamFixtures.slice(0, 6).map((f) => {
+    // 💡 အတိအကျ ၃ ပွဲသာ slice ပြုလုပ်သည်
+    teamFixturesMap[teamId] = teamFixtures.slice(0, 3).map((f) => {
       const isHome = f.team_h === teamId;
       const opponentId = isHome ? f.team_a : f.team_h;
       const fdr = isHome ? f.team_h_difficulty : f.team_a_difficulty;
       return {
         gw: f.event,
         opp: teamNameMap[opponentId] || "TBC",
-        oppCode: teamCodeMap[opponentId] || "unk",
-        isH: isHome,
+        oppCode: (teamCodeMap[opponentId] || "unk").toUpperCase(),
+        isHome: isHome,
         fdr: fdr || 3,
       };
     });
@@ -131,25 +132,23 @@ function buildGlobalFixturesMap(fixtures, currentGwId, teamNameMap, teamCodeMap)
 
 // === Main Execution Function ===
 async function main() {
-  console.log("🚀 TW Fantasy — Unified 1-Document Player Scout Sync Engine Starting...");
+  console.log("🚀 TW Fantasy — Full Player Scout Sync Starting (All Metrics + Next 3 Fixtures)...");
   console.log("Time:", new Date().toISOString());
 
   try {
-    console.log("📥 Fetching Bootstrap-Static & Fixtures data...");
     const [bootstrap, fixtures] = await Promise.all([
       fplFetch(BOOTSTRAP_URL),
       fplFetch(FIXTURES_URL),
     ]);
 
-    // 🗓️ Current Gameweek အပြည့်အစုံ သတ်မှတ်ခြင်း
-    const currentGwDetails = extractGameweekDetails(bootstrap.events || []);
-    console.log(`📅 Current Gameweek Detected: ${currentGwDetails.name} (Live: ${currentGwDetails.isCurrent}, Finished: ${currentGwDetails.isFinished})`);
+    const currentGwDetails = autoDetectGameweek(bootstrap.events || []);
+    console.log(`📅 Current Gameweek: ${currentGwDetails.name} (Live: ${currentGwDetails.isCurrent})`);
 
     const isSeasonStarted = bootstrap.events.some((e) => e.is_current || e.finished);
-    console.log(`⚽ Dynamic Season Active Status: ${isSeasonStarted}`);
-
     const { teamCodeMap, teamNameMap } = buildTeamMaps(bootstrap);
-    const globalFixturesMap = buildGlobalFixturesMap(fixtures, currentGwDetails.id, teamNameMap, teamCodeMap);
+    
+    // 💡 လာမည့် ၃ ပွဲ Schedule အား Global Map အဖြစ် ရယူခြင်း
+    const next3FixturesMap = buildNext3FixturesMap(fixtures, currentGwDetails.id, teamNameMap, teamCodeMap);
 
     const posMap = {};
     const positions = ["", "gk", "def", "mid", "fwd"];
@@ -164,7 +163,7 @@ async function main() {
     for (const el of bootstrap.elements) {
       const status = el.status || "a";
 
-      // 🚨 CRITICAL: ရောင်းထုတ်ခံရသူများ / အသင်းပြောင်းသွားသူများ (Unavailable) အား လုံးဝ စာရင်းမသွင်းဘဲ ပယ်ဖျက်ခြင်း
+      // 🚨 ရောင်းထုတ်ခံရသူများ (Unavailable / Left League) ကို လုံးဝ မထည့်ပါ
       if (status === "u") {
         continue;
       }
@@ -174,19 +173,20 @@ async function main() {
       const gwPoints = isSeasonStarted ? (el.event_points || 0) : 0;
       const price = parseFloat((el.now_cost / 10).toFixed(1));
 
-      // 💡 1. METRICS CALCULATIONS:
+      // 💡 Metrics Calculations
       const minutesPlayed = el.minutes || 0;
       const matchesPlayed = minutesPlayed > 0 ? Math.max(1, Math.ceil(minutesPlayed / 90)) : 1;
       const ppg = isSeasonStarted ? parseFloat((totalPoints / matchesPlayed).toFixed(2)) : 0.0;
       const val = price > 0 ? parseFloat((totalPoints / price).toFixed(1)) : 0.0;
       const l5 = isSeasonStarted ? parseFloat((form * 5).toFixed(1)) : 0.0;
 
-      const xg = parseFloat(el.expected_goals) || 0;
-      const xa = parseFloat(el.expected_assists) || 0;
+      // 💡 Expected Stats (xG, xA, xGI)
+      const xg = parseFloat(el.expected_goals) || 0.0;
+      const xa = parseFloat(el.expected_assists) || 0.0;
       const xgi = parseFloat((xg + xa).toFixed(2));
-      const ict = parseFloat(el.ict_index) || 0;
+      const ict = parseFloat(el.ict_index) || 0.0;
 
-      // 💡 2. INJURY, SUSPENSION & PLAYING CHANCE ENGINE:
+      // 💡 Availability & Playing Chance Engine
       const nextChanceRaw = el.chance_of_playing_next_round;
       const thisChanceRaw = el.chance_of_playing_this_round;
 
@@ -204,7 +204,7 @@ async function main() {
       const isSuspended = status === "s";
       const isInjured = status === "i";
 
-      // 💡 3. OPTIMIZED SCHEMA (1-Doc Size ထိန်းသိမ်းရန် Memory-Friendly Payload)
+      // 💡 ကစားသမားတစ်ဦးချင်းစီ၏ Data အပြည့်အစုံ Pack လုပ်ခြင်း
       allValidPlayers.push({
         playerId: el.id,
         name: el.web_name,
@@ -213,7 +213,7 @@ async function main() {
         elementType: el.element_type, // 1: GK, 2: DEF, 3: MID, 4: FWD
         teamId: el.team,              // 3-Players Max Per Team Rule စစ်ဆေးရန်
         team: teamNameMap[el.team] || "Unknown",
-        teamCode: teamCodeMap[el.team] || "unknown",
+        teamCode: (teamCodeMap[el.team] || "unk").toUpperCase(),
         price: price,
         costChangeStart: el.cost_change_start || 0,
         costChangeEvent: el.cost_change_event || 0,
@@ -224,10 +224,38 @@ async function main() {
         ppg: ppg,
         val: val,
         l5: l5,
-        xgi: xgi,
-        ict: ict,
+        minutes: minutesPlayed,
 
-        // 🩺 Availability & Status Metadata:
+        // ⚽ MATCH STATS အစုံ
+        goals: el.goals_scored || 0,
+        assists: el.assists || 0,
+        cleanSheets: el.clean_sheets || 0,
+        goalsConceded: el.goals_conceded || 0,
+        ownGoals: el.own_goals || 0,
+        penaltiesSaved: el.penalties_saved || 0,
+        penaltiesMissed: el.penalties_missed || 0,
+        yellowCards: el.yellow_cards || 0,
+        redCards: el.red_cards || 0,
+        saves: el.saves || 0,
+        bonus: el.bonus || 0,
+        bps: el.bps || 0,
+
+        // 📈 ADVANCED METRICS & MARKET TRANSFERS
+        influence: parseFloat(el.influence) || 0.0,
+        creativity: parseFloat(el.creativity) || 0.0,
+        threat: parseFloat(el.threat) || 0.0,
+        ict: ict,
+        xG: xg,
+        xA: xa,
+        xGI: xgi,
+        xGC: parseFloat(el.expected_goals_conceded) || 0.0,
+        transfersInEvent: el.transfers_in_event || 0,
+        transfersOutEvent: el.transfers_out_event || 0,
+
+        // 🗓️ NEXT FIXTURES (လာမည့် ၃ ပွဲတိတိ)
+        nextMatches: next3FixturesMap[el.team] || [],
+
+        // 🩺 INJURY & SUSPENSION STATUS
         status: status,
         chanceOfPlaying: chanceOfPlaying,
         chanceOfPlayingThisRound: thisChanceRaw !== null ? Number(thisChanceRaw) : null,
@@ -240,50 +268,29 @@ async function main() {
       });
     }
 
-    // 💡 4. ROOT-LEVEL MASTER PAYLOAD (1 Document = 1 Write Quota)
+    // 💡 1-DOCUMENT MASTER PAYLOAD (scoutPlayers/allPlayers သို့ သိမ်းဆည်းမည်)
     const masterScoutPayload = {
       currentGameweek: currentGwDetails,
       isSeasonStarted: isSeasonStarted,
       totalPlayers: allValidPlayers.length,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      fixturesByTeam: globalFixturesMap, // အသင်း ၂၀ ၏ လာမည့် ၆ ပွဲစာ Schedule
-      players: allValidPlayers,           // တရားဝင် ကစားသမား အားလုံး (~၇၀၀ ကျော်)
+      updatedAt: FieldValue.serverTimestamp(),
+      fixturesByTeam: next3FixturesMap, // အသင်း ၂၀ ၏ လာမည့် ၃ ပွဲ Fixtures Map
+      players: allValidPlayers,          // ကစားသမား အချက်အလက် အစုံအလင်
     };
 
-    // DiffWriter ဖြင့် ပေါ်ပေါက်သော ပြောင်းလဲမှု စစ်ဆေးခြင်း
-    const diff = await new DiffWriter(db, "scoutMeta").load();
-    const docRef = db.collection("scoutMeta").doc("allPlayers");
+    // 🎯 Target: scoutPlayers collection -> allPlayers document
+    const docRef = db.collection("scoutPlayers").doc("allPlayers");
+    await docRef.set(masterScoutPayload);
 
-    if (diff.changed("all_players_master", masterScoutPayload)) {
-      await docRef.set(masterScoutPayload);
-      console.log(`💾 [SAVED 1-DOC] scoutMeta/allPlayers successfully written to Firestore.`);
-    } else {
-      console.log(`⚡ [NO CHANGE] Scout & GW data is identical to previous sync. Skipped write.`);
-    }
-
-    await diff.save({ prune: true });
-
-    // Payload Size တွက်ချက်ခြင်း
-    const approxPayloadBytes = Buffer.byteLength(JSON.stringify(masterScoutPayload));
-    const approxSizeKb = Math.round(approxPayloadBytes / 1024);
-
+    const approxSizeKb = Math.round(Buffer.byteLength(JSON.stringify(masterScoutPayload)) / 1024);
     console.log("============================================");
-    console.log(`✅ Player Scout & Gameweek Sync Complete!`);
-    console.log(`📊 Active Valid Players: ${allValidPlayers.length}`);
-    console.log(`📅 Current Gameweek: ${currentGwDetails.name} (Deadline: ${currentGwDetails.deadlineTime})`);
-    console.log(`📦 Payload Size: ~${approxSizeKb} KB (Allowed Limit: 1048 KB)`);
+    console.log(`✅ [1-DOC QUOTA] scoutPlayers/allPlayers Sync Complete!`);
+    console.log(`📊 Active Players: ${allValidPlayers.length}`);
+    console.log(`🗓️ Next Fixtures: Exactly 3 Matches Packed per Player/Team`);
+    console.log(`⚽ Goals, Assists, CS, Bonus, Cards, xG, xA, Transfers Included`);
+    console.log(`📦 Document Size: ~${approxSizeKb} KB (<1048 KB Safe Threshold)`);
     console.log(`💰 Firestore Write Quota Used: 1 WRITE ONLY`);
     console.log("============================================");
-
-    // Sync Log Document မှတ်တမ်းတင်ခြင်း
-    await db.collection("syncLogs").add({
-      type: "scout-1doc-unified-sync",
-      gameweek: currentGwDetails.id,
-      isSeasonStarted: isSeasonStarted,
-      totalPlayers: allValidPlayers.length,
-      payloadSizeKb: approxSizeKb,
-      runAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
 
     process.exit(0);
   } catch (err) {
