@@ -1,13 +1,12 @@
 # ============================================
 # TW Fantasy Official League
-# Player Scout Sync Workflow (Match-Day & Price Change Optimized)
-# Target Firestore: scoutPlayers/allPlayers (Unified 1-Doc Architecture)
+# Player Scout Sync Workflow (Lockfile-Free Bug Fix)
 # ============================================
 
 name: FPL Player Scout Sync
 
 on:
-  # 💡 1. MANUAL TRIGGER — လိုအပ်သည့်အချိန်တိုင်း အချိန်မရွေး Dashboard မှ Run နိုင်သည်
+  # 💡 1. MANUAL TRIGGER — Dashboard မှ လိုအပ်သည့်အချိန်တိုင်း အချိန်မရွေး နှိပ်၍ Run နိုင်သည်
   workflow_dispatch:
 
   # 💡 2. AUTOMATED TIMELINE (CRON)
@@ -26,12 +25,12 @@ on:
 
 concurrency:
   group: scout-sync-group
-  cancel-in-progress: true      # အရင် sync မပြီးသေးဘဲ အသစ်ထပ်ရောက်လာပါက အဟောင်းကို auto cancel လုပ်သည်
+  cancel-in-progress: true
 
 jobs:
   scout-sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 6          # 1-Doc Engine အတွက် အများဆုံး ၆ မိနစ်သာ သတ်မှတ်သည်
+    timeout-minutes: 6
 
     steps:
       # Step 1 — Repository ကုဒ်အား ရယူခြင်း
@@ -39,15 +38,14 @@ jobs:
         uses: actions/checkout@v4
         timeout-minutes: 2
 
-      # Step 2 — Node.js Setup (LTS 20 ဖြင့် တည်ငြိမ်စွာ Run ခြင်း)
+      # Step 2 — Node.js Setup (cache: 'npm' ကို ဖယ်ထုတ်၍ lockfile error မဖြစ်စေရန် ပြင်ဆင်ထားသည်)
       - name: Setup Node.js Environment
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'          # Dependencies များကို Cache သုံး၍ Run speed ၂ ဆ တင်ပေးသည်
         timeout-minutes: 2
 
-      # Step 3 — Dependencies တင်သွင်းခြင်း (Clean & Safe Install)
+      # Step 3 — Dependencies တင်သွင်းခြင်း (package-lock.json မရှိလျှင်လည်း အဆင်ပြေစေမည့် Safe Fallback)
       - name: Install Dependencies
         run: |
           if [ -f package-lock.json ]; then
@@ -59,13 +57,13 @@ jobs:
           fi
         timeout-minutes: 3
 
-      # Step 4 — Player Scout Sync Engine Run ခြင်း (scoutPlayers/allPlayers)
+      # Step 4 — Player Scout Sync Engine Run ခြင်း
       - name: Run Player Scout Sync
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: node scripts/player-scout-sync.js
         timeout-minutes: 4
 
-      # Step 5 — အောင်မြင်စွာ ပြီးဆုံးကြောင်း အတည်ပြုချက် ထုတ်ပြန်ခြင်း
+      # Step 5 — အောင်မြင်စွာ ပြီးဆုံးကြောင်း ထုတ်ပြန်ခြင်း
       - name: Scout Sync Complete
         run: echo "✅ TW Fantasy Player Scout Sync Completed Successfully at $(date)"
