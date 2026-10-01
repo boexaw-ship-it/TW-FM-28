@@ -1,0 +1,19 @@
+{
+  "name": "twfm27-sync-scripts",
+  "version": "1.0.0",
+  "description": "TW Fantasy (single-page PWA + Android) and Official League Sync Services",
+  "main": "scripts/fixtures-sync.js",
+  "scripts": {
+    "sync:fixtures": "node scripts/fixtures-sync.js",
+    "sync:scout": "node scripts/player-scout-sync.js",
+    "build": "node tools/build.js",
+    "sync:league": "node scripts/league-sync.js",
+    "sync:weekly": "node scripts/weekly-live-sync.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.2",
+    "axios-cookiejar-support": "^5.0.3",
+    "firebase-admin": "^12.1.0",
+    "tough-cookie": "^4.1.4"
+  }
+}
