@@ -1,0 +1,75 @@
+name: TW Tournament & Weekly Winners Sync
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_gw:
+        description: 'Gameweek Number (1 - 38) [ဆုပေးရန်သာ ထည့်ရန်၊ Registration approve အတွက် အလွတ်ထားပါ]'
+        required: false
+        default: ''
+      winners:
+        description: 'Winner အသင်းနာမည် (၁ ယောက်ထက်ပိုပါက ကော်မာခံပါ ဥပမာ- Team A, Team B)'
+        required: false
+        default: ''
+      runners:
+        description: 'Runner-up အသင်းနာမည် (၁ ယောက်ထက်ပိုပါက ကော်မာခံပါ ဥပမာ- Team C, Team D)'
+        required: false
+        default: ''
+      prize_note:
+        description: 'ဆုကြေးမှတ်ချက် (ဥပမာ- 15,000 Ks / 5,000 Ks)'
+        required: false
+        default: 'Weekly Prize'
+      slip_digits:
+        description: 'KPay Slip နောက်ဆုံး ၆ လုံး (Approval အတွက်သာ)'
+        required: false
+        default: ''
+      target_val:
+        description: 'FPL Team ID သို့မဟုတ် UID (Approval အတွက်သာ)'
+        required: false
+        default: ''
+      tour_choice:
+        description: 'Tournament Scope'
+        required: true
+        type: choice
+        options:
+          - all
+          - weekly
+          - supercup
+          - set_winner
+        default: all
+      action_type:
+        description: 'Action Type'
+        required: true
+        type: choice
+        options:
+          - approve
+          - reject
+        default: approve
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Dependencies
+        run: npm install firebase-admin
+
+      - name: Run Sync Engine
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          TARGET_GW: ${{ github.event.inputs.target_gw }}
+          WINNERS: ${{ github.event.inputs.winners }}
+          RUNNERS: ${{ github.event.inputs.runners }}
+          PRIZE_NOTE: ${{ github.event.inputs.prize_note }}
+          SLIP_DIGITS: ${{ github.event.inputs.slip_digits }}
+          TARGET_VAL: ${{ github.event.inputs.target_val }}
+          TOUR_CHOICE: ${{ github.event.inputs.tour_choice }}
+          ACTION_TYPE: ${{ github.event.inputs.action_type }}
+        run: node scripts/twsuper-sync.js
