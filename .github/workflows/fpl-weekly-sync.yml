@@ -1,0 +1,43 @@
+# ============================================
+# TW Fantasy Official League
+# Weekly Live Sync Workflow (Auto Schedule + Manual)
+# ============================================
+
+name: FPL Weekly Live Sync
+
+on:
+  workflow_dispatch:
+
+  schedule:
+    - cron: '30 11,13,15,17 * * 6' # စနေနေ့ (ပွဲချိန်များ)
+    - cron: '30 11,13,15,17 * * 0' # တနင်္ဂနွေနေ့ (ပွဲချိန်များ)
+
+jobs:
+  weekly-live-sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Dependencies
+        run: |
+          npm init -y
+          npm install firebase-admin axios
+
+      # 🚀 Run Live Sync (Project 1)
+      - name: Run Weekly Live Sync
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: node scripts/weekly-live-sync.js
+
+      - name: Sync Complete
+        run: echo "✅ Weekly Live Sync Finished at $(date)"
+
+
