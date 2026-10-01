@@ -1,15 +1,15 @@
 // ============================================
 // TW Fantasy Official League
-// Player Scout Sync Engine (All Advanced Metrics + Next 3 Fixtures)
+// Player Scout Sync Engine (All Core & Advanced Metrics + Next 3 Fixtures)
 // Target: scoutPlayers/allPlayers (Unified 1-Document Architecture)
-// Size: ~295KB (<1MB Firestore Document Limit) | Quota: 1 Write Operation Only
+// Size: ~310KB (<1048KB Limit) | Quota: 1 Write Operation Only
 // ============================================
 
 const { initializeApp, cert, getApps } = require("firebase-admin/app");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 const { DiffWriter } = require("./lib/diff-sync");
 
-// === Firebase Admin Initialization (Modern Subpath Standards) ===
+// === Firebase Admin Initialization ===
 const rawServiceAccount = process.env.FIREBASE_SERVICE_ACCOUNT;
 
 if (!rawServiceAccount) {
@@ -113,7 +113,6 @@ function buildNext3FixturesMap(fixtures, currentGwId, teamNameMap, teamCodeMap) 
       (f) => f.team_h === teamId || f.team_a === teamId
     );
 
-    // 💡 အတိအကျ ၃ ပွဲသာ slice ပြုလုပ်သည်
     teamFixturesMap[teamId] = teamFixtures.slice(0, 3).map((f) => {
       const isHome = f.team_h === teamId;
       const opponentId = isHome ? f.team_a : f.team_h;
@@ -132,7 +131,7 @@ function buildNext3FixturesMap(fixtures, currentGwId, teamNameMap, teamCodeMap) 
 
 // === Main Execution Function ===
 async function main() {
-  console.log("🚀 TW Fantasy — Full Player Scout Sync Starting (All Metrics + Next 3 Fixtures)...");
+  console.log("🚀 TW Fantasy — Full Player Scout Sync Starting...");
   console.log("Time:", new Date().toISOString());
 
   try {
@@ -146,8 +145,6 @@ async function main() {
 
     const isSeasonStarted = bootstrap.events.some((e) => e.is_current || e.finished);
     const { teamCodeMap, teamNameMap } = buildTeamMaps(bootstrap);
-    
-    // 💡 လာမည့် ၃ ပွဲ Schedule အား Global Map အဖြစ် ရယူခြင်း
     const next3FixturesMap = buildNext3FixturesMap(fixtures, currentGwDetails.id, teamNameMap, teamCodeMap);
 
     const posMap = {};
@@ -168,25 +165,29 @@ async function main() {
         continue;
       }
 
+      // 💡 ၁။ TOTAL POINTS & WEEK POINTS
       const totalPoints = isSeasonStarted ? (el.total_points || 0) : 0;
-      const form = isSeasonStarted ? (parseFloat(el.form) || 0) : 0;
       const gwPoints = isSeasonStarted ? (el.event_points || 0) : 0;
+      
+      // 💡 ၂။ FORM & OWNERSHIP
+      const form = isSeasonStarted ? (parseFloat(el.form) || 0.0) : 0.0;
+      const ownership = parseFloat(el.selected_by_percent) || 0.0;
       const price = parseFloat((el.now_cost / 10).toFixed(1));
 
-      // 💡 Metrics Calculations
+      // 💡 ၃။ METRICS & RATIOS
       const minutesPlayed = el.minutes || 0;
       const matchesPlayed = minutesPlayed > 0 ? Math.max(1, Math.ceil(minutesPlayed / 90)) : 1;
       const ppg = isSeasonStarted ? parseFloat((totalPoints / matchesPlayed).toFixed(2)) : 0.0;
       const val = price > 0 ? parseFloat((totalPoints / price).toFixed(1)) : 0.0;
       const l5 = isSeasonStarted ? parseFloat((form * 5).toFixed(1)) : 0.0;
 
-      // 💡 Expected Stats (xG, xA, xGI)
+      // 💡 ၄။ EXPECTED STATS (xG, xA, xGI)
       const xg = parseFloat(el.expected_goals) || 0.0;
       const xa = parseFloat(el.expected_assists) || 0.0;
       const xgi = parseFloat((xg + xa).toFixed(2));
       const ict = parseFloat(el.ict_index) || 0.0;
 
-      // 💡 Availability & Playing Chance Engine
+      // 💡 ၅။ AVAILABILITY & PLAYING CHANCE ENGINE
       const nextChanceRaw = el.chance_of_playing_next_round;
       const thisChanceRaw = el.chance_of_playing_this_round;
 
@@ -204,29 +205,39 @@ async function main() {
       const isSuspended = status === "s";
       const isInjured = status === "i";
 
-      // 💡 ကစားသမားတစ်ဦးချင်းစီ၏ Data အပြည့်အစုံ Pack လုပ်ခြင်း
+      // 💡 Client UI ဘက်တွင် အဆင်ပြေစေရန် CamelCase ရော Original FPL Format ပါ ထည့်သွင်းခြင်း
       allValidPlayers.push({
         playerId: el.id,
+        id: el.id,
         name: el.web_name,
         fullName: `${el.first_name} ${el.second_name}`,
         position: posMap[el.element_type] || "mid",
-        elementType: el.element_type, // 1: GK, 2: DEF, 3: MID, 4: FWD
-        teamId: el.team,              // 3-Players Max Per Team Rule စစ်ဆေးရန်
+        elementType: el.element_type,
+        teamId: el.team,
         team: teamNameMap[el.team] || "Unknown",
         teamCode: (teamCodeMap[el.team] || "unk").toUpperCase(),
         price: price,
         costChangeStart: el.cost_change_start || 0,
         costChangeEvent: el.cost_change_event || 0,
-        ownership: parseFloat(el.selected_by_percent) || 0,
-        totalPoints: totalPoints,
-        form: form,
-        gwPoints: gwPoints,
-        ppg: ppg,
-        val: val,
-        l5: l5,
-        minutes: minutesPlayed,
 
-        // ⚽ MATCH STATS အစုံ
+        // 🌟 သင်မေးမြန်းထားသော အဓိက Points & Ownership & Form & xGI Fields
+        totalPoints: totalPoints,        // Total Point
+        total_points: totalPoints,       // FPL API alias
+        gwPoints: gwPoints,              // Week Point
+        event_points: gwPoints,          // FPL API alias
+        points: totalPoints,             // UI alias
+        form: form,                      // Form (ဥပမာ: 8.5)
+        ownership: ownership,            // Ownership (ဥပမာ: 52.4%)
+        selected_by_percent: ownership,  // FPL API alias
+        xGI: xgi,                        // Expected Goal Involvement
+        xgi: xgi,                        // Lowercase alias
+        xG: xg,                          // Expected Goals
+        xA: xa,                          // Expected Assists
+        xGC: parseFloat(el.expected_goals_conceded) || 0.0,
+        ict: ict,                        // ICT Index
+
+        // ⚽ MATCH STATS
+        minutes: minutesPlayed,
         goals: el.goals_scored || 0,
         assists: el.assists || 0,
         cleanSheets: el.clean_sheets || 0,
@@ -240,22 +251,20 @@ async function main() {
         bonus: el.bonus || 0,
         bps: el.bps || 0,
 
-        // 📈 ADVANCED METRICS & MARKET TRANSFERS
+        // 📈 MARKET TRANSFERS & RATIOS
+        ppg: ppg,
+        val: val,
+        l5: l5,
         influence: parseFloat(el.influence) || 0.0,
         creativity: parseFloat(el.creativity) || 0.0,
         threat: parseFloat(el.threat) || 0.0,
-        ict: ict,
-        xG: xg,
-        xA: xa,
-        xGI: xgi,
-        xGC: parseFloat(el.expected_goals_conceded) || 0.0,
         transfersInEvent: el.transfers_in_event || 0,
         transfersOutEvent: el.transfers_out_event || 0,
 
         // 🗓️ NEXT FIXTURES (လာမည့် ၃ ပွဲတိတိ)
         nextMatches: next3FixturesMap[el.team] || [],
 
-        // 🩺 INJURY & SUSPENSION STATUS
+        // 🩺 AVAILABILITY STATUS
         status: status,
         chanceOfPlaying: chanceOfPlaying,
         chanceOfPlayingThisRound: thisChanceRaw !== null ? Number(thisChanceRaw) : null,
@@ -274,8 +283,8 @@ async function main() {
       isSeasonStarted: isSeasonStarted,
       totalPlayers: allValidPlayers.length,
       updatedAt: FieldValue.serverTimestamp(),
-      fixturesByTeam: next3FixturesMap, // အသင်း ၂၀ ၏ လာမည့် ၃ ပွဲ Fixtures Map
-      players: allValidPlayers,          // ကစားသမား အချက်အလက် အစုံအလင်
+      fixturesByTeam: next3FixturesMap,
+      players: allValidPlayers,
     };
 
     // 🎯 Target: scoutPlayers collection -> allPlayers document
@@ -286,8 +295,8 @@ async function main() {
     console.log("============================================");
     console.log(`✅ [1-DOC QUOTA] scoutPlayers/allPlayers Sync Complete!`);
     console.log(`📊 Active Players: ${allValidPlayers.length}`);
-    console.log(`🗓️ Next Fixtures: Exactly 3 Matches Packed per Player/Team`);
-    console.log(`⚽ Goals, Assists, CS, Bonus, Cards, xG, xA, Transfers Included`);
+    console.log(`🌟 Verified Fields: Total Points, Week Points, Ownership, Form, xGI, xG, xA`);
+    console.log(`🗓️ Next Fixtures: Exactly 3 Matches Packed per Player`);
     console.log(`📦 Document Size: ~${approxSizeKb} KB (<1048 KB Safe Threshold)`);
     console.log(`💰 Firestore Write Quota Used: 1 WRITE ONLY`);
     console.log("============================================");
