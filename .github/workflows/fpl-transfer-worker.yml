@@ -1,0 +1,36 @@
+name: FPL Transfer Worker Engine
+
+on:
+  repository_dispatch:
+    types: [fpl-transfer-trigger]
+  workflow_dispatch:
+
+jobs:
+  run-worker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout Latest Repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          clean: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Dependencies
+        run: |
+          npm init -y
+          npm install firebase-admin axios axios-cookiejar-support tough-cookie
+
+      - name: Run FPL Worker Engine Script
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          echo "Listing scripts folder:"
+          ls -la scripts/
+          node scripts/fpl-worker-sync.js
