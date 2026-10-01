@@ -2,14 +2,16 @@
 // TW Fantasy Official League
 // Fixtures Sync Engine (Full Match Stats: Red Cards, Own Goals, Clean Sheets & Cards)
 // Architecture: Unified 1-Document Quota Saver (~215KB < 1MB Limit)
-// Fix: Safe Firebase Admin Initializer (Fixes admin.apps undefined error on Node.js v22)
+// Fix: Modular subpath import from "firebase-admin/app" and "firebase-admin/firestore"
+//      (Resolves Node.js v22 'reading cert' TypeError)
 // ============================================
 
-const admin = require("firebase-admin");
+const { initializeApp, cert, getApps } = require("firebase-admin/app");
+const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 const axios = require("axios");
 const { DiffWriter } = require("./lib/diff-sync");
 
-// === Firebase Admin Initialization (Crash-Proof Safe Pattern) ===
+// === Firebase Admin Initialization (Modern Modular Pattern) ===
 const rawServiceAccount = process.env.FIREBASE_SERVICE_ACCOUNT;
 
 if (!rawServiceAccount) {
@@ -21,17 +23,12 @@ const serviceAccount = typeof rawServiceAccount === "string"
   ? JSON.parse(rawServiceAccount)
   : rawServiceAccount;
 
-// Safe init without checking admin.apps.length (avoids undefined error)
-let app;
-try {
-  app = admin.app();
-} catch (e) {
-  app = admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-  });
-}
+// App init safe guard across Node.js v22+
+const app = getApps().length === 0
+  ? initializeApp({ credential: cert(serviceAccount) })
+  : getApps()[0];
 
-const db = admin.firestore();
+const db = getFirestore(app);
 
 // === FPL API Endpoints ===
 const FPL_BASE = "https://fantasy.premierleague.com/api";
@@ -67,7 +64,7 @@ const officialTeamTranslateMap = {
   "mun": 16, "new": 17, "nfo": 18, "tot": 19, "sun": 20
 };
 
-// 💡 FPL Match Stats Identifiers အားလုံး
+// 💡 FPL Match Stats Identifiers
 const STAT_IDENTIFIERS = [
   "goals_scored",
   "assists",
@@ -81,7 +78,7 @@ const STAT_IDENTIFIERS = [
   "bps"
 ];
 
-// 🤖 Current Gameweek အား အလိုအလျောက် တိကျစွာ ခွဲခြားထုတ်ယူပေးမည့် Engine
+// 🤖 Auto-Detect Gameweek Lifecycle Engine
 function autoDetectGameweek(events = []) {
   if (!Array.isArray(events) || events.length === 0) {
     return {
@@ -169,7 +166,7 @@ async function syncOfficialFplApiToFirebase() {
     ]);
 
     const currentGwDetails = autoDetectGameweek(bootstrap.events || []);
-    console.log(`📅 Current Gameweek Detected: ${currentGwDetails.name} (Status: ${currentGwDetails.status.toUpperCase()}, Live: ${currentGwDetails.isLive})`);
+    console.log(`📅 Current Gameweek: ${currentGwDetails.name} (Status: ${currentGwDetails.status.toUpperCase()}, Live: ${currentGwDetails.isLive})`);
 
     // Player ID -> Metadata Map
     const playerMasterMap = {};
@@ -316,7 +313,7 @@ async function syncOfficialFplApiToFirebase() {
     const masterFixturesDoc = {
       currentGameweek: currentGwDetails,
       totalMatches: formattedMatches.length,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
       gameweekSummary: summaryData,
       fixtures: formattedMatches
     };
@@ -324,7 +321,7 @@ async function syncOfficialFplApiToFirebase() {
     const diff = await new DiffWriter(db, "fixturesMeta").load();
     const docRef = db.collection("fixturesMeta").doc("allFixtures");
 
-    if (diff.changed("unified_fixtures_all_stats_v4", masterFixturesDoc)) {
+    if (diff.changed("unified_fixtures_all_stats_v5", masterFixturesDoc)) {
       await docRef.set(masterFixturesDoc);
       console.log("💾 [SAVED 1-DOC] fixturesMeta/allFixtures successfully written to Firestore.");
     } else {
