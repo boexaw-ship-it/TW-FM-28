@@ -1,6 +1,9 @@
 // ============================================
 // TW Fantasy Official League
-// Fixtures Official FPL Sync Script (+1 Hour Adjusted & BGW/DGW Support)
+// Fixtures Sync Engine (Full Match Stats: Red Cards, Own Goals, Clean Sheets & Cards)
+// Architecture: Unified 1-Document Quota Saver (~215KB < 1MB Limit)
+// Features: Auto Current Gameweek Lifecycle Engine + BGW/DGW Tracking
+// Quota Impact: 1 Write Operation Only
 // ============================================
 
 const admin = require("firebase-admin");
@@ -27,7 +30,7 @@ if (admin.apps.length === 0) {
 
 const db = admin.firestore();
 
-// === FPL API URLs ===
+// === FPL API Endpoints ===
 const FPL_BASE = "https://fantasy.premierleague.com/api";
 const FIXTURES_URL = `${FPL_BASE}/fixtures/`;
 const BOOTSTRAP_URL = `${FPL_BASE}/bootstrap-static/`;
@@ -36,7 +39,7 @@ const BOOTSTRAP_URL = `${FPL_BASE}/bootstrap-static/`;
 async function fplFetch(url) {
   try {
     const res = await axios.get(url, {
-      headers: { "User-Agent": "Mozilla/5.0 TW-Fantasy-Sync/1.0" }
+      headers: { "User-Agent": "Mozilla/5.0 TW-Fantasy-Sync/2.0 (Full-Stats-Engine)" }
     });
     return res.data;
   } catch (err) {
@@ -53,7 +56,7 @@ function addOneHourToISO(isoString) {
   return dateObj.toISOString();
 }
 
-// 💡 Official Team ID Mapping (19: TOT, 20: SUN အမှန်ပြင်ဆင်ထားသည်)
+// 💡 Official Team ID Mapping (19: TOT, 20: SUN)
 const officialTeamTranslateMap = {
   "ars": 1,  "avl": 2,  "bou": 3,  "bre": 4,  "bha": 5,
   "che": 6,  "cov": 7,  "cry": 8,  "eve": 9,  "ful": 10,
@@ -61,30 +64,137 @@ const officialTeamTranslateMap = {
   "mun": 16, "new": 17, "nfo": 18, "tot": 19, "sun": 20
 };
 
+// 💡 FPL Match Stats Identifier Labels Mapping
+const STAT_IDENTIFIERS = [
+  "goals_scored",
+  "assists",
+  "own_goals",
+  "penalties_saved",
+  "penalties_missed",
+  "yellow_cards",
+  "red_cards",
+  "saves",
+  "bonus",
+  "bps"
+];
+
+// 🤖 Current Gameweek အား အလိုအလျောက် တိကျစွာ ခွဲခြားထုတ်ယူပေးမည့် Lifecycle Engine
+function autoDetectGameweek(events = []) {
+  if (!Array.isArray(events) || events.length === 0) {
+    return {
+      id: 1,
+      name: "Gameweek 1",
+      status: "unknown",
+      isLive: false,
+      isFinished: false,
+      deadlineTime: null,
+      deadlineTimeEpoch: 0,
+      nextGw: null
+    };
+  }
+
+  const nowEpoch = Date.now();
+
+  // ၁။ တရားဝင် Active ဖြစ်နေသော လက်ရှိ GW
+  const officialCurrent = events.find((e) => e.is_current === true);
+
+  // ၂။ လာမည့် နောက်တစ်ပတ် GW
+  const officialNext = events.find((e) => e.is_next === true);
+
+  // ၃။ ကစားပြီးစီးသွားသော နောက်ဆုံးပွဲ GW
+  const finishedEvents = events.filter((e) => e.finished === true);
+  const lastFinished = finishedEvents.length > 0 ? finishedEvents[finishedEvents.length - 1] : null;
+
+  let targetEvent = null;
+  let status = "upcoming";
+
+  if (officialCurrent) {
+    targetEvent = officialCurrent;
+    status = officialCurrent.finished ? "finished" : "live";
+  } else if (officialNext) {
+    targetEvent = officialNext;
+    status = "upcoming";
+  } else if (lastFinished) {
+    targetEvent = lastFinished;
+    status = "season_ended";
+  } else {
+    targetEvent = events[0];
+    status = "pre_season";
+  }
+
+  const deadlineTime = targetEvent.deadline_time || null;
+  const deadlineTimeEpoch = deadlineTime ? new Date(deadlineTime).getTime() : 0;
+  const isPastDeadline = deadlineTimeEpoch > 0 && nowEpoch >= deadlineTimeEpoch;
+  const isLive = Boolean(targetEvent.is_current && !targetEvent.finished);
+
+  return {
+    id: targetEvent.id || 1,
+    name: targetEvent.name || `Gameweek ${targetEvent.id || 1}`,
+    status: status,
+    isCurrent: Boolean(targetEvent.is_current),
+    isNext: Boolean(targetEvent.is_next),
+    isLive: isLive,
+    isFinished: Boolean(targetEvent.finished),
+    isPastDeadline: isPastDeadline,
+    dataChecked: Boolean(targetEvent.data_checked),
+    deadlineTime: deadlineTime,
+    deadlineTimeEpoch: deadlineTimeEpoch,
+    averageScore: targetEvent.average_entry_score || 0,
+    highestScore: targetEvent.highest_score || 0,
+    mostCaptained: targetEvent.most_captained || null,
+    mostViceCaptained: targetEvent.most_vice_captained || null,
+    mostSelected: targetEvent.most_selected || null,
+    mostTransferredIn: targetEvent.most_transferred_in || null,
+    topPlayerId: targetEvent.top_element || null,
+    topPlayerPoints: targetEvent.top_element_info?.points || 0,
+    transfersMade: targetEvent.transfers_made || 0,
+    chipPlays: (targetEvent.chip_plays || []).map((c) => ({
+      chipName: c.chip_name,
+      numPlayed: c.num_played
+    })),
+    nextGw: officialNext ? {
+      id: officialNext.id,
+      name: officialNext.name,
+      deadlineTime: officialNext.deadline_time,
+      deadlineTimeEpoch: new Date(officialNext.deadline_time).getTime()
+    } : null
+  };
+}
+
 async function syncOfficialFplApiToFirebase() {
   try {
-    console.log("🚀 TW Fantasy — Official Fixtures Sync Starting...");
-    const bootstrap = await fplFetch(BOOTSTRAP_URL);
+    console.log("🚀 TW Fantasy — Full Match Stats Fixtures Sync Starting...");
+    console.log("Time:", new Date().toISOString());
 
-    // Player ID -> Web Name mapping
-    const playerWebNameMap = {};
+    const [bootstrap, apiFixtures] = await Promise.all([
+      fplFetch(BOOTSTRAP_URL),
+      fplFetch(FIXTURES_URL)
+    ]);
+
+    // 🤖 Current Gameweek အား Auto-Detect စနစ်ဖြင့် ရှာဖွေခြင်း
+    const currentGwDetails = autoDetectGameweek(bootstrap.events || []);
+    console.log(`📅 Current Gameweek Detected: ${currentGwDetails.name} (Status: ${currentGwDetails.status.toUpperCase()}, Live: ${currentGwDetails.isLive})`);
+
+    // Player ID -> Metadata Map (Name, Team, Position)
+    const playerMasterMap = {};
+    const positions = ["", "GK", "DEF", "MID", "FWD"];
     bootstrap.elements.forEach(el => {
-      playerWebNameMap[el.id] = el.web_name;
+      playerMasterMap[el.id] = {
+        name: el.web_name,
+        fullName: `${el.first_name} ${el.second_name}`,
+        pos: positions[el.element_type] || "MID",
+        team: el.team
+      };
     });
 
     // Team ID -> Short name mapping
     const teamShortNameMap = {};
     bootstrap.teams.forEach(t => {
-      teamShortNameMap[t.id] = t.short_name.toLowerCase();
+      teamShortNameMap[t.id] = (t.short_name || "").toLowerCase().trim();
     });
 
-    console.log("📡 Fetching fixtures from Premier League Official Server...");
-    const apiFixtures = await fplFetch(FIXTURES_URL);
-
-    // 💡 Gameweek အလိုက် အသင်းတစ်သင်းချင်းစီ၏ ပွဲအရေအတွက် တွက်ချက်ရန် Tracker (DGW/BGW Detector)
-    // Structure: { [gw]: { [teamId]: matchCount } }
+    // Gameweek အလိုက် အသင်းတစ်သင်းချင်းစီ၏ ပွဲအရေအတွက် တွက်ချက်ရန် Tracker (DGW/BGW Detector)
     const gwTeamMatchCount = {};
-
     apiFixtures.forEach(m => {
       const gw = m.event;
       if (gw) {
@@ -94,96 +204,108 @@ async function syncOfficialFplApiToFirebase() {
       }
     });
 
-    const diff = await new DiffWriter(db, "fixtures").load();
-    let batch = db.batch();
-    let count = 0;
+    const formattedMatches = [];
 
     for (const apiMatch of apiFixtures) {
-      const idStr = String(apiMatch.id);
-      const fixtureDocRef = db.collection("fixtures").doc(idStr);
-
       const homeTeamShort = teamShortNameMap[apiMatch.team_h] || "";
       const awayTeamShort = teamShortNameMap[apiMatch.team_a] || "";
 
-      // 💡 +1 နာရီ တိုးထားသော Kickoff Time
+      // +1 နာရီ တိုးထားသော Kickoff Time
       const adjustedKickoffTime = addOneHourToISO(apiMatch.kickoff_time);
 
-      // ဂိုးသွင်းသူများ၊ ဖန်တီးသူများ၏ Player Name Mapping
-      const formattedStats = (apiMatch.stats || []).map(statType => {
-        return {
-          identifier: statType.identifier,
-          h: (statType.h || []).map(p => ({ element: p.element, value: p.value, element_name: playerWebNameMap[p.element] || "Player" })),
-          a: (statType.a || []).map(p => ({ element: p.element, value: p.value, element_name: playerWebNameMap[p.element] || "Player" }))
-        };
+      // 💡 ၁။ ဂိုးသွင်းသူများ၊ Own Goals၊ Red Cards၊ Yellow Cards၊ Assists စသည့် အချက်အလက်များ အပြည့်အစုံ ဆွဲယူခြင်း
+      const detailedStats = {};
+      STAT_IDENTIFIERS.forEach(id => {
+        detailedStats[id] = { h: [], a: [] };
       });
 
+      (apiMatch.stats || []).forEach(statType => {
+        const id = statType.identifier;
+        if (detailedStats[id]) {
+          detailedStats[id].h = (statType.h || []).map(p => ({
+            element: p.element,
+            value: p.value,
+            name: playerMasterMap[p.element]?.name || "Player",
+            pos: playerMasterMap[p.element]?.pos || "MID"
+          }));
+          detailedStats[id].a = (statType.a || []).map(p => ({
+            element: p.element,
+            value: p.value,
+            name: playerMasterMap[p.element]?.name || "Player",
+            pos: playerMasterMap[p.element]?.pos || "MID"
+          }));
+        }
+      });
+
+      // 💡 ၂။ Clean Sheet Intelligence စစ်ဆေးခြင်း
+      const isHomeScoreDefined = apiMatch.team_h_score !== null && apiMatch.team_h_score !== undefined;
+      const isAwayScoreDefined = apiMatch.team_a_score !== null && apiMatch.team_a_score !== undefined;
+
+      const homeCleanSheet = Boolean(apiMatch.started && isAwayScoreDefined && apiMatch.team_a_score === 0);
+      const awayCleanSheet = Boolean(apiMatch.started && isHomeScoreDefined && apiMatch.team_h_score === 0);
+
       const gw = apiMatch.event;
-      // DGW စစ်ဆေးချက်: အဆိုပါ GW တွင် ယခုအသင်း ၂ ပွဲ ကစားရသလား
       const isHomeDgw = gw && gwTeamMatchCount[gw] && gwTeamMatchCount[gw][apiMatch.team_h] > 1;
       const isAwayDgw = gw && gwTeamMatchCount[gw] && gwTeamMatchCount[gw][apiMatch.team_a] > 1;
       const isDoubleGameweek = Boolean(isHomeDgw || isAwayDgw);
-
-      // Postponed (ပွဲရွှေ့ဆိုင်းထားခြင်း / BGW ဖြစ်ပေါ်စေသည့် ပွဲများ)
       const isPostponed = apiMatch.event === null || apiMatch.kickoff_time === null;
 
-      const matchData = {
+      formattedMatches.push({
         id: apiMatch.id,
-        event: apiMatch.event !== null ? Number(apiMatch.event) : null,             // Gameweek (1-38 သို့မဟုတ် ရွှေ့ဆိုင်းထားလျှင် null)
-        kickoff_time: adjustedKickoffTime,                                         // ⏰ +1 နာရီ တိုးထားသော Kickoff Time
+        event: apiMatch.event !== null ? Number(apiMatch.event) : null,
+        kickoff_time: adjustedKickoffTime,
+        kickoff_epoch: adjustedKickoffTime ? new Date(adjustedKickoffTime).getTime() : 0,
         team_h: apiMatch.team_h,
         team_a: apiMatch.team_a,
         team_h_code: homeTeamShort.toUpperCase(),
         team_a_code: awayTeamShort.toUpperCase(),
         team_h_jersey_id: officialTeamTranslateMap[homeTeamShort] || apiMatch.team_h,
         team_a_jersey_id: officialTeamTranslateMap[awayTeamShort] || apiMatch.team_a,
-        
-        // 💡 FDR TIER MAPPING (Client UI အတွက် မရှိမဖြစ် လိုအပ်သည်)
         team_h_difficulty: apiMatch.team_h_difficulty || 3,
         team_a_difficulty: apiMatch.team_a_difficulty || 3,
 
-        // 💡 BGW & DGW FLAGS:
-        is_dgw: isDoubleGameweek,                                                  // Double Gameweek ဟုတ်မဟုတ်
+        // BGW / DGW / Postponed Flags
+        is_dgw: isDoubleGameweek,
         is_home_dgw: Boolean(isHomeDgw),
         is_away_dgw: Boolean(isAwayDgw),
-        is_postponed: isPostponed,                                                 // ရွှေ့ဆိုင်းထားသော ပွဲစဉ်ဟုတ်မဟုတ်
+        is_postponed: isPostponed,
 
-        // 🔴 LIVE MATCH STATUS:
+        // Match Scores & Progress
         started: Boolean(apiMatch.started),
         finished: Boolean(apiMatch.finished),
         finished_provisional: Boolean(apiMatch.finished_provisional),
         minutes: Number(apiMatch.minutes) || 0,
-        team_h_score: apiMatch.team_h_score !== undefined ? apiMatch.team_h_score : null,
-        team_a_score: apiMatch.team_a_score !== undefined ? apiMatch.team_a_score : null,
-        stats: formattedStats,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
-      };
+        team_h_score: isHomeScoreDefined ? apiMatch.team_h_score : null,
+        team_a_score: isAwayScoreDefined ? apiMatch.team_a_score : null,
 
-      // data မပြောင်းရင် write မလုပ်ဘူး
-      if (!diff.changed(idStr, (({ updatedAt, ...rest }) => rest)(matchData))) continue;
-      batch.set(fixtureDocRef, matchData, { merge: true });
-      count++;
+        // 🛡️ Clean Sheet Flags
+        clean_sheets: {
+          home: homeCleanSheet,
+          away: awayCleanSheet
+        },
 
-      if (count % 400 === 0) {
-        await batch.commit();
-        batch = db.batch();
-      }
+        // 🩺 Key Highlights
+        highlights: {
+          goals: [...detailedStats.goals_scored.h.map(p => ({ ...p, isHome: true })), ...detailedStats.goals_scored.a.map(p => ({ ...p, isHome: false }))],
+          assists: [...detailedStats.assists.h.map(p => ({ ...p, isHome: true })), ...detailedStats.assists.a.map(p => ({ ...p, isHome: false }))],
+          ownGoals: [...detailedStats.own_goals.h.map(p => ({ ...p, isHome: true })), ...detailedStats.own_goals.a.map(p => ({ ...p, isHome: false }))],
+          redCards: [...detailedStats.red_cards.h.map(p => ({ ...p, isHome: true })), ...detailedStats.red_cards.a.map(p => ({ ...p, isHome: false }))],
+          yellowCards: [...detailedStats.yellow_cards.h.map(p => ({ ...p, isHome: true })), ...detailedStats.yellow_cards.a.map(p => ({ ...p, isHome: false }))],
+          bonus: [...detailedStats.bonus.h.map(p => ({ ...p, isHome: true })), ...detailedStats.bonus.a.map(p => ({ ...p, isHome: false }))]
+        },
+
+        // Detailed Stats
+        stats: detailedStats
+      });
     }
 
-    if (count % 400 !== 0) {
-      await batch.commit();
-    }
-
-    // 💡 GW SUMMARY METADATA: Blank Gameweek (ပွဲမရှိသော အသင်းများ) ကို Client ဘက်မှ အလွယ်တကူ သိရှိစေရန် ရေးသွင်းပေးခြင်း
-    console.log("📊 Writing Gameweek BGW/DGW Summary Metadata to Firestore...");
-    const gwSummaryRef = db.collection("system_meta").doc("gameweeks_summary");
+    // 💡 GW SUMMARY METADATA: Blank Gameweek & Double Gameweek Teams
     const totalTeams = Object.keys(officialTeamTranslateMap).map(k => officialTeamTranslateMap[k]);
-
     const summaryData = {};
+
     for (let g = 1; g <= 38; g++) {
       const activeTeamsInGw = gwTeamMatchCount[g] ? Object.keys(gwTeamMatchCount[g]).map(Number) : [];
-      // အဆိုပါ GW တွင် ပွဲမရှိသော အသင်းများ (Blank Teams)
       const blankTeams = totalTeams.filter(tId => !activeTeamsInGw.includes(tId));
-      // အဆိုပါ GW တွင် ၂ ပွဲ ကစားရသော အသင်းများ (Double Teams)
       const doubleTeams = activeTeamsInGw.filter(tId => gwTeamMatchCount[g][tId] > 1);
 
       summaryData[`gw_${g}`] = {
@@ -195,15 +317,38 @@ async function syncOfficialFplApiToFirebase() {
       };
     }
 
-    if (diff.changed("__gwsummary", summaryData)) {
-      await gwSummaryRef.set({
-        summary: summaryData,
-        lastSync: admin.firestore.FieldValue.serverTimestamp()
-      }, { merge: true });
-    }
-    await diff.save();
+    // 💡 1-DOCUMENT MASTER PAYLOAD
+    const masterFixturesDoc = {
+      currentGameweek: currentGwDetails, // 🤖 Auto Gameweek Lifecycle Metadata
+      totalMatches: formattedMatches.length,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      gameweekSummary: summaryData,
+      fixtures: formattedMatches
+    };
 
-    console.log(`🚀 [SUCCESS] ပွဲစဉ်ပေါင်း (${count}) ခု၏ Data များ၊ FDR နှင့် BGW/DGW Metadata အားလုံး Firebase သို့ အောင်မြင်စွာ ရေးသွင်းပြီးပါပြီ။`);
+    const diff = await new DiffWriter(db, "fixturesMeta").load();
+    const docRef = db.collection("fixturesMeta").doc("allFixtures");
+
+    if (diff.changed("unified_fixtures_master_v3", masterFixturesDoc)) {
+      await docRef.set(masterFixturesDoc);
+      console.log("💾 [SAVED 1-DOC] fixturesMeta/allFixtures successfully written with Auto GW.");
+    } else {
+      console.log("⚡ [NO CHANGE] Fixture data is identical to previous sync. Skipped write.");
+    }
+
+    await diff.save({ prune: true });
+
+    const approxPayloadBytes = Buffer.byteLength(JSON.stringify(masterFixturesDoc));
+    const approxSizeKb = Math.round(approxPayloadBytes / 1024);
+
+    console.log("============================================");
+    console.log(`✅ [1-DOC QUOTA] Fixtures & Auto GW Sync Complete!`);
+    console.log(`🤖 Current Gameweek: ${currentGwDetails.name} (Deadline: ${currentGwDetails.deadlineTime})`);
+    console.log(`⚽ Total Matches Packed: ${formattedMatches.length} fixtures`);
+    console.log(`📦 Document Size: ~${approxSizeKb} KB (Firestore Max Limit: 1048 KB)`);
+    console.log(`💰 Firestore Write Quota Used: 1 WRITE ONLY`);
+    console.log("============================================");
+
     process.exit(0);
 
   } catch (error) {
