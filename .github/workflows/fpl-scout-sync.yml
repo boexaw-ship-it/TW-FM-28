@@ -1,58 +1,71 @@
 # ============================================
 # TW Fantasy Official League
-# Player Scout Sync Workflow (Match-Day Optimized)
+# Player Scout Sync Workflow (Match-Day & Price Change Optimized)
+# Target Firestore: scoutPlayers/allPlayers (Unified 1-Doc Architecture)
 # ============================================
 
 name: FPL Player Scout Sync
 
 on:
-  # 💡 1. MANUAL TRIGGER — အန်ကယ် လိုချင်တဲ့အချိန် ဝင်ရောက်နှိပ်ပြီး run နိုင်ရန် Manual ခလုတ်
+  # 💡 1. MANUAL TRIGGER — လိုအပ်သည့်အချိန်တိုင်း အချိန်မရွေး Dashboard မှ Run နိုင်သည်
   workflow_dispatch:
 
-  # 💡 2. AUTO MATCH-DAY TIMELINE (CRON) — စနေ၊ တနင်္ဂနွေ ပွဲကန်ချိန်အတွင်းသာ ၁ နာရီတစ်ခါ အော်တိုမောင်းရန်
+  # 💡 2. AUTOMATED TIMELINE (CRON)
   schedule:
-    # 🎯 စနေနေ့ (Saturday) မြန်မာစံတော်ချိန် ညနေ 19:00, 20:00, 21:00, 22:00, 23:00, 24:00 တိတိတွင် မောင်းမည်
-    # (UTC အနေဖြင့် 12:30, 13:30, 14:30, 15:30, 16:30, 17:30 တွင် အလုပ်လုပ်ပါမည်)
+    # 🎯 နေ့စဉ် ဈေးနှုန်းပြောင်းလဲမှု Sync (Daily Price Rise/Fall Update)
+    # မြန်မာစံတော်ချိန် နေ့စဉ် မနက် 07:30 (UTC 01:00) တွင် ၁ ကြိမ် မောင်းမည်
+    - cron: '0 1 * * *'
+
+    # 🎯 စနေနေ့ (Saturday Match Day) မြန်မာစံတော်ချိန် ညနေ 19:00, 20:00, 21:00, 22:00, 23:00, 24:00
+    # (UTC: 12:30, 13:30, 14:30, 15:30, 16:30, 17:30)
     - cron: '30 12,13,14,15,16,17 * * 6'
 
-    # 🎯 တနင်္ဂနွေနေ့ (Sunday) မြန်မာစံတော်ချိန် ညနေ 19:00, 20:00, 21:00, 22:00, 23:00, 24:00 တိတိတွင် မောင်းမည်
-    # (UTC အနေဖြင့် 12:30, 13:30, 14:30, 15:30, 16:30, 17:30 တွင် အလုပ်လုပ်ပါမည်)
+    # 🎯 တနင်္ဂနွေနေ့ (Sunday Match Day) မြန်မာစံတော်ချိန် ညနေ 19:00, 20:00, 21:00, 22:00, 23:00, 24:00
+    # (UTC: 12:30, 13:30, 14:30, 15:30, 16:30, 17:30)
     - cron: '30 12,13,14,15,16,17 * * 0'
+
+concurrency:
+  group: scout-sync-group
+  cancel-in-progress: true      # အရင် sync မပြီးသေးဘဲ အသစ်ထပ်ရောက်လာပါက အဟောင်းကို auto cancel လုပ်သည်
 
 jobs:
   scout-sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 8          # [Master Stop]: Workflow တစ်ခုလုံး ၈ မိနစ်ထက်ကျော်လျှင် အဓမ္မ ရပ်တန့်ပစ်မည်
+    timeout-minutes: 6          # 1-Doc Engine အတွက် အများဆုံး ၆ မိနစ်သာ သတ်မှတ်သည်
 
     steps:
-      # Step 1 — Repository ကုဒ်အား ဆွဲယူခြင်း
+      # Step 1 — Repository ကုဒ်အား ရယူခြင်း
       - name: Checkout Repository
         uses: actions/checkout@v4
-        timeout-minutes: 2      # [Stop Safeguard]: ကုဒ်ဆွဲယူခြင်း ၂ မိနစ်ကျော်လျှင် ချက်ချင်း ရပ်ပစ်မည်
+        timeout-minutes: 2
 
-      # Step 2 — Node.js Setup ပြုလုပ်ခြင်း
-      - name: Setup Node.js
+      # Step 2 — Node.js Setup (LTS 20 ဖြင့် တည်ငြိမ်စွာ Run ခြင်း)
+      - name: Setup Node.js Environment
         uses: actions/setup-node@v4
         with:
           node-version: 20
-        timeout-minutes: 2      # [Stop Safeguard]: Node runtime တည်ဆောက်ခြင်း ၂ မိနစ်ကျော်လျှင် ရပ်ပစ်မည်
+          cache: 'npm'          # Dependencies များကို Cache သုံး၍ Run speed ၂ ဆ တင်ပေးသည်
+        timeout-minutes: 2
 
-      # Step 3 — Node Dependencies Framework များ Install ထည့်သွင်းခြင်း
+      # Step 3 — Dependencies တင်သွင်းခြင်း (Clean & Safe Install)
       - name: Install Dependencies
         run: |
-          npm init -y
-          npm install firebase-admin axios
-        timeout-minutes: 3      # [Stop Safeguard]: Framework သွင်းခြင်း ၃ မိနစ်ကျော်လျှင် ချက်ချင်း ရပ်ပစ်မည်
+          if [ -f package-lock.json ]; then
+            npm ci --omit=dev
+          elif [ -f package.json ]; then
+            npm install --omit=dev
+          else
+            npm install firebase-admin axios
+          fi
+        timeout-minutes: 3
 
-      # Step 4 — Player Scout Sync ကျည်ဆန်မောင်းထည့်ခြင်း (Price/Ownership/Points/Form/Fixtures)
+      # Step 4 — Player Scout Sync Engine Run ခြင်း (scoutPlayers/allPlayers)
       - name: Run Player Scout Sync
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        # 💡 scripts/player-scout-sync.js ဖိုင်ကို တိုက်ရိုက်လမ်းညွှန်၍ အော်တို Update ဆွဲခြင်း
         run: node scripts/player-scout-sync.js
-        timeout-minutes: 5      # [Critical Stop]: JS ဒေတာဆွဲမှု ၅ မိနစ်ထက်ကျော်သွားပါက ချက်ချင်း ရပ်တန့်ပစ်မည်
+        timeout-minutes: 4
 
-      # Step 5 — အောင်မြင်စွာ ပြီးဆုံးကြောင်း Summary Log ထုတ်ပြန်ခြင်း
+      # Step 5 — အောင်မြင်စွာ ပြီးဆုံးကြောင်း အတည်ပြုချက် ထုတ်ပြန်ခြင်း
       - name: Scout Sync Complete
         run: echo "✅ TW Fantasy Player Scout Sync Completed Successfully at $(date)"
-        
