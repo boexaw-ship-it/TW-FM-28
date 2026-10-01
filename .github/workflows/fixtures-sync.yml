@@ -1,0 +1,38 @@
+name: FPL Fixtures Official API Sync
+
+on:
+  # 💡 1. MANUAL RUN: GitHub Actions ထဲမှ 'Run workflow' ခလုတ်ဖြင့် အချိန်မရွေး စိတ်ကြိုက် မောင်းနိုင်ရန်
+  workflow_dispatch: 
+
+  # 💡 2. AUTO SCHEDULE (CRON): စနေ၊ တနင်္ဂနွေ ပွဲကန်မည့်အချိန်များတွင် အော်တိုမောင်းရန်
+  schedule:
+    # 🎯 စနေနေ့ (Saturday) မြန်မာစံတော်ချိန် ညနေ 18:00, 20:00, 22:00 တို့တွင် မောင်းနှင်မည် (UTC: 11:30, 13:30, 15:30)
+    - cron: '30 11,13,15 * * 6'
+
+    # 🎯 တနင်္ဂနွေနေ့ (Sunday) မြန်မာစံတော်ချိန် ညနေ 18:00, 20:00, 22:00 တို့တွင် မောင်းနှင်မည် (UTC: 11:30, 13:30, 15:30)
+    - cron: '30 11,13,15 * * 0'
+
+jobs:
+  api-live-sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository Codes
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22  # 💡 Node 20 Deprecation Warning ကို ရှင်းလင်းရန် Node 22 သို့ မြှင့်တင်ထားပါသည်
+
+      - name: Install Dependencies
+        run: |
+          npm install firebase-admin axios
+
+      - name: Execute Official API Sync Script
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        # 💡 scripts/fixtures-sync.js သို့ လမ်းညွှန်၍ Auto API ချိတ်ဆက်မောင်းနှင်ခြင်း
+        run: node scripts/fixtures-sync.js
+
+
