@@ -1,0 +1,42 @@
+// ============================================
+// Firestore Security Rules — EXAMPLE (project: tw-fm-28)
+// Firebase Console > Firestore > Rules ထဲ ကူးထည့်ပြီး ကိုယ့်လိုအပ်ချက်နဲ့ စစ်ပါ။
+// Sync scripts (firebase-admin) က rules ကို bypass လုပ်တယ် → client က ဖတ်ခွင့်ပဲ လိုတယ်။
+// ============================================
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
+
+    // Sync scripts ရေးတဲ့ data — client ဖတ်ရုံ
+    match /fixturesMeta/{d}          { allow read: if signedIn(); allow write: if false; }
+    match /scoutPlayers/{d}          { allow read: if signedIn(); allow write: if false; }
+    match /leagues/{d}               { allow read: if signedIn(); allow write: if false; }
+    match /liveTeams/{id}            { allow read: if signedIn(); allow write: if false; }
+    match /livePoints/{id}           { allow read: if signedIn(); allow write: if false; }
+    match /twf_weekly/{d}            { allow read: if signedIn(); allow write: if false; }
+    match /twf_supercup/{d}          { allow read: if signedIn(); allow write: if false; }
+    match /twf_tournaments_meta/{d}  { allow read: if signedIn(); allow write: if false; }
+    match /system/{d}                { allow read: if signedIn(); allow write: if false; }
+    match /system_meta/{d}           { allow read, write: if false; }
+
+    match /users/{uid} {
+      allow read: if signedIn();
+      allow create: if isOwner(uid);
+      // status / isApproved ကို client ကိုယ်တိုင် မပြောင်းနိုင်ရ
+      allow update: if isOwner(uid)
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'isApproved']);
+    }
+    match /userStatus/{uid}          { allow read: if signedIn(); allow write: if isOwner(uid); }
+    match /chat/{id} {
+      allow read, create: if signedIn();
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+    }
+    match /tournamentRegistrations/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn();
+      allow update, delete: if false;
+    }
+  }
+}

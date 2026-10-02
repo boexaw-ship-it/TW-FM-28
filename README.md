@@ -32,4 +32,19 @@ sw.js ရဲ့ version ကို build က auto ပြောင်းပေး�
 ## Tabs (bottom nav)
 Home=dashboard · My Team=team · Points=live · Leagues=leagues · More=fixtures/scout/transfers/draft/twsuper/logout
 Route တစ်ခုချင်းရဲ့ `tab` ကို js/routes.js မှာ သတ်မှတ် (null = tab bar ဖျောက်: login/register/pending)
-Theme အရောင်: css/app.css :root (--ac = purple accent) · Tailwind `emerald-*` = violet (tailwind.config.js)
+Theme အရောင်: css/app.css :root (--ac = purple accent) · ကွင်း (pitch) = indigo gradient · Tailwind `emerald-*` = violet (tailwind.config.js)
+
+## Firebase (project: tw-fm-28) — 1-document schema
+```
+fixturesMeta/allFixtures   fixtures[] + currentGameweek + gameweekSummary   (fixtures-sync.js)
+scoutPlayers/allPlayers    players[] + fixturesByTeam                       (player-scout-sync.js)
+leagues/{league1..5}       teams[] (standings + picks)                      (league-sync.js)
+liveTeams/{fplId} · livePoints/{fplId}                                      (weekly-live-sync.js / register-sync.js)
+```
+- Frontend ကနေ `js/core/data.js` အတွင်းကပဲ ဖတ် (page တွေက `getFixturesSnap()` · `getScoutSnap()` · `getLeagueStandingsSnap()`)
+- Home deadline / နောက်ဆုံးပြီးတဲ့ GW = `fixturesMeta.currentGameweek`
+- `firestore.rules.example` = Security Rules နမူနာ
+
+## GitHub Pages (boexaw-ship-it.github.io/TW-FM-28/)
+`<base>` မသုံးတော့ဘူး — လမ်းကြောင်းအားလုံး relative (`./`) ဖြစ်လို့ sub-path / localhost / Capacitor မှာ အတူတူ အလုပ်လုပ်တယ်။
+Push မတင်ခင် `node tools/build.js` ကို run (tailwind.css + sw.js version အသစ်)။
