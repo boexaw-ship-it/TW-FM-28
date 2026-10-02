@@ -1,0 +1,137 @@
+<!-- 📱 9:16 Frame Container (Mobile = 100% Full, PC = 9:16 Frame) -->
+  <div class="app-root-shell">
+
+    <!-- TOP APP BAR (Refresh Button တပ်ဆင်ထားသည်) -->
+    <header style="background:#14172b; border-bottom:1px solid #2d3366;" class="px-4 py-2.5 flex items-center justify-between shrink-0 z-30 shadow-md safe-top">
+      <div class="flex items-center">
+        <a href="#/more" style="color:#8c6dff; font-size:1.2rem; margin-right:8px; font-weight:bold;">←</a>
+        <h1 class="gold-text font-bold leading-none" style="font-family:'Bebas Neue'; letter-spacing:0.1em; font-size:1.3rem;">PLAYER SCOUT</h1>
+      </div>
+      
+      <!-- 🔄 Refresh Button -->
+      <button id="refresh-scout-btn" onclick="window.forceRefreshScout && window.forceRefreshScout()" class="flex items-center gap-1 bg-[#2d3366] border border-[#3a3f7a] text-[#8c6dff] px-2.5 py-1 rounded-lg text-[10px] font-black active:scale-95 transition-all shadow-md cursor-pointer">
+        <span id="btn-refresh-scout">🔄</span> Refresh
+      </button>
+    </header>
+
+    <!-- 💡 FILTER & SORT CONTROL CENTER -->
+    <div style="background:#14172b; border-bottom:1px solid #2d3366;" class="px-4 py-2 flex flex-col gap-2 shrink-0 z-20">
+      
+      <!-- ROW 1: 20 CLUBS TEAM SELECTOR DROPDOWN + CURRENT GW BADGE -->
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-1.5">
+          <span class="text-[9.5px] font-black text-slate-300 uppercase tracking-wider">Club Filter</span>
+          <!-- 🌟 Club Filter ဘေးတွင် Current GW Badge အသစ်တပ်ဆင်ထားသည် -->
+          <span id="scout-gw-badge" class="text-[8.5px] font-black px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-mono">GW —</span>
+        </div>
+        
+        <select id="scout-team-filter" onchange="window.filterTeam(this.value)" class="bg-[#0b0d1a] text-[#b3a1ff] text-[10px] font-black px-2.5 py-1 rounded-lg border border-[#8c6dff]/40 outline-hidden w-auto max-w-[170px] cursor-pointer shadow-xs">
+          <option value="all">🏟️ All Teams (20 Clubs)</option>
+          <option value="ARS">Arsenal</option>
+          <option value="AVL">Aston Villa</option>
+          <option value="BOU">Bournemouth</option>
+          <option value="BRE">Brentford</option>
+          <option value="BHA">Brighton</option>
+          <option value="CHE">Chelsea</option>
+          <option value="COV">Coventry City</option>
+          <option value="CRY">Crystal Palace</option>
+          <option value="EVE">Everton</option>
+          <option value="FUL">Fulham</option>
+          <option value="HUL">Hull City</option>
+          <option value="IPS">Ipswich Town</option>
+          <option value="LEE">Leeds United</option>
+          <option value="LIV">Liverpool</option>
+          <option value="MCI">Man City</option>
+          <option value="MUN">Man Utd</option>
+          <option value="NEW">Newcastle</option>
+          <option value="NFO">Nottingham Forest</option>
+          <option value="TOT">Tottenham</option>
+          <option value="SUN">Sunderland</option>
+        </select>
+      </div>
+
+      <!-- ROW 2: POSITION SWITCHES -->
+      <div class="grid grid-cols-5 gap-1.5 w-full">
+        <button id="filter-all" class="filter-btn" onclick="window.filterPos('all')">ALL</button>
+        <button id="filter-gk" class="filter-btn" onclick="window.filterPos('gk')">GK</button>
+        <button id="filter-def" class="filter-btn" onclick="window.filterPos('def')">DEF</button>
+        <button id="filter-mid" class="filter-btn" onclick="window.filterPos('mid')">MID</button>
+        <button id="filter-fwd" class="filter-btn" onclick="window.filterPos('fwd')">FWD</button>
+      </div>
+
+      <!-- ROW 3: SORT SWITCHES -->
+      <div class="grid grid-cols-5 gap-2 w-full pt-0.5">
+        <button id="sort-price" class="sort-btn" onclick="window.toggleSort('price')">💰 PRC</button>
+        <button id="sort-ownership" class="sort-btn" onclick="window.toggleSort('ownership')">👥 OWN</button>
+        <button id="sort-points" class="sort-btn" onclick="window.toggleSort('points')">⭐ TPts</button>
+        <button id="sort-form" class="sort-btn" onclick="window.toggleSort('form')">📈 FM</button>
+        <button id="sort-gwPoints" class="sort-btn" onclick="window.toggleSort('gwPoints')">⚡ WPts</button>
+      </div>
+    </div>
+
+    <!-- PLAYER LIST CONTAINER (Native Android & PC Safe Scroll) -->
+    <main id="scout-scroll-container" class="scout-scroll-area px-4 py-3">
+      <div id="player-list">
+        <p class="text-center text-xs py-8" style="color:#d9d0ff !important; font-weight: 800;">Loading players database...</p>
+      </div>
+    </main>
+</div>
+
+  <!-- 💡 SCOUT PLAYER DETAILS MODAL -->
+  <div id="player-modal" class="hidden" style="position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:99999; display:none; align-items:center; justify-content:center; padding:16px; backdrop-filter:blur(4px);" onclick="if(event.target===this)window.closeModal()">
+    <div style="background:#14172b; border:1px solid #3a3f7a; border-radius:1.25rem; width:100%; max-width:365px; max-height:92vh; display:flex; flex-direction:column; padding:18px; box-shadow:0 10px 40px rgba(0,0,0,0.8); position:relative; color:#ffffff;">
+      
+      <button onclick="window.closeModal()" style="position:absolute; top:14px; right:14px; background:rgba(0,0,0,0.3); border:1px solid #3a3f7a;" class="w-7 h-7 rounded-full flex items-center justify-center text-gray-300 hover:text-white font-bold text-sm cursor-pointer">✕</button>
+      
+      <div class="text-center pb-2.5 border-b border-[#3a3f7a]/60">
+        <h2 id="modal-name" class="text-base font-black tracking-wide text-white uppercase font-sans"></h2>
+        <p id="modal-team" class="text-[11px] text-slate-300 font-semibold mt-0.5"></p>
+        <div class="flex items-center justify-center gap-1.5 mt-1.5">
+          <span id="modal-position" class="text-[9px] font-black px-2.5 py-0.5 rounded-full text-white"></span>
+          <span id="modal-status-badge" class="hidden text-[9px] font-black px-2 py-0.5 rounded-full"></span>
+        </div>
+        <p id="modal-news-text" class="text-[9.5px] text-amber-300 font-semibold mt-1 px-2 hidden text-center"></p>
+      </div>
+
+      <!-- 8-Box Extended Metrics Grid -->
+      <div class="grid grid-cols-4 gap-1.5 my-3 text-center">
+        <div class="bg-black/30 rounded-lg p-1.5 border border-[#3a3f7a]/40">
+          <span class="text-[8px] text-gray-400 block font-bold">Price</span>
+          <span id="modal-price" class="text-[10.5px] font-black text-[#b3a1ff]"></span>
+        </div>
+        <div class="bg-black/30 rounded-lg p-1.5 border border-[#3a3f7a]/40">
+          <span class="text-[8px] text-gray-400 block font-bold">Owned</span>
+          <span id="modal-ownership" class="text-[10.5px] font-black text-white"></span>
+        </div>
+        <div class="bg-black/30 rounded-lg p-1.5 border border-[#3a3f7a]/40">
+          <span class="text-[8px] text-gray-400 block font-bold">Points</span>
+          <span id="modal-points" class="text-[10.5px] font-black text-emerald-400"></span>
+        </div>
+        <div class="bg-black/30 rounded-lg p-1.5 border border-[#3a3f7a]/40">
+          <span class="text-[8px] text-gray-400 block font-bold">Form / GW</span>
+          <span id="modal-form" class="text-[10px] font-black text-sky-400"></span>
+        </div>
+        <div class="bg-black/30 rounded-lg p-1.5 border border-[#3a3f7a]/40">
+          <span class="text-[8px] text-gray-400 block font-bold">PPG / VAL</span>
+          <span id="modal-ppg-val" class="text-[10px] font-black text-amber-300"></span>
+        </div>
+        <div class="bg-black/30 rounded-lg p-1.5 border border-[#3a3f7a]/40">
+          <span class="text-[8px] text-gray-400 block font-bold">L5 Pts</span>
+          <span id="modal-l5" class="text-[10.5px] font-black text-yellow-400"></span>
+        </div>
+        <div class="bg-black/30 rounded-lg p-1.5 border border-[#3a3f7a]/40">
+          <span class="text-[8px] text-gray-400 block font-bold">xGI</span>
+          <span id="modal-xgi" class="text-[10.5px] font-black text-purple-400"></span>
+        </div>
+        <div class="bg-black/30 rounded-lg p-1.5 border border-[#3a3f7a]/40">
+          <span class="text-[8px] text-gray-400 block font-bold">ICT Index</span>
+          <span id="modal-ict" class="text-[10.5px] font-black text-pink-400"></span>
+        </div>
+      </div>
+
+      <div class="text-center text-[10.5px] font-black text-[#b3a1ff] uppercase tracking-wider mb-1.5">Next 3 Matches</div>
+      <div id="modal-fixtures" class="space-y-1 overflow-y-auto max-h-[130px] pr-1"></div>
+
+      <button onclick="window.closeModal()" class="w-full mt-3 py-2 rounded-xl font-bold bg-[#2d3366] hover:bg-[#3a3f7a] text-white text-xs border border-[#3a3f7a] transition active:scale-95 cursor-pointer">Close</button>
+    </div>
+  </div>

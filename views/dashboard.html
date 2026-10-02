@@ -1,0 +1,82 @@
+<div class="home-root">
+  <header class="home-head safe-top">
+    <div class="home-brand">
+      <span class="home-logo">TW</span>
+      <div>
+        <h1>TW FM</h1>
+        <p>Together We Play</p>
+      </div>
+    </div>
+    <div class="home-who">
+      <span id="account-type-pill" class="home-pill">TW MEMBER</span>
+      <button id="pending-refresh-btn" onclick="handleCheckApprovalStatus()" class="hidden home-refresh">
+        <span id="check-icon">⟳</span><span>REFRESH</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="home-scroll">
+    <!-- Profile -->
+    <section class="home-profile">
+      <div class="home-avatar">⚽</div>
+      <div class="home-pf-text">
+        <h2 id="welcome-name">Loading...</h2>
+        <p id="welcome-sub">Manager: <span></span></p>
+      </div>
+    </section>
+
+    <!-- Deadline countdown -->
+    <section class="home-hero">
+      <div class="home-hero-top">
+        <span id="gw-label" class="home-tag">GW DEADLINE</span>
+        <span id="gw-when" class="home-hero-when"></span>
+      </div>
+      <div class="home-cd">
+        <div><b id="cd-d">--</b><small>DAYS</small></div>
+        <div><b id="cd-h">--</b><small>HRS</small></div>
+        <div><b id="cd-m">--</b><small>MIN</small></div>
+        <div><b id="cd-s">--</b><small>SEC</small></div>
+      </div>
+    </section>
+
+    <!-- Stats (title တစ်ခုချင်း အရောင်ခြားထား) -->
+    <section class="home-stats">
+      <div class="home-stat c-violet">
+        <span class="t">Total pts</span>
+        <b id="st-total">–</b>
+        <em id="st-total-d"></em>
+      </div>
+      <div class="home-stat c-blue wide">
+        <span class="t">Overall rank</span>
+        <b id="st-rank">–</b>
+        <em id="st-rank-d"></em>
+      </div>
+      <div class="home-stat c-green">
+        <span class="t" id="st-gw-l">GW score</span>
+        <b id="st-gw">–</b>
+        <em id="st-gw-d"></em>
+      </div>
+    </section>
+
+    <!-- Top players -->
+    <h3 class="home-h"><i></i>Top Players</h3>
+    <div class="home-tabs" id="leader-tabs">
+      <button class="on" data-k="gw" style="--c:#8c6dff">GW Pts</button>
+      <button data-k="total" style="--c:#3b82f6">Total</button>
+      <button data-k="form" style="--c:#f59e0b">Form</button>
+      <button data-k="own" style="--c:#10b981">Owned</button>
+    </div>
+    <div class="home-card home-list" id="leader-list">
+      <div class="home-skel"></div><div class="home-skel"></div><div class="home-skel"></div>
+    </div>
+
+    <!-- TW Register -->
+    <a class="home-banner" href="#/twsuper">
+      <span class="home-banner-ico">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2.5"/><path d="M9 4h6v3H9z"/><path d="M8.5 14l2.5 2.5 4.5-5.5"/></svg>
+      </span>
+      <span class="home-banner-txt"><b>TW Register</b><small>Weekly · Super Cup · Results</small></span>
+      <span class="home-new">NEW</span>
+    </a>
+  </main>
+</div>

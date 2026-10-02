@@ -1,0 +1,289 @@
+<!-- 📱 9:16 Main Frame Container -->
+  <div class="app-root-shell">
+
+    <!-- 🏆 TOP HEADER BAR (Back + Title | Reset & Save (Cache) | GW + Refresh (Firebase)) -->
+    <header class="bg-[#14172b] border-b border-[#2d3366] px-3 py-2 flex items-center justify-between shrink-0 z-30 shadow-md safe-top gap-1">
+      
+      <!-- ဘယ်ဘက်: Back Arrow & Title -->
+      <div class="flex items-center gap-1.5 shrink-0">
+        <button onclick="window.go('team')" class="text-[#8c6dff] font-bold text-lg active:scale-95 cursor-pointer">←</button>
+        <h1 class="font-['Bebas_Neue'] text-lg tracking-wider text-[#8c6dff] m-0 leading-none">TRANSFERS</h1>
+      </div>
+
+      <!-- အလယ်: Cache Storage Reset & Save ခလုတ်များ -->
+      <div class="flex items-center gap-1 shrink-0">
+        <button onclick="window.resetTransfersToFpl()" title="Reset to Original Squad" class="text-[9.5px] font-bold px-2 py-1 rounded-lg bg-black/50 text-amber-300 border border-amber-500/40 active:scale-95 flex items-center gap-0.5 cursor-pointer shadow-xs">
+          <span>↩️</span> Reset
+        </button>
+        <button onclick="window.saveCurrentStrategyState()" title="Save Current Strategy" class="text-[9.5px] font-bold px-2 py-1 rounded-lg bg-[#2d3366] text-[#b3a1ff] border border-[#8c6dff]/50 active:scale-95 flex items-center gap-0.5 cursor-pointer shadow-xs">
+          <span>💾</span> Save
+        </button>
+      </div>
+
+      <!-- ညာဘက်: GW Badge & Firebase Force Refresh ခလုတ် -->
+      <div class="flex items-center gap-1 shrink-0">
+        <span id="gw-badge" class="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-mono">GW 6</span>
+        <button id="btn-refresh-transfers" onclick="window.forceRefreshTransfersData()" title="Fetch Fresh Data from Firebase" class="text-[9.5px] font-bold px-2 py-1 rounded-lg bg-[#2d3366] text-[#8c6dff] border border-[#3a3f7a] active:scale-95 flex items-center gap-1 cursor-pointer shadow-xs">
+          <span id="refresh-transfers-icon">🔄</span> Refresh
+        </button>
+      </div>
+
+    </header>
+
+    <!-- ⚽ MAIN SCROLL AREA -->
+    <main class="strategy-scroll-area px-3 pt-2 pb-6 flex flex-col space-y-2 safe-bottom">
+
+      <!-- 🌟 SECTION 1: STRATEGY ANALYTICS -->
+      <div class="grid grid-cols-2 gap-2 mt-0.5 shrink-0">
+        
+        <!-- Swap Impact Box -->
+        <div class="rounded-xl p-2 bg-[#14172b] border border-[#3a3f7a]/50 shadow-sm flex flex-col justify-between min-h-[92px]">
+          <div class="flex items-center justify-between text-[8px] font-black uppercase tracking-wider mb-0.5">
+            <span class="text-gray-400">Swap Impact</span>
+            <span id="swap-type-badge" class="px-1 py-0.2 rounded bg-black/40 text-gray-400">READY</span>
+          </div>
+          <div id="swap-verdict-text" class="text-[9.5px] font-bold text-white truncate mb-1">
+            🔄 <span class="text-gray-400">Click slot to swap / sub</span>
+          </div>
+          <div class="w-full bg-black/40 h-1.5 rounded-full overflow-hidden flex">
+            <div id="template-out-bar" class="bg-red-500 h-full transition-all" style="width: 0%;"></div>
+            <div id="template-in-bar" class="bg-emerald-500 h-full transition-all" style="width: 0%;"></div>
+          </div>
+          <div class="flex justify-between items-center text-[8.5px] mt-1 font-mono font-bold">
+            <span id="template-out-label" class="text-red-400 truncate">Out: —</span>
+            <span id="template-in-label" class="text-emerald-400 truncate">In: —</span>
+          </div>
+        </div>
+
+        <!-- Captain Radar Box -->
+        <div class="rounded-xl p-2 bg-[#14172b] border border-[#3a3f7a]/50 shadow-sm flex flex-col justify-between min-h-[92px]">
+          <div class="text-[8px] font-black uppercase tracking-wider text-gray-400 mb-0.5">Captain Radar</div>
+          <div id="captain-risk-text" class="text-[10px] font-bold text-emerald-400 truncate">
+            🟢 Scanning (C)...
+          </div>
+          <p class="text-[7.5px] text-gray-400 truncate">FPL Top Rank Template Analysis</p>
+          <div class="flex items-center justify-between text-[8px] text-amber-300 font-mono">
+            <span>Active (C):</span>
+            <span id="active-cap-name" class="font-bold text-white truncate max-w-[85px]">—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 🌟 SECTION 2: CHIPS BAR -->
+      <div id="strategy-chips-bar" class="grid grid-cols-4 gap-1.5 shrink-0"></div>
+
+      <!-- 🌟 SECTION 3: BANK & SHIELD -->
+      <div class="grid grid-cols-2 gap-2 shrink-0">
+        <div class="rounded-xl p-2 bg-[#14172b] border border-[#3a3f7a]/50 flex flex-col justify-center">
+          <div class="flex items-center justify-between">
+            <span class="text-[8px] font-black uppercase text-gray-400">Bank Remaining</span>
+            <span id="budget-bank-label" class="font-mono text-xs font-black text-[#4ADE80]">£0.0m</span>
+          </div>
+          <div id="budget-total-cost" class="text-[8.5px] text-gray-200 font-mono font-bold mt-1 truncate">
+            £0.0m / £100.0m
+          </div>
+        </div>
+
+        <div class="rounded-xl p-2 bg-[#14172b] border border-[#3a3f7a]/50 flex flex-col justify-center items-center text-center">
+          <span class="text-[7.5px] font-black uppercase text-gray-400 mb-0.5">Team Ownership Shield</span>
+          <div id="team-shield-badge" class="px-1.5 py-0.5 rounded-lg text-[10.5px] font-black tracking-wider uppercase bg-[#713f12] text-yellow-300 border border-yellow-600/50 truncate w-full text-center">
+            ⚖️ BALANCED (--%)
+          </div>
+        </div>
+      </div>
+
+      <!-- 🔄 Sub Mode Alert Banner -->
+      <div id="sub-mode-banner" class="hidden rounded-xl p-2 bg-amber-500/20 border border-amber-400 text-amber-300 text-xs font-bold text-center flex items-center justify-between shadow-sm shrink-0">
+        <span class="flex items-center gap-1.5">
+          <span class="animate-bounce">🔄</span> 
+          <span>လဲလှယ်လိုသော ကစားသမားအား နှိပ်ပေးပါ</span>
+        </span>
+        <button onclick="window.cancelSubMode()" class="px-2.5 py-0.5 rounded bg-black/50 text-white text-[10px] hover:bg-black active:scale-95 transition cursor-pointer">ဖျက်မည်</button>
+      </div>
+
+      <!-- 🌟 SECTION 4: FORMATION PITCH VIEW -->
+      <div class="pitch-bg rounded-2xl p-2.5 shadow-xl border border-emerald-600/40 relative overflow-hidden flex flex-col justify-between min-h-[515px] shrink-0">
+        
+        <!-- Football Field Markings -->
+        <div class="pitch-inner-border"></div>
+        <div class="pitch-center-line"></div>
+        <div class="pitch-center-circle"></div>
+        <div class="pitch-top-box"></div>
+        <div class="pitch-top-goal"></div>
+        <div class="pitch-bottom-box"></div>
+
+        <!-- 💡 Pitch Top Header Info (Formation | Transfer & Free Transfer & Hit Cost | CP/SP Toggle) -->
+        <div class="flex items-center justify-between px-1 pt-0.5 z-10 gap-1.5">
+          
+          <!-- Formation Badge -->
+          <span id="active-formation-badge" class="text-[10px] font-black px-2 py-0.5 rounded bg-black/70 text-[#b3a1ff] border border-[#b3a1ff]/40 shrink-0">3-5-2</span>
+          
+          <!-- 🎯 Transfer & Hit Cost Tracker Bar -->
+          <div id="transfer-status-bar" class="flex-1 flex items-center justify-center gap-1.5 bg-black/65 border border-white/15 px-2 py-0.5 rounded-lg text-[9px] font-mono shadow-inner">
+            <span class="text-gray-300 font-bold">Transfers: <b id="transfers-made-count" class="text-white">0</b></span>
+            <span class="text-white/20">|</span>
+            <span class="text-emerald-400 font-bold">FT: <b id="free-transfers-count" class="text-emerald-300">1</b></span>
+            <span id="transfer-cost-badge" class="hidden px-1.5 py-0.2 rounded font-black text-[8.5px] bg-red-600 text-white border border-red-300 animate-pulse">-0 pts</span>
+          </div>
+
+          <!-- 💱 CP / SP Toggle Button -->
+          <button id="btn-toggle-price-mode" type="button" class="text-[9px] font-black px-2 py-0.5 rounded-lg border border-sky-400 bg-sky-950 text-sky-300 active:scale-95 transition-all shadow-md flex items-center gap-1 cursor-pointer shrink-0">
+            💱 CP (Current)
+          </button>
+        </div>
+
+        <!-- Pitch Starters (GK / DEF / MID / FWD) -->
+        <div id="pitch-starters" class="flex flex-col justify-between flex-1 z-10 pt-1 pb-3 space-y-1.5"></div>
+
+        <!-- Bench Area -->
+        <div class="mt-0.5 pt-1.5 border-t border-white/10 bg-black/45 rounded-xl p-1.5 z-10 shadow-inner">
+          <!-- 🌟 ပြင်ဆင်ပြီး: BENCH စာလုံးအကြီး၊ အဖြူရောင် အပါးလေး -->
+          <div class="text-[9px] font-medium text-center text-white/70 uppercase tracking-widest mb-1.5">BENCH</div>
+          <div id="pitch-bench" class="flex justify-around items-center"></div>
+        </div>
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- 🌟 POPUP 1: PLAYER ACTION MODAL -->
+  <div id="player-action-modal" class="hidden fixed inset-0 bg-black/85 backdrop-blur-xs z-[9999] items-center justify-center p-4">
+    <div class="w-full max-w-xs rounded-2xl p-4 bg-[#14172b] border border-[#3a3f7a] text-white shadow-2xl flex flex-col space-y-3">
+      
+      <div class="flex justify-between items-start border-b border-white/10 pb-2">
+        <div class="flex items-center gap-2">
+          <div id="pa-jersey-wrap" class="w-9 h-9 flex items-center justify-center"></div>
+          <div>
+            <h2 id="pa-name" class="text-base font-black text-white leading-tight">Player Name</h2>
+            <p id="pa-team-pos" class="text-[11px] text-gray-300">Club • POS</p>
+          </div>
+        </div>
+        <button onclick="window.closePlayerActionModal()" class="text-gray-400 hover:text-white font-bold text-xl px-1 cursor-pointer">✕</button>
+      </div>
+
+      <div class="grid grid-cols-3 gap-1.5 text-center text-[10px]">
+        <div class="bg-black/30 p-1 rounded border border-white/5">
+          <span class="text-gray-400 text-[8px] block">Price</span>
+          <span id="pa-price" class="font-black text-[#b3a1ff]">£0.0m</span>
+        </div>
+        <div class="bg-black/30 p-1 rounded border border-white/5">
+          <span class="text-gray-400 text-[8px] block">Total Pts</span>
+          <span id="pa-total-pts" class="font-black text-emerald-400">0</span>
+        </div>
+        <div class="bg-black/30 p-1 rounded border border-white/5">
+          <span class="text-gray-400 text-[8px] block">Week Pts</span>
+          <span id="pa-gw-pts" class="font-black text-amber-300">0</span>
+        </div>
+        <div class="bg-black/30 p-1 rounded border border-white/5">
+          <span class="text-gray-400 text-[8px] block">Ownership</span>
+          <span id="pa-own" class="font-black text-white">0%</span>
+        </div>
+        <div class="bg-black/30 p-1 rounded border border-white/5">
+          <span class="text-gray-400 text-[8px] block">Form</span>
+          <span id="pa-form" class="font-black text-sky-400">0.0</span>
+        </div>
+        <div class="bg-black/30 p-1 rounded border border-white/5">
+          <span class="text-gray-400 text-[8px] block">xG / ICT</span>
+          <span id="pa-xg-ict" class="font-black text-purple-300">0 / 0</span>
+        </div>
+      </div>
+
+      <div>
+        <div class="text-[9px] font-black text-gray-400 uppercase tracking-wider mb-1">Upcoming 3 Fixtures</div>
+        <div id="pa-fixtures-list" class="space-y-1"></div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 pt-1">
+        <button onclick="window.handleMakeCaptain()" class="py-2 rounded-xl text-xs font-black bg-[#8c6dff] text-[#14172b] active:scale-95 shadow cursor-pointer">Make (C)</button>
+        <button onclick="window.handleMakeVice()" class="py-2 rounded-xl text-xs font-black bg-slate-300 text-slate-900 active:scale-95 shadow cursor-pointer">Make (V)</button>
+        <button onclick="window.handleTriggerSub()" class="py-2 rounded-xl text-xs font-black bg-sky-600 hover:bg-sky-500 text-white active:scale-95 shadow flex items-center justify-center gap-1 cursor-pointer">🔄 Sub (လူလဲမည်)</button>
+        <button onclick="window.handleSellFromSlot()" class="py-2 rounded-xl text-xs font-black bg-red-600 hover:bg-red-500 text-white active:scale-95 shadow flex items-center justify-center gap-1 cursor-pointer">🛒 Transfer (ဝယ်မည်)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🌟 POPUP 2: SCOUT MARKET MODAL -->
+  <div id="market-modal" class="hidden market-drawer">
+    <div class="market-drawer-content">
+      <div class="flex justify-between items-center pb-2 border-b border-white/10">
+        <div>
+          <h2 class="text-sm font-black text-white uppercase tracking-wide">Scout Market</h2>
+          <p id="market-filter-pos-hint" class="text-[10px] text-emerald-400 font-bold">Selecting POS</p>
+        </div>
+        <button onclick="window.closeMarketModal()" class="text-gray-400 hover:text-white font-bold text-xl px-2 cursor-pointer">✕</button>
+      </div>
+
+      <div class="flex items-center gap-1.5 py-2 overflow-x-auto text-[9px] font-black shrink-0">
+        <button onclick="window.setMarketSort('form')" id="msort-form" class="px-2.5 py-1 rounded bg-[#8c6dff] text-[#14172b] cursor-pointer">FORM</button>
+        <button onclick="window.setMarketSort('ownership')" id="msort-ownership" class="px-2.5 py-1 rounded bg-black/40 text-gray-300 cursor-pointer">OWNED</button>
+        <button onclick="window.setMarketSort('points')" id="msort-points" class="px-2.5 py-1 rounded bg-black/40 text-gray-300 cursor-pointer">TOTAL PTS</button>
+        <button onclick="window.setMarketSort('gwPoints')" id="msort-gwPoints" class="px-2.5 py-1 rounded bg-black/40 text-gray-300 cursor-pointer">WEEK PTS</button>
+        <button onclick="window.setMarketSort('xg')" id="msort-xg" class="px-2.5 py-1 rounded bg-black/40 text-gray-300 cursor-pointer">xG</button>
+        <button onclick="window.setMarketSort('ict')" id="msort-ict" class="px-2.5 py-1 rounded bg-black/40 text-gray-300 cursor-pointer">ICT</button>
+        <button onclick="window.setMarketSort('price')" id="msort-price" class="px-2.5 py-1 rounded bg-black/40 text-gray-300 cursor-pointer">PRICE</button>
+      </div>
+
+      <div id="market-player-list" class="flex-1 overflow-y-auto space-y-2 pr-1 py-1"></div>
+    </div>
+  </div>
+
+  <!-- 🌟 POPUP 3: MARKET PLAYER DETAILS MODAL -->
+  <div id="market-detail-modal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-xs z-[10000] items-center justify-center p-4">
+    <div class="w-full max-w-xs rounded-2xl p-4 bg-[#14172b] border border-[#3a3f7a] text-white shadow-2xl flex flex-col space-y-3">
+      <div class="flex justify-between items-start border-b border-white/10 pb-2">
+        <div class="flex items-center gap-2">
+          <div id="md-jersey-wrap" class="w-9 h-9 flex items-center justify-center"></div>
+          <div>
+            <h2 id="md-name" class="text-base font-black text-white leading-tight">Player Name</h2>
+            <p id="md-team-pos" class="text-[11px] text-gray-300">Club • POS</p>
+          </div>
+        </div>
+        <button onclick="window.closeMarketDetailModal()" class="text-gray-400 hover:text-white font-bold text-xl px-1 cursor-pointer">✕</button>
+      </div>
+
+      <div class="grid grid-cols-3 gap-1.5 text-center text-[10px]">
+        <div class="bg-black/30 p-1 rounded border border-white/5">
+          <span class="text-gray-400 text-[8px] block">Price</span>
+          <span id="md-price" class="font-black text-[#b3a1ff]">£0.0m</span>
+        </div>
+        <div class="bg-black/30 p-1 rounded border border-white/5">
+          <span class="text-gray-400 text-[8px] block">Total Pts</span>
+          <span id="md-total-pts" class="font-black text-emerald-400">0</span>
+        </div>
+        <div class="bg-black/30 p-1 rounded border border-white/5">
+          <span class="text-gray-400 text-[8px] block">Week Pts</span>
+          <span id="md-gw-pts" class="font-black text-amber-300">0</span>
+        </div>
+        <div class="bg-black/30 p-1 rounded border border-white/5">
+          <span class="text-gray-400 text-[8px] block">Ownership</span>
+          <span id="md-own" class="font-black text-white">0%</span>
+        </div>
+        <div class="bg-black/30 p-1 rounded border border-white/5">
+          <span class="text-gray-400 text-[8px] block">Form</span>
+          <span id="md-form" class="font-black text-sky-400">0.0</span>
+        </div>
+        <div class="bg-black/30 p-1 rounded border border-white/5">
+          <span class="text-gray-400 text-[8px] block">xG / ICT</span>
+          <span id="md-xg-ict" class="font-black text-purple-300">0 / 0</span>
+        </div>
+      </div>
+
+      <div>
+        <div class="text-[9px] font-black text-gray-400 uppercase tracking-wider mb-1">Upcoming Fixtures</div>
+        <div id="md-fixtures-list" class="space-y-1"></div>
+      </div>
+
+      <button id="md-btn-use" class="w-full py-2.5 rounded-xl text-xs font-black bg-[#8c6dff] text-[#14172b] active:scale-95 shadow cursor-pointer">USE THIS PLAYER</button>
+    </div>
+  </div>
+
+  <!-- 🌟 POPUP 4: CUSTOM TOAST MODAL -->
+  <div id="tw-toast-modal" class="hidden fixed inset-0 bg-black/75 backdrop-blur-xs z-[99999] items-center justify-center p-4">
+    <div id="tw-toast-box" class="w-full max-w-xs rounded-2xl p-4 bg-[#14172b] border border-amber-500/40 text-white shadow-2xl text-center">
+      <div id="tw-toast-icon" class="text-3xl mb-2">⚠️</div>
+      <h3 id="tw-toast-title" class="text-sm font-black mb-1">သတိပေးချက်</h3>
+      <p id="tw-toast-msg" class="text-xs text-gray-300 leading-relaxed font-medium mb-3">မက်ဆေ့ချ်</p>
+      <button onclick="window.closeTwToast()" class="w-full py-2 rounded-xl font-bold bg-[#2d3366] hover:bg-[#3a3f7a] text-white text-xs border border-[#3a3f7a] cursor-pointer">နားလည်ပါပြီ</button>
+    </div>
+  </div>

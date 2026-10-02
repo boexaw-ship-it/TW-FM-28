@@ -1,0 +1,96 @@
+<!-- 📱 9:16 Frame Container (Mobile = 100% Full, PC = 9:16 Frame) -->
+  <div class="app-root-shell">
+
+    <!-- TOP APP BAR -->
+    <header style="background:#0b0d1a; border-bottom:1px solid #2d3366;" class="px-3.5 py-2 flex items-center justify-between shrink-0 z-30 shadow-md safe-top">
+      <div class="flex items-center">
+        <a href="#/more" style="color:#8c6dff; font-size:1.15rem; margin-right:8px; font-weight: 900;">←</a>
+        <h1 class="gold-text font-bold" style="font-family:'Bebas Neue'; letter-spacing:0.1em; font-size:1.2rem;">FIXTURE & SQUAD MATRIX</h1>
+      </div>
+      
+      <div class="ml-auto flex items-center gap-1.5">
+        <button onclick="window.resetDraftToFPLRealtime()" class="text-[9.5px] font-black px-2 py-0.5 rounded border border-[#ef4444]/40 text-red-400 bg-red-950/20 active:scale-95 transition-all">
+          🔄 RESET
+        </button>
+        <span id="gw-header-label" class="text-[9.5px] font-bold px-2 py-0.5 rounded bg-[#2d3366] text-[#d9d0ff]">GW 5</span>
+      </div>
+    </header>
+
+    <!-- 🌟 MAIN NAVIGATION TABS -->
+    <div class="p-2 bg-[#0b0d1a] border-b border-[#2d3366]/60 shrink-0 z-20">
+      <div class="grid grid-cols-2 gap-2 p-1 rounded-xl bg-[#2d3366]/40 border border-[#3a3f7a]">
+        <button id="btn-matrix-all" onclick="switchMatrixView('all')" class="py-2 text-[10.5px] font-black rounded-lg transition-all" style="background:#8c6dff; color:#0b0d1a;">
+          🏟️ 20 TEAMS (38 GW)
+        </button>
+        <button id="btn-matrix-squad" onclick="switchMatrixView('squad')" class="py-2 text-[10.5px] font-black rounded-lg text-[#4ADE80] transition-all" style="background:transparent;">
+          👕 MY SQUAD (15 PICKS)
+        </button>
+      </div>
+    </div>
+
+    <!-- 🌟 MAIN FULL SCREEN VIEWPORT -->
+    <main class="flex-1 overflow-hidden bg-[#0b0d1a] relative flex flex-col p-1.5 min-h-0 safe-bottom">
+      
+      <!-- 🟢 TAB 1: 20 TEAMS FULL MATRIX -->
+      <div id="matrix-all-teams-container" class="flex-1 flex flex-col min-h-0 space-y-1.5 overflow-hidden">
+        <div onclick="window.openTeamModal()" class="rounded-lg px-3 py-1.5 flex items-center justify-between cursor-pointer w-full bg-[#2d3366] border border-[#3a3f7a] shrink-0 shadow-sm">
+          <span class="text-[11px] font-semibold text-[#d9d0ff]">🔍 Team Filter:</span>
+          <div class="flex items-center gap-1.5">
+            <span id="selected-team-label" class="text-[11px] font-bold text-[#8c6dff]">Show All Teams</span>
+            <span class="text-[9px] text-[#8c6dff]">▼</span>
+          </div>
+        </div>
+
+        <!-- 38 GW Scroll Container -->
+        <div class="flex-1 matrix-scroll-container rounded-xl border border-[#3a3f7a] bg-[#14172b] shadow-inner">
+          <table class="w-max border-separate border-spacing-0 text-center text-[10px]" style="table-layout: fixed; width: calc(88px + (58px * 38));">
+            <thead>
+              <tr id="fixture-header-row" class="text-[9px] uppercase tracking-wider bg-[#0b0d1a] text-[#8c6dff]">
+                <th class="sticky-col-header bg-[#0b0d1a] border-r border-b border-[#3a3f7a] px-2 py-2 text-left font-black text-[#b3a1ff] shadow-[2px_0_5px_rgba(0,0,0,0.5)]" style="width: 88px; min-width: 88px; max-width: 88px;">TEAM</th>
+              </tr>
+            </thead>
+            <tbody id="fixture-table-body" class="font-bold"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 🟡 TAB 2: MY SQUAD 15 MATRIX (Player Column Width: 135px သို့ ချဲ့ထွင်ထားသည်) -->
+      <div id="matrix-my-squad-container" class="hidden flex-1 matrix-scroll-container rounded-xl border border-[#3a3f7a] bg-[#14172b] shadow-inner">
+        <table class="w-max border-separate border-spacing-0 text-center text-[10px]" style="table-layout: fixed;">
+          <thead>
+            <tr id="squad-matrix-header-row" class="text-[9px] uppercase tracking-wider bg-[#0b0d1a] text-[#8c6dff]">
+              <th class="sticky left-0 top-0 z-40 bg-[#0b0d1a] border-r border-b border-[#3a3f7a] p-2 text-left font-black text-[#b3a1ff] shadow-[2px_0_5px_rgba(0,0,0,0.4)]" style="width: 135px; min-width: 135px;">PLAYER</th>
+              <th class="sticky top-0 z-30 bg-[#0b0d1a] border-r border-b border-[#3a3f7a] p-2 text-center text-[#b3a1ff] font-black" style="width: 72px; min-width: 72px;" id="sm-gw1">GW6</th>
+              <th class="sticky top-0 z-30 bg-[#0b0d1a] border-r border-b border-[#3a3f7a] p-2 text-center text-[#b3a1ff] font-black" style="width: 72px; min-width: 72px;" id="sm-gw2">GW7</th>
+              <th class="sticky top-0 z-30 bg-[#0b0d1a] border-r border-b border-[#3a3f7a] p-2 text-center text-[#b3a1ff] font-black" style="width: 72px; min-width: 72px;" id="sm-gw3">GW8</th>
+              <th class="sticky top-0 z-30 bg-[#0b0d1a] border-r border-b border-[#3a3f7a] p-2 text-center text-[#38BDF8] font-black" style="width: 44px; min-width: 44px;">FORM</th>
+              <th class="sticky top-0 z-30 bg-[#0b0d1a] border-r border-b border-[#3a3f7a] p-2 text-center text-[#FBBF24] font-black" style="width: 44px; min-width: 44px;">TPTS</th>
+              <th class="sticky top-0 z-30 bg-[#0b0d1a] border-r border-b border-[#3a3f7a] p-2 text-center text-[#FDE047] font-black" style="width: 44px; min-width: 44px;">WPTS</th>
+              <th class="sticky top-0 z-30 bg-[#0b0d1a] border-r border-b border-[#3a3f7a] p-2 text-center text-[#34D399] font-black" style="width: 44px; min-width: 44px;">PPG</th>
+              <th class="sticky top-0 z-30 bg-[#0b0d1a] border-r border-b border-[#3a3f7a] p-2 text-center text-[#F472B6] font-black" style="width: 44px; min-width: 44px;">VAL</th>
+              <th class="sticky top-0 z-30 bg-[#0b0d1a] border-r border-b border-[#3a3f7a] p-2 text-center text-[#FACC15] font-black" style="width: 44px; min-width: 44px;">L5</th>
+              <th class="sticky top-0 z-30 bg-[#0b0d1a] border-r border-b border-[#3a3f7a] p-2 text-center text-[#C084FC] font-black" style="width: 44px; min-width: 44px;">xGI</th>
+              <th class="sticky top-0 z-30 bg-[#0b0d1a] border-r border-b border-[#3a3f7a] p-2 text-center text-[#F43F5E] font-black" style="width: 44px; min-width: 44px;">ICT</th>
+              <th class="sticky top-0 z-30 bg-[#0b0d1a] border-b border-[#3a3f7a] p-2 text-center text-white font-black" style="width: 48px; min-width: 48px;">OWN</th>
+            </tr>
+          </thead>
+          <tbody id="squad-matrix-body" class="font-bold"></tbody>
+        </table>
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- TEAM FILTER MODAL -->
+  <div id="team-modal" class="hidden" style="position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:100; display:none; align-items:flex-end; justify-content:center;" onclick="if(event.target===this)closeTeamModal()">
+    <div class="w-full max-w-md rounded-t-2xl p-4 flex flex-col" style="background:#0b0d1a; border-top: 2px solid #8c6dff; max-height:75vh;">
+      <div class="flex justify-between items-center pb-3 border-b border-gray-800 mb-2">
+        <span class="text-xs font-bold tracking-wider" style="color:#8c6dff;">SELECT TEAM FILTER</span>
+        <button onclick="window.closeTeamModal()" class="text-sm font-bold w-6 h-6 rounded-full flex items-center justify-center" style="background:#2d3366; color:#d9d0ff;">✕</button>
+      </div>
+      <div class="overflow-y-auto flex-1 space-y-1.5 no-scrollbar pr-0.5" id="team-options-list"></div>
+    </div>
+  </div>
+
+  <!-- VIEW SWITCHER SCRIPT -->

@@ -1,0 +1,187 @@
+<!-- 🌟 Main 9:16 Responsive Shell -->
+  <div class="app-root-shell">
+
+    <!-- 📌 အငြိမ်ထားမည့် TOP FIXED SECTION (Header + Overview Card + Tab ၃ ခု) -->
+    <div class="fixed-top-section safe-top-bar">
+      
+      <!-- 🏆 TOP HEADER BAR -->
+      <header class="px-4 py-2.5 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <button onclick="window.go('more')" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-emerald-400 active:scale-95 transition-transform cursor-pointer">
+            ✕
+          </button>
+          <h1 class="text-base font-black tracking-wider text-[#b3a1ff] uppercase leading-none font-mono">
+            TOURNAMENT SQUAD
+          </h1>
+        </div>
+        <button onclick="handleRefreshData()" id="btn-refresh-tour" class="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white/10 border border-white/15 text-[11px] font-bold text-emerald-300 active:scale-95 transition-all cursor-pointer">
+          <span id="refresh-icon">🔄</span>
+          <span>Refresh</span>
+        </button>
+      </header>
+
+      <!-- 🌟 Top Overview Card + Tabs Wrapper -->
+      <div class="px-3 pb-2.5">
+        
+        <!-- 🌟 Top Overview Card -->
+        <div class="rounded-2xl p-3 bg-gradient-to-r from-[#1b1f3a] via-[#2d3366] to-[#1b1f3a] border border-[#8c6dff]/45 flex items-center justify-between shadow-lg mb-2">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div class="w-10 h-10 rounded-xl bg-black/40 border border-[#8c6dff]/40 flex items-center justify-center text-xl shadow-inner shrink-0">
+              🏆
+            </div>
+            <div class="min-w-0">
+              <h2 class="text-xs font-black text-[#b3a1ff] tracking-wide uppercase truncate">
+                TW FPL အတည်ပြုစာရင်း
+              </h2>
+              <p class="text-[9.5px] text-emerald-200/90 font-medium truncate">
+                Admin Approve ရရှိထားသော အသင်းများနှင့် ဆုရစာရင်း
+              </p>
+            </div>
+          </div>
+          <div class="bg-black/50 border border-white/15 rounded-xl px-2.5 py-1 flex flex-col items-center shrink-0">
+            <span id="confirmed-count" class="text-sm font-black text-white font-mono leading-none">0</span>
+            <span class="text-[7.5px] font-bold uppercase text-emerald-400 tracking-wider">TEAMS</span>
+          </div>
+        </div>
+
+        <!-- 🌟 ၃ ရောင် Tab Switch Buttons -->
+        <div class="grid grid-cols-3 gap-1.5 p-1 bg-black/40 border border-white/10 rounded-2xl shadow-inner">
+          <!-- Tab 1: Weekly -->
+          <button 
+            id="tab-btn-weekly" 
+            onclick="switchTab('weekly')" 
+            class="py-2 rounded-xl text-[11px] font-black transition-all tracking-wider uppercase bg-[#8c6dff] text-[#0b0d1a] shadow-md cursor-pointer">
+            WEEKLY
+          </button>
+
+          <!-- Tab 2: Super Cup -->
+          <button 
+            id="tab-btn-supercup" 
+            onclick="switchTab('supercup')" 
+            class="py-2 rounded-xl text-[11px] font-bold transition-all tracking-wider uppercase text-slate-300 hover:text-white cursor-pointer">
+            SUPER CUP
+          </button>
+
+          <!-- Tab 3: TW ဆုများ -->
+          <button 
+            id="tab-btn-winners" 
+            onclick="switchTab('winners')" 
+            class="py-2 rounded-xl text-[10.5px] font-bold transition-all tracking-tight uppercase text-slate-300 hover:text-white flex items-center justify-center gap-1 cursor-pointer">
+            <span>🎁</span>
+            <span>TW ဆုများ</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 📜 SCROLLABLE CONTENT BODY (အောက်သို့ဆွဲသည့်အခါ ဤနေရာသာ Scroll ဖြစ်မည်) -->
+    <main class="scrollable-content-engine">
+
+      <!-- 📋 VIEW 1 & 2: SQUAD CONFIRMED LIST CONTAINER -->
+      <div id="squad-list-container" class="flex flex-col">
+        <!-- JS dynamic content goes here -->
+      </div>
+
+      <!-- 🏆 VIEW 3: TW WEEKLY ဆုရရှိသူများ CONTAINER -->
+      <div id="winners-list-container" class="hidden flex-col">
+        <!-- JS dynamic content goes here -->
+      </div>
+
+    </main>
+
+    <!-- 📱 BOTTOM FLOATING REGISTER BUTTON -->
+    <div class="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-[#0b0d1a] via-[#0b0d1a]/90 to-transparent flex justify-center z-40 safe-bottom-bar">
+      <button 
+        onclick="openRegisterDrawer()" 
+        class="w-full max-w-[380px] py-3 rounded-2xl bg-gradient-to-r from-[#2d3366] to-[#2d3366] border border-emerald-400/50 shadow-lg text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer">
+        <span class="text-base">➕</span>
+        <span>REGISTER စာရင်းသွင်းမည်</span>
+      </button>
+    </div>
+
+    <!-- 🌟 REGISTRATION DRAWER MODAL (Inside Shell Responsive) -->
+    <div id="register-drawer" class="drawer-backdrop-contained flex flex-col justify-end hidden">
+      <div class="drawer-surface w-full max-w-[480px] mx-auto p-4 flex flex-col max-h-[88vh] overflow-y-auto rounded-t-3xl bg-[#0b0d1a] border-t-2 border-[#8c6dff]">
+        <div class="flex items-center justify-between border-b border-white/10 pb-2 mb-3">
+          <h3 class="text-sm font-black text-[#b3a1ff] uppercase tracking-wide">🏆 Tournament Register</h3>
+          <button onclick="closeRegisterDrawer()" class="text-lg text-slate-400 hover:text-white cursor-pointer w-7 h-7 flex items-center justify-center rounded-full bg-white/10">✕</button>
+        </div>
+
+        <!-- Tournament Choice -->
+        <label class="form-label text-[11px] font-bold text-slate-300 mb-1">ပြိုင်ပွဲအမျိုးအစား ရွေးချယ်ပါ</label>
+        <div class="grid grid-cols-2 gap-2 mb-3">
+          <button id="tour-opt-weekly" type="button" onclick="selectTournament('weekly')" class="tour-btn tour-btn-active py-2.5 rounded-xl font-black bg-[#8c6dff] text-[#0b0d1a]">
+            <p class="text-xs font-black">TW WEEKLY</p>
+            <p class="text-[9.5px] opacity-80">၁ ပတ် ၁,၀၀၀ Ks</p>
+          </button>
+          <button id="tour-opt-super" type="button" onclick="selectTournament('super')" class="tour-btn tour-btn-inactive py-2.5 rounded-xl font-bold bg-white/10 text-white">
+            <p class="text-xs font-black">TW SUPER CUP</p>
+            <p class="text-[9.5px] text-slate-300">၅,၀၀၀ Ks (Fixed)</p>
+          </button>
+        </div>
+
+        <!-- Week Range Box -->
+        <div id="tour-week-range-box" class="week-range-card mb-3 p-2.5 rounded-xl bg-black/40 border border-white/10">
+          <div class="flex items-center justify-between text-xs text-slate-200 font-bold mb-2">
+            <span>📅 ပါဝင်မည့် အပတ်စဉ်သတ်မှတ်ရန်:</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="week-input-pill flex-1 bg-black/50 border border-white/15 rounded-xl px-2.5 py-1.5 flex items-center">
+              <span class="text-[10px] text-slate-400 mr-1">From:</span>
+              <input id="tour-week-from" type="number" min="1" max="38" value="6" oninput="calculateFee()" class="w-full bg-transparent text-white font-bold outline-none">
+            </div>
+            <span class="text-slate-400 font-bold">-</span>
+            <div class="week-input-pill flex-1 bg-black/50 border border-white/15 rounded-xl px-2.5 py-1.5 flex items-center">
+              <span class="text-[10px] text-slate-400 mr-1">To:</span>
+              <input id="tour-week-to" type="number" min="1" max="38" value="10" oninput="calculateFee()" class="w-full bg-transparent text-white font-bold outline-none">
+            </div>
+          </div>
+        </div>
+
+        <!-- Fee Banner -->
+        <div class="p-2.5 rounded-xl bg-black/40 border border-emerald-500/30 flex items-center justify-between mb-3">
+          <span class="text-xs text-slate-300 font-medium">ကျသင့်ငွေ စုစုပေါင်း:</span>
+          <span id="tour-calc-fee" class="text-xs font-black text-[#b3a1ff]">၅ ပတ် = ၅,၀၀၀ Ks</span>
+        </div>
+
+        <!-- Inputs -->
+        <div class="space-y-2.5 mb-3">
+          <div>
+            <label class="form-label text-[10px] font-bold text-slate-300 mb-1 block">Team Name (အသင်းအမည်)</label>
+            <input id="tour-team-name" type="text" class="form-input-editable w-full bg-black/40 border border-white/15 rounded-xl px-3 py-2 text-white font-bold text-xs outline-none" placeholder="အသင်းအမည် ရိုက်ထည့်ပါ">
+          </div>
+          <div>
+            <label class="form-label text-[10px] font-bold text-slate-300 mb-1 block">FPL Team ID</label>
+            <input id="tour-team-id" type="text" class="form-input-editable w-full bg-black/40 border border-white/15 rounded-xl px-3 py-2 text-white font-mono font-bold text-xs outline-none" placeholder="FPL Team ID (ဥပမာ- 123456)">
+          </div>
+          <div>
+            <label class="form-label text-[10px] font-bold text-slate-300 mb-1 block">Facebook Name / Telegram Username</label>
+            <input id="tour-social-name" type="text" class="form-input-editable w-full bg-black/40 border border-white/15 rounded-xl px-3 py-2 text-white font-bold text-xs outline-none" placeholder="ဆက်သွယ်ရမည့် အကောင့်အမည်">
+          </div>
+
+          <!-- KPay Payment Info -->
+          <div class="kpay-luxury-card p-3 my-2 bg-gradient-to-r from-blue-950/60 to-emerald-950/60 border border-blue-500/30 rounded-xl">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs font-black text-blue-300">KBZPay / KPay Transfer</span>
+              <button type="button" onclick="copyKpayNumber()" class="text-[9px] bg-blue-600/70 text-white font-bold px-2 py-0.5 rounded cursor-pointer active:scale-95">COPY NO</button>
+            </div>
+            <p class="text-sm font-mono font-black text-white">09798683021</p>
+            <p class="text-[10px] text-blue-200/80">Name: U Zaw Moe</p>
+          </div>
+
+          <div>
+            <label class="form-label text-[10px] font-bold text-amber-300 mb-1 block">KPay Slip နောက်ဆုံး ၆ လုံး</label>
+            <input id="tour-slip-six" type="text" maxlength="6" class="form-input-editable w-full bg-black/40 border border-amber-500/40 rounded-xl px-3 py-2 text-amber-300 font-mono font-black text-center tracking-widest text-base outline-none" placeholder="ဥပမာ- 849201">
+          </div>
+        </div>
+
+        <p id="tour-error-msg" class="text-[11px] font-bold text-red-400 mb-2 hidden bg-red-950/50 p-2 rounded-xl border border-red-800"></p>
+
+        <button id="btn-submit-tournament" onclick="submitTournamentRegister()" class="btn-gold-submit w-full py-3 rounded-xl bg-[#8c6dff] text-[#0b0d1a] font-black text-xs tracking-wider shadow-lg active:scale-[0.99] cursor-pointer">
+          REGISTER SUBMIT ပြုလုပ်မည်
+        </button>
+      </div>
+    </div>
+
+  </div>

@@ -1,0 +1,88 @@
+<!-- 📱 Main Frame Shell -->
+  <div class="app-root-shell">
+
+    <!-- Ambient Glow Background Spheres -->
+    <div class="absolute inset-0 pointer-events-none overflow-hidden z-0">
+      <div style="position:absolute; top:12%; right:-40px; width:260px; height:260px; border-radius:9999px; background:#2d3366; filter: blur(40px); opacity:0.65;"></div>
+      <div style="position:absolute; top:58%; left:-50px; width:230px; height:230px; border-radius:9999px; background:#14172b; filter: blur(35px); opacity:0.75;"></div>
+    </div>
+
+    <!-- MAIN SCROLLABLE CONTENT BODY -->
+    <main class="pending-scroll-area w-full px-5 py-6 relative z-10 safe-top safe-bottom">
+      
+      <div class="w-full max-w-sm text-center">
+        
+        <!-- Header Branding -->
+        <h1 class="gold-text text-3xl font-black mb-1 leading-none tracking-wider" style="font-family:'Bebas Neue', sans-serif; letter-spacing:0.1em; color:#8c6dff;">TW FANTASY</h1>
+        <p class="text-emerald-400 text-xs tracking-widest uppercase mb-4 font-semibold">Official Fantasy League</p>
+
+        <!-- Status Card Container -->
+        <div class="rounded-3xl p-6 relative overflow-hidden" style="background:linear-gradient(145deg,#2d3366,#14172b); border:1px solid rgba(140,109,255,0.35); box-shadow:0 12px 35px rgba(0,0,0,0.45);">
+          
+          <!-- Dynamic Status Icon -->
+          <div id="icon-container" class="relative flex items-center justify-center mb-4">
+            <div class="absolute w-20 h-20 rounded-full animate-ping opacity-25" style="background:#8c6dff;"></div>
+            <div id="status-icon" class="relative w-16 h-16 rounded-full flex items-center justify-center text-3xl shadow-lg border border-[#8c6dff]/40" style="background:linear-gradient(145deg,#8c6dff,#8C6820);">
+              ⏳
+            </div>
+          </div>
+
+          <!-- Main Status Headings -->
+          <h2 id="status-title" class="text-white text-xl font-bold mb-1 tracking-wide">Approval စောင့်ဆိုင်းနေသည်</h2>
+          <p id="user-badge" class="text-xs font-bold tracking-wider uppercase mb-4" style="color:#85E3A1;">👀 VIEW ONLY MODE</p>
+
+          <!-- Status Dynamic Info Body -->
+          <div id="status-area">
+            <div class="p-3.5 rounded-2xl mb-4 text-center" style="background:rgba(11,13,26, 0.7); border:1px solid rgba(58,63,122, 0.4);">
+              <p class="text-xs leading-relaxed text-[#D8EBDD]">
+                Team ID အား အတည်ပြုရန် စောင့်ဆိုင်းနေပါသည်။ Admin ဘက်မှ အတည်ပြုပြီးပါက အပြည့်အဝ အသုံးပြုနိုင်ပါမည်။
+              </p>
+            </div>
+
+            <div class="rounded-xl p-3 mb-4 bg-emerald-950/40 border border-emerald-800/40 text-center">
+              <p class="text-[11px] text-emerald-400 font-medium">
+                ⚡ စောင့်ဆိုင်းနေစဉ်အတွင်း App အချက်အလက်များကို View Only ဖြင့် ဝင်ရောက်ကြည့်ရှုနိုင်ပါသည်။
+              </p>
+            </div>
+          </div>
+
+          <!-- 🌟 PWA MANUAL REFRESH BUTTON (Approved ဖြစ်သွားပါက အလိုအလျောက် ပျောက်ကွယ်သွားမည်) -->
+          <div id="pending-refresh-container" class="flex flex-col gap-2 mb-3">
+            <button 
+              id="btn-manual-refresh"
+              onclick="handleManualRefreshStatus()" 
+              class="w-full rounded-xl py-2.5 text-xs font-bold tracking-wider uppercase transition-all duration-200 active:scale-95 flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+              style="background:rgba(140,109,255,0.15); border:1px solid rgba(140,109,255,0.5); color:#b3a1ff;">
+              <span id="refresh-spinner-icon" class="text-sm leading-none">🔄</span>
+              <span>Check Status / Refresh</span>
+            </button>
+          </div>
+
+          <!-- Actions Stack -->
+          <div class="space-y-2.5">
+            <!-- Dashboard View Only ခလုတ် -->
+            <button 
+              onclick="window.go('dashboard')" 
+              class="w-full rounded-xl py-3 text-xs font-black tracking-wider uppercase transition-all duration-200 active:scale-95 shadow-md flex items-center justify-center gap-1.5 cursor-pointer" 
+              style="background:linear-gradient(135deg,#8c6dff,#b3a1ff); color:#14172b;">
+              <span>📊</span> Dashboard သို့ ဝင်မည် (View Only)
+            </button>
+
+            <!-- Logout ခလုတ် -->
+            <button 
+              onclick="window.handleLogout && window.handleLogout()" 
+              class="w-full rounded-xl py-2.5 text-xs font-bold tracking-wider uppercase transition-all duration-200 active:scale-95 hover:bg-[#8c6dff]/10 cursor-pointer" 
+              style="border:1px solid rgba(140,109,255,0.6); color:#8c6dff;">
+              Logout ထွက်မည်
+            </button>
+          </div>
+
+        </div>
+
+        <!-- Footer Copyright -->
+        <p class="text-center text-[11px] mt-5 tracking-wide font-medium" style="color:#4B9E6A;">TW Fantasy Official League © 2026-27</p>
+      </div>
+
+    </main>
+
+  </div>

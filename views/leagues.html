@@ -1,0 +1,117 @@
+<!-- 📱 9:16 Frame Container (Mobile = 100% Full, PC = 9:16 Frame) -->
+  <div class="app-root-shell">
+
+    <!-- TOP HEADER BAR -->
+    <header style="background:#14172b; border-bottom:1px solid #2d3366;" class="px-4 py-3 flex items-center justify-between shrink-0 z-30 shadow-md safe-top">
+      <div class="flex items-center">
+        <a href="#/dashboard" style="color:#8c6dff; font-size:1.2rem; margin-right:8px; font-weight:bold;">←</a>
+        <h1 class="gold-text font-bold leading-none" style="font-family:'Bebas Neue'; letter-spacing:0.1em; font-size:1.3rem;">LEAGUES</h1>
+      </div>
+      <button id="refresh-league-btn" onclick="window.forceRefreshLeague && window.forceRefreshLeague()" class="text-[11px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 active:scale-95 transition cursor-pointer" style="background:rgba(58,158,95,0.15); color:#4ADE80; border:1px solid rgba(58,158,95,0.3);">
+        🔄 Refresh
+      </button>
+    </header>
+
+    <!-- Ambient Glow Background Spheres -->
+    <div class="absolute inset-0 pointer-events-none overflow-hidden z-0">
+      <div style="position:absolute; top:120px; right:-40px; width:260px; height:260px; border-radius:9999px; background:#e3dcff; filter: blur(20px); opacity: 0.5;"></div>
+      <div style="position:absolute; top:50%; left:-60px; width:200px; height:200px; border-radius:9999px; background:#efeaff; filter: blur(25px); opacity: 0.4;"></div>
+    </div>
+
+    <!-- LEAGUE CONTROLS & CHIPS STRIP -->
+    <div class="relative z-10 px-4 pt-2.5 pb-2 flex flex-col gap-2 shrink-0">
+      
+      <!-- ROW 1: TW Weekly & TW Super -->
+      <div class="grid grid-cols-2 gap-2 w-full">
+        <button id="tab-league1" onclick="window.switchTab('league1')" class="league-tab-btn rounded-xl py-2 text-xs font-bold tracking-wide transition shadow-xs truncate px-1 text-center cursor-pointer" style="background: linear-gradient(135deg,#8c6dff,#b3a1ff); color:#14172b;">TW FPL WEEKLY</button>
+        <button id="tab-league2" onclick="window.switchTab('league2')" class="league-tab-btn rounded-xl py-2 text-xs font-bold tracking-wide transition bg-white border border-slate-200 text-slate-600 shadow-xs truncate px-1 text-center cursor-pointer">TWFPL SUPER</button>
+      </div>
+
+      <!-- ROW 2: Poseidon Leagues -->
+      <div class="grid grid-cols-3 gap-1.5 w-full">
+        <button id="tab-league3" onclick="window.switchTab('league3')" class="league-tab-btn rounded-xl py-1.5 text-[10px] font-bold tracking-wide transition bg-white border border-slate-200 text-slate-600 shadow-xs truncate px-1 text-center cursor-pointer">Poseidon Pro</button>
+        <button id="tab-league4" onclick="window.switchTab('league4')" class="league-tab-btn rounded-xl py-1.5 text-[10px] font-bold tracking-wide transition bg-white border border-slate-200 text-slate-600 shadow-xs truncate px-1 text-center cursor-pointer">Semi-pro</button>
+        <button id="tab-league5" onclick="window.switchTab('league5')" class="league-tab-btn rounded-xl py-1.5 text-[10px] font-bold tracking-wide transition bg-white border border-slate-200 text-slate-600 shadow-xs truncate px-1 text-center cursor-pointer">Amateur</button>
+      </div>
+
+      <!-- ROW 3: CHIPS LEGEND & SORT -->
+      <div class="flex items-center justify-between gap-2 bg-white p-2 rounded-xl shadow-xs text-slate-800">
+        <div class="flex items-center gap-1 flex-wrap min-w-0">
+          <span class="text-[9px] font-black tracking-wider text-[#2d3366]">CHIPS:</span>
+          <span class="text-[8px] font-black px-1 py-0.5 rounded bg-amber-50 border border-amber-200 text-amber-600">TC</span>
+          <span class="text-[8px] font-black px-1 py-0.5 rounded bg-blue-50 border border-blue-200 text-blue-600">BB</span>
+          <span class="text-[8px] font-black px-1 py-0.5 rounded bg-purple-50 border border-purple-200 text-purple-600">WC</span>
+          <span class="text-[8px] font-black px-1 py-0.5 rounded bg-sky-50 border border-sky-200 text-sky-600">FH</span>
+        </div>
+
+        <div class="flex items-center gap-1.5 shrink-0">
+          <span id="gw-badge" class="text-[8px] font-black px-1.5 py-1 rounded-md bg-slate-100 border border-slate-300 text-slate-600 whitespace-nowrap">GW —</span>
+          <div class="flex gap-0.5 bg-slate-100 p-0.5 rounded-lg">
+            <button id="sort-total" onclick="window.switchSort('total')" class="text-[8px] font-bold px-2 py-1 rounded-md transition cursor-pointer" style="background:#14172b; color:#8c6dff;">Total</button>
+            <button id="sort-gw" onclick="window.switchSort('gw')" class="text-[8px] font-bold px-2 py-1 rounded-md transition text-slate-500 bg-transparent cursor-pointer">This GW</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- MAIN LEAGUE STANDINGS SCROLL CONTAINER -->
+    <main id="league-scroll-container" class="leagues-scroll-area px-4 pb-4 relative z-10">
+      <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-[0_8px_25px_rgba(0,0,0,0.03)] min-h-[350px] text-slate-800">
+
+        <!-- 💡 League 5 Panels -->
+        <div id="panel-league1" style="display:block;"><div id="league1-table" class="w-full"></div></div>
+        <div id="panel-league2" style="display:none;"><div id="league2-table" class="w-full"></div></div>
+        <div id="panel-league3" style="display:none;"><div id="league3-table" class="w-full"></div></div>
+        <div id="panel-league4" style="display:none;"><div id="league4-table" class="w-full"></div></div>
+        <div id="panel-league5" style="display:none;"><div id="league5-table" class="w-full"></div></div>
+
+      </div>
+    </main>
+</div>
+
+  <!-- 💡 TEAM DETAILS POPUP MODAL -->
+  <div id="team-popup-modal" style="position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:100; display:none; align-items:center; justify-content:center; padding:16px; backdrop-filter:blur(3px);" onclick="if(event.target===this)window.closeTeamPopup()">
+    <div class="flex flex-col relative" style="background:linear-gradient(145deg,#2d3366,#14172b); border:1px solid rgba(140,109,255,0.4); border-radius:1.25rem; width:100%; max-width:350px; padding:14px; box-shadow:0 0 30px rgba(0,0,0,0.6);">
+      
+      <div class="flex justify-between items-center mb-2 pb-1.5" style="border-bottom:1px solid rgba(58,63,122,0.5);">
+        <h3 id="modal-team-title" class="text-white font-black text-sm truncate tracking-wide" style="max-width:240px; font-family:'Bebas Neue'; font-size:1.25rem; color:#b3a1ff;">—</h3>
+        <button onclick="window.closeTeamPopup()" style="color:#d9d0ff; font-size:1rem; font-weight:bold; background:rgba(255,255,255,0.1); width:24px; height:24px; border-radius:9999px; display:flex; align-items:center; justify-content:center; cursor:pointer;">✕</button>
+      </div>
+
+      <div class="grid grid-cols-4 gap-1.5 text-center mb-3">
+        <div class="rounded-lg p-1 bg-black/30 border border-[#3a3f7a]">
+          <p class="text-[8px]" style="color:#8c6dff;">Hit Cost</p>
+          <p id="modal-hit-cost" class="text-[11px] font-bold text-red-400 font-mono">0</p>
+        </div>
+        <div class="rounded-lg p-1 bg-black/30 border border-[#3a3f7a]">
+          <p class="text-[8px]" style="color:#8c6dff;">GW Points</p>
+          <p id="modal-gw-pts" class="text-[11px] font-black text-white">0</p>
+        </div>
+        <div class="rounded-lg p-1 bg-black/30 border border-[#3a3f7a]">
+          <p class="text-[8px]" style="color:#8c6dff;">Total Points</p>
+          <p id="modal-total-pts" class="text-[11px] font-black text-[#8c6dff]">0</p>
+        </div>
+        <div class="rounded-lg p-1 bg-black/30 border border-[#3a3f7a]">
+          <p class="text-[8px]" style="color:#8c6dff;">Active Chip</p>
+          <p id="modal-chip-badge" class="text-[9px] font-black text-[#b3a1ff]">NO CHIP</p>
+        </div>
+      </div>
+
+      <div class="shadow-inner overflow-hidden" style="background:#2d3366; border:2px solid rgba(255,255,255,0.4); border-radius:12px; padding:10px 6px; position:relative; min-height:278px; background-image: radial-gradient(rgba(255,255,255,0.15) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.03) 50%, transparent 50%); background-size: 20px 20px, 100% 40px;">
+        <div style="position:absolute; top:0; left:50%; transform:translateX(-50%); width:160px; height:38px; border:1px solid rgba(255,255,255,0.3); border-top:none; pointer-events:none;"></div>
+        <div style="position:absolute; top:0; left:50%; transform:translateX(-50%); width:80px; height:14px; border:1px solid rgba(255,255,255,0.2); border-top:none; pointer-events:none;"></div>
+        <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:68px; height:68px; border:1px solid rgba(255,255,255,0.3); border-radius:9999px; pointer-events:none;"></div>
+        <div style="position:absolute; top:50%; left:0; right:0; height:1px; background:rgba(255,255,255,0.3); pointer-events:none;"></div>
+        <div style="position:absolute; bottom:0; left:50%; transform:translateX(-50%); width:160px; height:38px; border:1px solid rgba(255,255,255,0.3); border-bottom:none; pointer-events:none;"></div>
+        <div style="position:absolute; bottom:0; left:50%; transform:translateX(-50%); width:80px; height:14px; border:1px solid rgba(255,255,255,0.2); border-bottom:none; pointer-events:none;"></div>
+        <div id="popup-pitch-rows" class="h-full relative z-10"></div>
+      </div>
+
+      <div class="mt-3 p-2 rounded-xl bg-black/20 border border-white/5">
+        <p class="text-[9px] font-black tracking-widest text-center uppercase mb-2" style="color:#8c6dff; font-size:0.6rem;">BENCH (အရန်လူစာရင်း)</p>
+        <div id="popup-bench-row" class="flex justify-around items-center gap-1 w-full"></div>
+      </div>
+
+    </div>
+  </div>

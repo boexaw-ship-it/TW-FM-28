@@ -1,0 +1,179 @@
+<!-- 📱 9:16 Frame Container (Mobile = 100% Full, PC = 9:16 Frame) -->
+  <div class="app-root-shell">
+    
+    <!-- TOP APP BAR -->
+    <header style="background:#14172b; border-bottom:1px solid #2d3366;" class="px-3.5 py-2.5 flex items-center justify-between shrink-0 z-30 shadow-md safe-top gap-2">
+      <div class="flex items-center gap-1.5 shrink-0">
+        <a href="#/dashboard" style="color:#8c6dff; font-size:1.2rem; font-weight:bold;">←</a>
+        <h1 class="gold-text font-bold leading-none" style="font-family:'Bebas Neue'; letter-spacing:0.1em; font-size:1.2rem;">LIVE</h1>
+        <span class="text-[9px] px-2 py-0.5 rounded-full font-black animate-pulse flex items-center justify-center h-4 bg-red-600 text-white shadow-sm">LIVE</span>
+      </div>
+
+      <!-- 💡 Team Name Frame Component -->
+      <div class="flex-1 min-w-0 flex justify-center px-1">
+        <div class="rounded-lg px-2.5 py-1 bg-black/50 border border-[#8c6dff]/40 flex items-center justify-center max-w-[170px] shadow-inner">
+          <span id="user-team" class="text-[11px] font-black tracking-wide text-[#d9d0ff] truncate block leading-tight"></span>
+        </div>
+      </div>
+
+      <!-- 🔄 Refresh Button (liveteamquota.js ဖြင့် တိုက်ရိုက်ချိတ်ဆက်ထိန်းချုပ်ထားသည်) -->
+      <button id="btn-refresh-live" onclick="window.forceRefreshLive()" class="flex items-center justify-center bg-[#2d3366] border border-[#3a3f7a] text-[#8c6dff] w-7 h-7 rounded-lg text-[10px] font-black active:scale-95 transition-all shadow-md cursor-pointer shrink-0">
+        <span id="refresh-live-icon">🔄</span>
+      </button>
+    </header>
+
+    <!-- STATS HEADER STRIP -->
+    <div class="px-3 py-1.5 shrink-0 z-20 bg-[#14172b]">
+      <div class="bg-white rounded-2xl px-3.5 py-2 flex items-center justify-between shadow-[0_4px_15px_rgba(0,0,0,0.08)] border border-slate-100 text-slate-900">
+        <div class="flex items-center gap-1.5">
+          <div class="bg-red-50 text-red-500 border border-red-100 rounded-md px-2 py-0.5 font-bold text-xs">
+            <span id="hit-label">Hit: -0</span>
+          </div>
+          <div class="bg-slate-50 text-slate-700 border border-slate-200 rounded-md px-2 py-0.5 font-bold text-xs">
+            <span id="gw-label">GW —</span>
+          </div>
+          <div class="flex items-center gap-1 bg-green-50 rounded-md px-2 py-0.5 border border-green-100">
+            <span class="text-[9px] font-bold uppercase tracking-wider text-green-600/70">Rank:</span>
+            <span id="overall-rank" class="text-xs font-black text-green-700">—</span>
+          </div>
+        </div>
+        <span id="chip-badge" class="text-[9px] font-bold px-2 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 tracking-wider uppercase">NO CHIP</span>
+      </div>
+    </div>
+
+    <!-- PITCH & SIDE STATS (Responsive Height Layout) -->
+    <div id="pitch-wrap" style="height: 38vh; max-height: 290px; border-bottom:1px solid #2d3366;" class="px-3 py-1.5 bg-[#14172b] flex shrink-0 z-10">
+      <div class="flex gap-2.5 w-full h-full min-w-0">
+        
+        <div style="flex:1; position:relative; border-radius:1.1rem; overflow:hidden; border:1px solid rgba(255,255,255,0.08); min-width:0; height:100%; background:linear-gradient(180deg,#2a2f6b,#141838);">
+          <div id="pitch-scroll-wrapper" style="width:100%; height:100%; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:4px; display:flex; flex-direction:column; gap:4px;">
+            
+            <div class="main-scroll-pitch-canvas relative">
+              <svg style="position:absolute; top:0; left:0; width:100%; height:390px; opacity:0.3; pointer-events:none; z-index:0;" viewBox="0 0 200 390" preserveAspectRatio="none">
+                <rect x="6" y="6" width="188" height="378" fill="none" stroke="#a58bff" stroke-width="1.2"/>
+                <line x1="6" y1="195" x2="194" y2="195" stroke="#a58bff" stroke-width="1.2"/>
+                <circle cx="100" cy="195" r="24" fill="none" stroke="#a58bff" stroke-width="1.2"/>
+                <rect x="36" y="6" width="128" height="42" fill="none" stroke="#a58bff" stroke-width="1.2"/>
+                <rect x="36" y="342" width="128" height="42" fill="none" stroke="#a58bff" stroke-width="1.2"/>
+                <rect x="66" y="6" width="68" height="14" fill="none" stroke="#a58bff" stroke-width="1.2"/>
+                <rect x="66" y="370" width="68" height="14" fill="none" stroke="#a58bff" stroke-width="1.2"/>
+              </svg>
+
+              <div id="pitch" style="width:100%; height:100%; display:flex; flex-direction:column; justify-content:space-between; position:relative; z-index:1;">
+                <p class="text-center text-xs py-8" style="color:rgba(255,255,255,0.4);">Team loading...</p>
+              </div>
+            </div>
+
+            <div id="bench-container" style="width:100%; flex-shrink:0; padding-bottom:2px;"></div>
+          </div>
+        </div>
+
+        <!-- Side Stats 4-Cards Grid -->
+        <div style="width:92px; flex-shrink:0; height:100%; overflow:hidden;" class="flex flex-col gap-1.5 justify-between">
+          
+          <div class="stat-card bg-white/95 border border-slate-200 shadow-2xs p-1 rounded-xl text-center">
+            <p class="text-[8.5px] font-bold text-blue-500 uppercase tracking-wide">Gameweek</p>
+            <div class="flex items-end justify-center gap-0.5 mt-0.5">
+              <span id="gw-points" class="font-black text-slate-800" style="font-family:'Bebas Neue'; font-size:1.15rem; line-height:1;">—</span>
+              <span class="text-[8px] font-bold text-slate-400 pb-px">pts</span>
+            </div>
+          </div>
+          
+          <div class="stat-card bg-white/95 border border-slate-200 shadow-2xs p-1 rounded-xl text-center">
+            <p class="text-[8.5px] font-bold text-purple-500 uppercase tracking-tight">GW Rank</p>
+            <p id="gw-rank" class="font-bold text-slate-800 mt-0.5" style="font-family:'Bebas Neue'; font-size:0.95rem;">—</p>
+          </div>
+
+          <div class="stat-card bg-white/95 border border-slate-200 shadow-2xs p-1 rounded-xl text-center">
+            <p class="text-[8.5px] font-bold text-cyan-600 uppercase tracking-tight">Overall Pts</p>
+            <p id="overall-pts" class="font-bold text-slate-800 mt-0.5" style="font-family:'Bebas Neue'; font-size:0.95rem;">—</p>
+          </div>
+
+          <div class="stat-card bg-white/95 border border-slate-200 shadow-2xs p-1 rounded-xl text-center">
+            <p class="text-[8.5px] font-bold text-amber-600 uppercase tracking-tight">Captain</p>
+            <p id="captain-pts" class="font-bold text-slate-800 mt-0.5" style="font-family:'Bebas Neue'; font-size:0.95rem;">—</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- LIVE CHAT CONTAINER (Flexbox Structure) -->
+    <div class="flex-1 flex flex-col min-h-0 relative overflow-hidden bg-[#14172b]">
+      
+      <!-- 💡 ENHANCED CHAT HEADER -->
+      <div class="px-3 py-1.5 border-b border-[#2d3366] bg-[#14172b] flex items-center justify-between shrink-0 z-20">
+        
+        <!-- Left: Title & Toggle Fold -->
+        <div onclick="window.toggleFormation()" class="flex items-center gap-2 cursor-pointer select-none active:opacity-80">
+          <p class="text-xs font-black uppercase tracking-wider text-[#8c6dff] flex items-center gap-1.5">
+            💬 Live Chat <span id="toggle-icon" class="text-[10px] text-[#8c6dff]">🔼</span>
+          </p>
+        </div>
+
+        <!-- Center & Right: Online Status & Alarm Control -->
+        <div class="flex items-center gap-2">
+          <!-- 🟢 Online / ⚪ Offline Counter Badge -->
+          <div class="flex items-center gap-1.5 text-[9px] font-black px-2 py-0.5 rounded-full bg-black/40 border border-[#2d3366]">
+            <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span id="online-count" class="text-emerald-400">1 On</span>
+            <span class="text-white/30">|</span>
+            <span id="offline-count" class="text-slate-400">0 Off</span>
+          </div>
+
+          <!-- 🔔 Sound Alarm On/Off Toggle Button -->
+          <button id="chat-alarm-toggle" onclick="window.toggleChatAlarm()" class="text-[9px] font-black px-2 py-0.5 rounded-lg bg-black/40 border border-[#8c6dff]/40 text-[#b3a1ff] flex items-center gap-1 active:scale-95 transition-all">
+            <span id="alarm-icon">🔔</span> <span id="alarm-status-text">ON</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Lock Banner -->
+      <div id="chat-lock-banner" class="hidden shrink-0 px-4 py-1.5 bg-[rgba(140,109,255,0.08)] border-b border-[rgba(140,109,255,0.2)]">
+        <p class="text-xs" style="color:#d9d0ff;">🔒 Approve ပြီးမှ Chat ရေးနိုင်ပါမည် — View ကိုတော့ ကြည့်ရှုနိုင်ပါသည်</p>
+      </div>
+
+      <!-- Chat Messages Scroll Body -->
+      <div id="chat-messages" class="chat-scroll-area px-4 py-3 bg-gradient-to-b from-[#2a2f6b] via-[#1d2250] to-[#141838]"></div>
+
+      <!-- REPLY TARGET BAR -->
+      <div id="reply-preview-bar" class="hidden px-4 py-1.5 flex items-center justify-between border-t border-[#2d3366] bg-black/60 shrink-0 z-20">
+        <div class="flex flex-col min-w-0 flex-1">
+          <span id="reply-target-name" class="text-[10px] font-bold text-[#8c6dff]">Reply to user</span>
+          <span id="reply-target-text" class="text-xs text-white/60 truncate">Message text...</span>
+        </div>
+        <button onclick="window.cancelReply()" class="text-xs font-bold px-2 py-0.5 text-red-400 bg-red-500/10 rounded-md ml-2 active:scale-95">✖</button>
+      </div>
+
+      <!-- CHAT INPUT BAR -->
+      <div class="px-3 py-2 border-t border-[#2d3366] flex gap-2 items-center bg-[#14172b] shrink-0 z-30 safe-bottom">
+        <input id="chat-input" type="text" placeholder="Message ရိုက်ပါ..." onkeydown="window.handleKeydown(event)" disabled
+          style="flex:1; background:#F4F5F4; border:1.5px solid #2d3366; color:#14172b; border-radius:0.6rem; padding:7px 12px; font-size:0.8rem; outline:none;"
+          onfocus="this.style.borderColor='#8c6dff'" onblur="this.style.borderColor='#2d3366'" />
+        <button id="send-btn" onclick="window.sendMessage()" disabled style="opacity:0.4; background:#2d3366; border:1.5px solid #8c6dff; color:#b3a1ff; border-radius:0.6rem; padding:7px 14px; font-weight:700; font-size:0.78rem; flex-shrink:0;">Send</button>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- MESSAGE OPTIONS & REACTION MODAL -->
+  <div id="message-options-modal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+    <div class="w-full max-w-xs rounded-xl border border-[#2d3366] p-4 flex flex-col gap-3 shadow-2xl" style="background:#14172b;">
+      <p id="modal-msg-preview" class="text-xs text-white/50 truncate border-b border-white/10 pb-2"></p>
+
+      <div class="flex justify-around items-center bg-black/20 rounded-xl py-2 px-1">
+        <span onclick="window.reactAndClose('👍')" class="text-2xl cursor-pointer active:scale-125 transition-transform">👍</span>
+        <span onclick="window.reactAndClose('❤️')" class="text-2xl cursor-pointer active:scale-125 transition-transform">❤️</span>
+        <span onclick="window.reactAndClose('😂')" class="text-2xl cursor-pointer active:scale-125 transition-transform">😂</span>
+        <span onclick="window.reactAndClose('😮')" class="text-2xl cursor-pointer active:scale-125 transition-transform">😮</span>
+        <span onclick="window.reactAndClose('👏')" class="text-2xl cursor-pointer active:scale-125 transition-transform">👏</span>
+        <span onclick="window.reactAndClose('🔥')" class="text-2xl cursor-pointer active:scale-125 transition-transform">🔥</span>
+      </div>
+
+      <button id="modal-reply-btn" class="w-full bg-[#2d3366] hover:bg-[#3a3f7a] text-white font-bold py-2.5 rounded-lg text-sm transition-all active:scale-95 shadow">💬 Reply (ပြန်စာရေးရန်)</button>
+      <button id="modal-delete-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-lg text-sm transition-all hidden active:scale-95 shadow">🗑️ Delete Message (ဖျက်ပစ်ရန်)</button>
+      <button onclick="window.closeOptionsModal()" class="w-full text-white/60 text-xs py-1 mt-1 font-medium cursor-pointer">Cancel (ပယ်ဖျက်ရန်)</button>
+    </div>
+  </div>
