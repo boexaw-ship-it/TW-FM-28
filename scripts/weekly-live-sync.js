@@ -1,14 +1,15 @@
 // ============================================
 // TW Fantasy Official League
 // Weekly Live Sync Script (Accurate Selling Price & Quota Optimized)
-// Standard: Native ES Module (import syntax for Node.js v20/v22)
+// Standard: CommonJS (require) — Node 20/22 နှစ်မျိုးလုံး ရ
 // Architecture: Multi-Tier Quota Diff Sync Engine
 // ============================================
 
-import { initializeApp, cert, getApps } from "firebase-admin/app";
-import { getFirestore, FieldValue } from "firebase-admin/firestore";
-import axios from "axios";
-import { DiffWriter } from "./lib/diff-sync.js";
+// CommonJS (GitHub Actions Node 20 မှာ package.json "type":"module" မလိုဘဲ run နိုင်အောင်)
+const { initializeApp, cert, getApps } = require("firebase-admin/app");
+const { getFirestore, FieldValue } = require("firebase-admin/firestore");
+const axios = require("axios");
+const { DiffWriter } = require("./lib/diff-sync");
 
 // === Firebase Admin Initialization (Safe Modular Subpaths) ===
 const rawServiceAccount = process.env.FIREBASE_SERVICE_ACCOUNT;
