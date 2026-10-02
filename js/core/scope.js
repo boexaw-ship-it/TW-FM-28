@@ -13,10 +13,7 @@ let currentScopeInstance = null;
 const PROTECTED_EVENTS = new Set([
   "DOMContentLoaded",
   "hashchange",
-  "popstate",
-  "beforeunload",
-  "unload",
-  "visibilitychange"
+  "popstate"
 ]);
 
 /**
@@ -56,6 +53,15 @@ export function track(offFn) {
  */
 export function endScope(scope) {
   if (!scope) return;
+
+  // beforeunload handler (ဥပမာ live presence offline) ကို page မထွက်ခင် တစ်ကြိမ်ခေါ်
+  if (Array.isArray(scope.events)) {
+    scope.events.forEach(([, type, fn]) => {
+      if (type === "beforeunload" && typeof fn === "function") {
+        try { fn(new Event("beforeunload")); } catch (_) {}
+      }
+    });
+  }
 
   // ၁။ Firestore Listeners & Unsubscribers များကို ပိတ်သိမ်းခြင်း
   if (Array.isArray(scope.offs)) {

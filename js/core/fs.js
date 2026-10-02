@@ -19,6 +19,8 @@ const MIN = 60 * 1000;
 // Path Patterns အလိုက် Cache TTL သတ်မှတ်ချက်များ
 const RULES = [
   [/^fixtures(\/.*)?$/, 10 * MIN],
+  [/^fixturesMeta(\/.*)?$/, 10 * MIN],
+  [/^leagues\/[^/]+$/, 5 * MIN],
   [/^scoutPlayers(\/.*)?$/, 30 * MIN],
   [/^users$/, 10 * MIN],
   [/^users\/[^/]+$/, 5 * MIN],

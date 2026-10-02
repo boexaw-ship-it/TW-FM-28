@@ -37,9 +37,9 @@ function setAuthFlag(isAuthed) {
  * @param {Function|Object} nextOrObserver 
  * @param {Function} [error] 
  * @param {Function} [completed] 
- * @param {boolean} [scoped=false] - true ပေးမှသာ စာမျက်နှာပြောင်းချိန် track() ဖြင့် unsubscribe လုပ်မည်
+ * @param {boolean} [scoped=true] - true (default) ပေးမှသာ စာမျက်နှာပြောင်းချိန် track() ဖြင့် unsubscribe လုပ်မည်
  */
-export function onAuthStateChanged(auth, nextOrObserver, error, completed, scoped = false) {
+export function onAuthStateChanged(auth, nextOrObserver, error, completed, scoped = true) {
   const wrapped = (user) => {
     setAuthFlag(!!user);
     if (typeof nextOrObserver === "function") {
