@@ -1,0 +1,7 @@
+{
+  "name": "twfm-build-tools",
+  "private": true,
+  "description": "Build tools only (Tailwind static CSS). Runtime/CI scripts မှာ မလိုပါ။",
+  "scripts": { "build": "node build.js" },
+  "devDependencies": { "tailwindcss": "3.4.17" }
+}
