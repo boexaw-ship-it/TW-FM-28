@@ -1,0 +1,263 @@
+* { 
+  -webkit-tap-highlight-color: transparent; 
+  box-sizing: border-box;
+}
+
+/* 🏆 Fonts & Gradients */
+.gold-text { 
+  background: linear-gradient(135deg, #8c6dff, #b3a1ff, #6a4de0); 
+  -webkit-background-clip: text; 
+  -webkit-text-fill-color: transparent; 
+  background-clip: text; 
+}
+
+/* 🔄 Make Transfers Button Style & Active Feedback */
+.btn-transfers {
+  background: linear-gradient(135deg, #8c6dff, #b3a1ff);
+  color: #14172b;
+  box-shadow: 0 4px 15px rgba(140,109,255, 0.25);
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.btn-transfers:active {
+  transform: scale(0.98);
+  filter: brightness(0.95);
+}
+
+/* 📊 Average Points Top-Left Badge (Pitch Field) */
+.avg-pts-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 20;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  padding: 3px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+/* 👕 Pitch Layout & Player Jersey Cards */
+.pitch-container {
+  min-height: 380px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: visible !important;
+}
+
+.pitch-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  gap: 6px;
+  margin: 2px 0;
+  overflow: visible !important;
+}
+
+.pitch-row:has(> :nth-child(5)) {
+  gap: 3px;
+}
+
+.player-card {
+  width: 62px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.pitch-row:has(> :nth-child(5)) .player-card {
+  width: 58px;
+}
+
+.player-card:active {
+  transform: scale(0.96);
+}
+
+/* 👕 Jersey Wrapper */
+.jersey-wrap {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  margin-bottom: 2px;
+}
+
+.pitch-row:has(> :nth-child(5)) .jersey-wrap {
+  width: 40px;
+  height: 40px;
+}
+
+.jersey-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0px 3px 4px rgba(0, 0, 0, 0.45));
+}
+
+/* 🌟 TW FM Watermark (အကျႌ၏ ညာဘက်ထောင့် Bottom-Right နေရာ) */
+.jersey-watermark {
+  position: absolute;
+  bottom: 2px;
+  right: 1px;
+  font-family: monospace, sans-serif;
+  font-size: 6px;
+  font-weight: 900;
+  letter-spacing: -0.2px;
+  color: rgba(255, 255, 255, 0.55);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95);
+  pointer-events: none;
+  user-select: none;
+  z-index: 10;
+  line-height: 1;
+}
+
+/* 🏷️ Info Box (Name + Fixture + Points Strip) */
+.player-name-box {
+  width: 100%;
+  background: #ffffff;
+  padding: 1px 2px;
+  text-align: center;
+  height: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-top-left-radius: 3px;
+  border-top-right-radius: 3px;
+}
+
+.player-name-box p {
+  color: #14172b;
+  font-weight: 900;
+  font-size: 7.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1;
+  width: 100%;
+}
+
+.player-fixture-box {
+  width: 100%;
+  background: #b3a1ff;
+  padding: 1px 2px;
+  text-align: center;
+  height: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.player-fixture-box span {
+  color: #14172b;
+  font-weight: 800;
+  font-size: 7px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.player-point-circle {
+  background-color: #000000;
+  color: #ffffff;
+  font-weight: 900;
+  font-size: 9px;
+  width: 100%;
+  height: 14px;
+  border-bottom-left-radius: 3px;
+  border-bottom-right-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+}
+
+/* 👑 Captain (C) / Vice-Captain (V) Badges */
+.captain-badge {
+  position: absolute;
+  top: -4px;
+  right: -2px;
+  background: #b3a1ff;
+  color: #14172b;
+  font-size: 8px;
+  font-weight: 900;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 25;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(0, 0, 0, 0.3);
+}
+
+.vice-badge {
+  position: absolute;
+  top: -4px;
+  right: -2px;
+  background: #E2E8F0;
+  color: #14172b;
+  font-size: 8px;
+  font-weight: 900;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 25;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(0, 0, 0, 0.3);
+}
+
+/* 🩺 Status Overlay (INJ / SUSP / Chance %) */
+.status-tag {
+  position: absolute;
+  top: 14px;
+  left: -2px;
+  z-index: 25;
+  font-size: 7px;
+  font-weight: 900;
+  padding: 1px 3px;
+  border-radius: 3px;
+  line-height: 1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+/* 📱 Bottom Navigation Styles */
+.nav-item { 
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+  gap: 2px; 
+  padding: 6px 12px; 
+  color: #8c6dff; 
+  cursor: pointer; 
+  font-size: 0.65rem; 
+  font-weight: 500; 
+  position: relative; 
+}
+
+.nav-item.active { 
+  color: #4ADE80; 
+  font-weight: 700; 
+}
+
+/* 🚫 Scrollbar Reset */
+.scrollbar-none::-webkit-scrollbar { display: none; }
+.scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }

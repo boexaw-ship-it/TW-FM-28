@@ -1,0 +1,255 @@
+/* ⚽ Transfers Strategy Dedicated Stylesheet */
+
+/* 🏟️ Official Football Pitch Structure (team.html စည်းများအတိုင်း) */
+.pitch-bg {
+  background: radial-gradient(circle at center, #2d3366 0%, #2d3366 70%, #14172b 100%);
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.6), 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.pitch-inner-border {
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: 8px;
+  right: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  pointer-events: none;
+}
+
+/* အလယ်စည်းမျဉ်းနှင့် အလယ်စက်ဝိုင်း */
+.pitch-center-line {
+  position: absolute;
+  top: 50%;
+  left: 8px;
+  right: 8px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.18);
+  pointer-events: none;
+}
+
+.pitch-center-circle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 90px;
+  height: 90px;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 9999px;
+  pointer-events: none;
+}
+
+/* အပေါ်ဘက် Goal & Penalty Area */
+.pitch-top-box {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 140px;
+  height: 52px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-top: none;
+  pointer-events: none;
+}
+
+.pitch-top-goal {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70px;
+  height: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-top: none;
+  pointer-events: none;
+}
+
+/* အောက်ဘက် Goal & Penalty Area */
+.pitch-bottom-box {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 140px;
+  height: 48px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-bottom: none;
+  pointer-events: none;
+}
+
+/* 👕 Player Card Layout */
+.player-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.15s ease-in-out;
+  user-select: none;
+  z-index: 10;
+}
+
+.player-card:active {
+  transform: scale(0.94);
+}
+
+.jersey-box {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.jersey-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.65));
+}
+
+/* 🏷️ Captain & Vice Badges */
+.captain-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #8c6dff;
+  color: #0b0d1a;
+  font-size: 10px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  z-index: 25;
+}
+
+.vice-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #e2e8f0;
+  color: #0f172a;
+  font-size: 10px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  z-index: 25;
+}
+
+/* 🚨 Status Badges */
+.status-tag {
+  position: absolute;
+  top: -4px;
+  left: -6px;
+  font-size: 8px;
+  font-weight: 900;
+  padding: 1.5px 3.5px;
+  border-radius: 4px;
+  line-height: 1;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.6);
+  z-index: 25;
+}
+
+.info-wrap {
+  width: 64px;
+  display: flex;
+  flex-direction: column;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+  margin-top: 2px;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+}
+
+.p-name-bar {
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 9.5px;
+  font-weight: 800;
+  text-align: center;
+  padding: 1.5px 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.15;
+}
+
+.p-fixture-bar {
+  font-size: 8px;
+  font-weight: 900;
+  text-align: center;
+  padding: 1px 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.15;
+}
+
+.p-price-bar {
+  background: #000000;
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 900;
+  font-family: monospace;
+  text-align: center;
+  padding: 1px 2px;
+  line-height: 1.15;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.sub-candidate {
+  outline: 2px dashed #f59e0b;
+  outline-offset: 3px;
+  animation: pulseSub 1.2s infinite;
+  border-radius: 6px;
+}
+
+@keyframes pulseSub {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* 🌟 POPUP FIX: Bottom Drawer ထိုးကျမသွားစေရန် */
+.market-drawer {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(4px);
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.market-drawer-content {
+  width: 100%;
+  max-width: 448px;
+  margin: 0 auto;
+  background: #14172b;
+  border-top: 2px solid #3a3f7a;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  height: 85vh;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.8);
+}

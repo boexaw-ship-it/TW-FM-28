@@ -1,1 +1,92 @@
+/* ============================================
+   TW FM — App shell (purple theme)
+   ============================================ */
+:root {
+  --bg: #0b0d1a; --card: #14172b; --card2: #1b1f3a; --line: #252a4d;
+  --ac: #8c6dff; --ac2: #3b82f6; --ok: #22c55e; --no: #ef4444;
+  --tx: #e8eaf6; --mu: #8b90b3;
+}
 
+html, body { background: var(--bg); color: var(--tx); }
+body { display: flex; justify-content: center; align-items: center; }
+
+#app {
+  position: relative; display: flex; flex-direction: column;
+  width: 100%; max-width: 480px; height: 100%;
+  background: var(--bg); overflow: hidden;
+}
+/* Desktop: phone frame */
+@media (min-width: 768px) and (hover: hover) and (pointer: fine) {
+  #app {
+    height: 94vh; max-height: 900px; border-radius: 32px;
+    border: 1px solid var(--line);
+    box-shadow: 0 0 0 8px #10132a, 0 30px 80px rgba(0,0,0,.7);
+  }
+}
+
+#view { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+/* page root တွေ #view ကို အပြည့်ယူ */
+#view > * { flex: 1 1 auto; min-height: 0; }
+/* page root မရှိတဲ့ login/register ကဲ့သို့ page တွေအတွက် scroll */
+#view.scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+/* ---- Bottom tab bar ---- */
+#tabbar {
+  flex: 0 0 auto; display: flex; background: var(--card);
+  border-top: 1px solid var(--line);
+  padding-bottom: max(6px, env(safe-area-inset-bottom, 0px));
+  z-index: 50;
+}
+#tabbar[hidden] { display: none; }
+#tabbar a {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 8px 0 4px; color: var(--mu); text-decoration: none; font-size: 11px; font-weight: 500;
+  transition: color .15s;
+}
+#tabbar a i { display: block; width: 24px; height: 24px; }
+#tabbar svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+#tabbar a[data-tab="more"] svg { fill: currentColor; stroke: none; }
+#tabbar a.on { color: var(--ac); }
+#tabbar a.on svg { fill: color-mix(in srgb, var(--ac) 22%, transparent); }
+#tabbar a[data-tab="more"].on svg { fill: currentColor; }
+#tabbar a:active { transform: scale(.94); }
+
+/* ---- Boot splash / progress ---- */
+#boot {
+  position: fixed; inset: 0; z-index: 9998; display: flex; align-items: center; justify-content: center;
+  background: var(--bg); color: var(--ac);
+  font: 400 46px "Bebas Neue", Impact, sans-serif; letter-spacing: .14em;
+  transition: opacity .25s ease;
+}
+#boot.hide { opacity: 0; pointer-events: none; }
+#bar {
+  position: fixed; top: 0; left: 0; height: 2px; width: 0; z-index: 9999; opacity: 0;
+  background: linear-gradient(90deg, #8c6dff, #3b82f6); transition: width .4s ease, opacity .2s ease;
+}
+#bar.on { width: 75%; opacity: 1; }
+#bar.done { width: 100%; opacity: 0; }
+
+#view > * { animation: twIn .16s ease-out both; }
+@keyframes twIn { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { #view > *, #boot, #bar { animation: none !important; transition: none !important; } }
+
+.tw-err { margin: auto; padding: 24px; text-align: center; max-width: 320px; }
+.tw-err button { margin-top: 14px; padding: 10px 22px; border: 0; border-radius: 12px; background: var(--ac); color: #fff; font-weight: 700; cursor: pointer; }
+
+/* ---- More menu ---- */
+.more-wrap { height: 100%; overflow-y: auto; padding: max(14px, env(safe-area-inset-top, 0px)) 16px 16px; -webkit-overflow-scrolling: touch; }
+.more-wrap h1 { font-size: 20px; font-weight: 700; margin: 4px 0 14px; }
+.more-user { background: linear-gradient(135deg, #2a1d7a, #12163a); border: 1px solid #3a2fa0; border-radius: 18px; padding: 14px; margin-bottom: 14px; }
+.more-user b { display: block; font-size: 16px; }
+.more-user span { font-size: 12px; color: #c9c3ff; }
+.more-list a, .more-list button {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px; margin-bottom: 8px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+  color: var(--tx); text-decoration: none; font: inherit; font-size: 14px; text-align: left; cursor: pointer;
+}
+.more-list a:active, .more-list button:active { background: var(--card2); }
+.more-list .ico { font-size: 22px; width: 28px; text-align: center; }
+.more-list .lbl { flex: 1; }
+.more-list .lbl small { display: block; color: var(--mu); font-size: 11px; }
+.more-list .chev { color: var(--mu); }
+.more-list .danger { color: #fca5a5; border-color: rgba(239,68,68,.35); }

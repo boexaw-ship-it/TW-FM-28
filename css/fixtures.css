@@ -1,0 +1,65 @@
+* { 
+      -webkit-tap-highlight-color: transparent; 
+    }
+    
+    /* 💡 🎯 🚀 CRITICAL MOBILE SELECT BLOCK ENGINE */
+.gold-text { background: linear-gradient(135deg, #8c6dff, #b3a1ff, #6a4de0); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .nav-item { display:flex; flex-direction:column; align-items:center; gap:2px; padding:8px 12px; color:#8c6dff; cursor:pointer; }
+    .nav-item.active { color:#4ADE80; font-weight: 700; }
+    
+    /* Tab Buttons Styling - Leagues UI Theme နှင့် ကိုက်ညီအောင် ညှိခြင်း */
+    .tab-btn { flex:1; padding:12px 0; font-size:0.8rem; font-weight:700; border-bottom:2px solid transparent; background:transparent; cursor:pointer; transition: all 0.2s; color: #64748B; }
+    
+    /* Custom Scrollbar Styling */
+    #fixtures-scroll-container::-webkit-scrollbar { width: 3px; }
+    #fixtures-scroll-container::-webkit-scrollbar-thumb { background: #8c6dff; border-radius: 2px; }
+    
+    /* Stats Box Dropdown Animation */
+    .stats-expand-box { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; }
+    .stats-expand-box.open { max-height: 500px; transition: max-height 0.4s ease-in; }
+
+    /* 🚨 🎯 UNCLE'S FIXTURE RESPONSIBLE SHIELD (ANTI-CRASH) */
+    /* JS က ထုတ်ပေးလိုက်တဲ့ ပွဲစဉ်ကတ်ပြားတွေရဲ့ Framework Layout ပုံသဏ္ဌာန်ကို မဖျက်စီးဘဲ အနောက်ခံနှင့် စာလုံးအရောင်ကိုသာ ဇွတ်ပြောင်းလဲစေမည့်စနစ် */
+    
+    /* ပွဲစဉ်ကတ်ပြား Layout အားလုံးကို အဖြူရောင် Soft Card အပြည့်အဝပြောင်းလဲခြင်း (ကျုံ့မသွားအောင် width ကို 100% ထိန်းထားသည်) */
+    #fixtures-list > div, 
+    #fixtures-list div[class*="bg-"] {
+      background: #FFFFFF !important;
+      background-color: #FFFFFF !important;
+      border-radius: 1rem !important;
+      border: 1px solid #E2E8F0 !important;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.03) !important;
+      width: 100% !important; /* ကတ်ပြားကြီးများ ဘယ်ဘက်သို့ ကျုံ့မသွားစေရန် အပိုင်ထိန်းချုပ်ခြင်း */
+      max-width: 100% !important;
+    }
+
+    /* ရက်စွဲ၊ အချိန်၊ အသင်းအမည်၊ ရလဒ်ဂိုးများ အားလုံးကို လုံးဝ ဖတ်ရလွယ်ကူသော အမဲရောင်စစ်စစ် ဖြစ်စေခြင်း */
+    #fixtures-list *, 
+    #fixtures-list span, 
+    #fixtures-list p, 
+    #fixtures-list div {
+      color: #000000 !important;
+      font-weight: 800 !important;
+    }
+
+    /* ပွဲစဉ်ကျင်းပမည့် အချိန်နာရီ (MMT) စာသားများကို အဝါရောင်မှိန်မှိန်အစား ထင်ရှားသော Slate Grey ပြောင်းလဲခြင်း */
+    #fixtures-list [style*="color: text-yellow-400"],
+    #fixtures-list span[style*="color"],
+    #fixtures-list p[class*="text-amber-"],
+    #fixtures-list div[class*="text-yellow-"] {
+      color: #334155 !important;
+    }
+
+    /* 🏆 အလယ်က VS စာလုံးလေးကိုသာ သီးသန့် ကွက်တိ ဝိုင်းစက်သော Soft Gold Badge ပုံစံ ခြယ်သခြင်း (Outer Card အား မထိခိုက်စေရ) */
+    #fixtures-list div div div:empty,
+    #fixtures-list .vs-box,
+    #fixtures-list div[class*="text-green-400"] {
+      background: #FEF3C7 !important; /* Soft Gold Tint */
+      background-color: #FEF3C7 !important;
+      border: 1px solid #F59E0B !important;
+      color: #B45309 !important;
+      border-radius: 8px !important;
+      padding: 2px 8px !important;
+      font-size: 11px !important;
+      font-weight: 900 !important;
+    }

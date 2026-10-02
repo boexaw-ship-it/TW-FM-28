@@ -1,0 +1,68 @@
+#team-popup-modal.hidden { display: none !important; }
+    * { -webkit-tap-highlight-color: transparent; }
+    
+.gold-text { background: linear-gradient(135deg, #8c6dff, #b3a1ff, #6a4de0); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .nav-item { display:flex; flex-direction:column; align-items:center; gap:2px; padding:8px 12px; color:#8c6dff; cursor:pointer; }
+    .nav-item.active { color:#4ADE80; font-weight: 700; }
+    
+    .player-point-circle { width:22px; height:22px; background:black; color:white; border-radius:9999px; display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:900; margin-top:-8px; z-index:10; border:1px solid rgba(255,255,255,0.2); box-shadow:0 2px 4px rgba(0,0,0,0.4); }
+    
+    #league-scroll-container::-webkit-scrollbar { width: 3px; }
+    #league-scroll-container::-webkit-scrollbar-thumb { background: #8c6dff; border-radius: 2px; }
+
+    /* 🚨 🎯 🚀 UNCLE'S ULTIMATE BLACK LOCK ENGINE (BADGES EXCLUDED) */
+    /* Table အတွင်းရှိ Serial Number, Team Name, GW, Total နံပါတ်စာသားအားလုံးကို လုံးဝ ဖတ်ရလွယ်ကူသော အမဲရောင်စစ်စစ်ပြောင်းလဲခြင်း */
+    
+    /* ၁။ ဇယားထဲက Dynamic ထွက်လာသမျှ နံပါတ်နှင့် စာသားတိုင်းကို လုံးဝ အမဲရောင် Force လုပ်ခြင်း (အရောင်စုံ Chip Badges နှင့် Hit Point အနီရောင်ကို လုံးဝ (လုံးဝ) မထိခိုက်စေရန် ချန်လှပ်ထားသည်) */
+    [id*="-table"] td, [id*="-table"] th, [id*="-table"] p,
+    [id*="-table"] div:not([class*="rounded"]),
+    [id*="-table"] span:not([style*="background"]):not([style*="color"]) {
+      color: #000000 !important;
+      font-weight: 900 !important;
+    }
+
+    /* ၂။ Total အမှတ်များနှင့် Serial Number များအားလုံး လုံးဝ ရွှေရောင်ပြောင်းမသွားဘဲ အမဲရောင် သီးသန့် ကွက်တိ Lock ချခြင်း */
+    [id*="-table"] span[style*="font-family:'Bebas Neue'"],
+    [id*="-table"] font, 
+    [id*="-table"] td:last-child,
+    [id*="-table"] td:first-child {
+      color: #000000 !important;
+    }
+
+    /* ၃။ ဂျာဗားစခရစ်က ထုတ်ပေးမည့် သီးသန့် Dynamic Color Element များ (Chips, Hit) ကို ကာကွယ်ပေးထားခြင်း */
+    [id*="-table"] span[style*="background"] {
+      color: inherit !important; /* JS ထဲက သတ်မှတ်ပေးလိုက်တဲ့ Text Color အတိုင်း တိုက်ရိုက်ယူစေခြင်း */
+    }
+
+    /* ၄။ ကတ်ပြား Row တစ်ခုချင်းစီ၏ နောက်ခံများအား အစိမ်းရောင်လုံးဝမထွက်စေဘဲ Absolute ဖုံးအုပ်အရောင်ခြယ်ခြင်း */
+    /* Rank 1 (🏆 Gold) */
+    [id*="-table"] tbody tr:nth-of-type(1), [id*="-table"] tbody tr:nth-of-type(1) td,
+    [id*="-table"] > div:not([style*="border-bottom"]):nth-of-type(2),
+    [id*="-table"] > div:not([style*="border-bottom"]):nth-of-type(2) * {
+      background: #FFD700 !important;
+      background-color: #FFD700 !important;
+    }
+    
+    /* Rank 2 (🥈 Silver) */
+    [id*="-table"] tbody tr:nth-of-type(2), [id*="-table"] tbody tr:nth-of-type(2) td,
+    [id*="-table"] > div:not([style*="border-bottom"]):nth-of-type(3),
+    [id*="-table"] > div:not([style*="border-bottom"]):nth-of-type(3) * {
+      background: #E2E8F0 !important;
+      background-color: #E2E8F0 !important;
+    }
+    
+    /* Rank 3 (🥉 Bronze) */
+    [id*="-table"] tbody tr:nth-of-type(3), [id*="-table"] tbody tr:nth-of-type(3) td,
+    [id*="-table"] > div:not([style*="border-bottom"]):nth-of-type(4),
+    [id*="-table"] > div:not([style*="border-bottom"]):nth-of-type(4) * {
+      background: #FFEDD5 !important;
+      background-color: #FFEDD5 !important;
+    }
+
+    /* Rank 4 မှ အောက်ခြေအသင်းများအားလုံး (အစိမ်းရောင်ကို အပြီးတိုင်ဖျက်ပြီး အဝါရောင်ဖျော့စစ်စစ်သို့ ဇွတ်ပြောင်းလဲခြင်း) */
+    [id*="-table"] tbody tr:nth-of-type(n+4), [id*="-table"] tbody tr:nth-of-type(n+4) td,
+    [id*="-table"] > div:not([style*="border-bottom"]):nth-of-type(n+5),
+    [id*="-table"] > div:not([style*="border-bottom"]):nth-of-type(n+5) * {
+      background: #FEF9C3 !important;
+      background-color: #FEF9C3 !important;
+    }

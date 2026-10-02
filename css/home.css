@@ -1,0 +1,104 @@
+/* ============================================
+   Home (dashboard) — TW FM purple UI
+   ============================================ */
+.home-root { display: flex; flex-direction: column; height: 100%; background: var(--bg); color: var(--tx); }
+
+.home-head { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: max(12px, env(safe-area-inset-top, 0px)) 16px 8px; flex: 0 0 auto; }
+.home-brand { display: flex; align-items: center; gap: 10px; }
+.home-logo { width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center;
+  background: linear-gradient(135deg, #8c6dff, #3b82f6); color: #fff; font-weight: 800; font-size: 13px; }
+.home-brand h1 { margin: 0; font-size: 20px; font-weight: 700; line-height: 1.05; letter-spacing: .01em; }
+.home-brand p { margin: 0; font-size: 9px; letter-spacing: .16em; text-transform: uppercase; color: var(--mu); }
+.home-who { display: flex; align-items: center; gap: 8px; }
+.home-pill { font-size: 10px; font-weight: 800; letter-spacing: .06em; padding: 4px 10px; border-radius: 999px;
+  background: rgba(140,109,255,.16); color: #c9bcff; border: 1px solid rgba(140,109,255,.4); }
+.home-refresh { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 8px; font-size: 9px; font-weight: 800;
+  background: rgba(245,158,11,.14); color: #fbbf24; border: 1px solid rgba(245,158,11,.4); cursor: pointer; }
+.home-refresh.hidden { display: none; }
+
+.home-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding: 4px 16px 20px; display: flex; flex-direction: column; gap: 12px; }
+
+.home-profile { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 18px;
+  background: var(--card); border: 1px solid var(--line); }
+.home-avatar { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; font-size: 22px;
+  background: var(--card2); border: 1px solid var(--line); flex: 0 0 auto; }
+.home-pf-text { min-width: 0; }
+.home-pf-text h2 { margin: 0; font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.home-pf-text p { margin: 2px 0 0; font-size: 12px; color: var(--mu); }
+
+.home-hero { border-radius: 20px; padding: 14px; background: linear-gradient(135deg, #2a1d7a, #12163a); border: 1px solid #3a2fa0; }
+.home-hero-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.home-tag { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 800; letter-spacing: .1em; color: #fbbf24; }
+.home-tag::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #fbbf24; box-shadow: 0 0 8px #fbbf24; }
+.home-hero-when { font-size: 11px; color: #c9c3ff; }
+.home-cd { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
+.home-cd > div { background: rgba(255,255,255,.1); border-radius: 12px; padding: 8px 0 6px; text-align: center; }
+.home-cd b { display: block; font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.15; }
+.home-cd small { font-size: 9.5px; letter-spacing: .12em; color: #c9c3ff; opacity: .85; }
+
+.home-stats { display: grid; grid-template-columns: 1fr 1.35fr 1fr; gap: 8px; }
+.home-stat { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 12px 10px; display: flex; flex-direction: column; min-width: 0; }
+
+.home-stat b { font-size: 22px; font-weight: 700; margin: 4px 0 2px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.home-stat em { font-style: normal; font-size: 11px; min-height: 14px; }
+.home-stat .up { color: var(--ok); } .home-stat .dn { color: var(--no); } .home-stat .mu { color: var(--mu); }
+
+.home-h { margin: 6px 0 0; font-size: 15px; font-weight: 700; }
+.home-tabs { display: flex; gap: 2px; background: var(--card); border-radius: 12px; padding: 3px; }
+.home-tabs button { flex: 1; border: 0; background: none; color: var(--mu); padding: 8px 4px; border-radius: 9px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.home-tabs button.on { background: var(--ac); color: #fff; }
+
+.home-card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 4px 14px; }
+.home-row { display: flex; align-items: center; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--line); }
+.home-row:last-child { border-bottom: 0; }
+.home-row .rk { width: 16px; color: var(--mu); font-size: 12px; }
+.home-row .dt { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
+.home-row .nm { flex: 1; min-width: 0; font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.home-row .nm small { color: var(--mu); font-weight: 500; margin-left: 6px; font-size: 11px; }
+.home-row .ps { color: var(--mu); font-size: 11px; }
+.home-row .vl { font-weight: 700; font-size: 14px; min-width: 52px; text-align: right; }
+.home-row:first-child .vl { color: #a58bff; }
+.home-skel { height: 18px; margin: 14px 0; border-radius: 6px; background: linear-gradient(90deg, var(--card2), #242953, var(--card2)); background-size: 200% 100%; animation: skel 1.2s linear infinite; }
+@keyframes skel { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .home-skel { animation: none; } }
+.home-empty { padding: 18px 0; text-align: center; color: var(--mu); font-size: 13px; }
+
+.home-banner { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 16px; text-decoration: none; color: var(--tx);
+  background: linear-gradient(135deg, rgba(140,109,255,.18), rgba(59,130,246,.12)); border: 1px solid rgba(140,109,255,.35); }
+.home-banner-ico { width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; flex: 0 0 auto; }
+.home-banner-ico svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.home-banner-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.home-banner-txt b { font-size: 14px; }
+.home-banner-txt small { font-size: 11px; color: var(--mu); }
+.home-new { font-size: 9px; font-weight: 800; padding: 3px 8px; border-radius: 999px; background: var(--ac); color: #fff; }
+
+/* ---- Stat cards: title တစ်ခုချင်း အရောင်ခြား ---- */
+.home-stat { --c: #8c6dff; background: var(--card); background: linear-gradient(180deg, color-mix(in srgb, var(--c) 14%, var(--card)), var(--card) 70%);
+  border-color: color-mix(in srgb, var(--c) 35%, var(--line)); box-shadow: inset 0 2px 0 var(--c); }
+.home-stat.c-violet { --c: #8c6dff; } .home-stat.c-blue { --c: #38bdf8; } .home-stat.c-green { --c: #34d399; }
+.home-stat .t { display: flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--c); white-space: nowrap; }
+.home-stat .t::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--c); flex: 0 0 auto; }
+
+/* ---- Section title ---- */
+.home-h { display: flex; align-items: center; gap: 8px; margin: 8px 0 0; font-size: 15px; font-weight: 800; letter-spacing: .02em; }
+.home-h i { width: 4px; height: 16px; border-radius: 2px; background: linear-gradient(180deg, #8c6dff, #3b82f6); }
+
+/* ---- Tabs: switch တစ်ခုချင်း ကိုယ်ပိုင်အရောင် ---- */
+.home-tabs button { color: var(--c); opacity: .78; }
+.home-tabs button.on { background: var(--c); color: #fff; opacity: 1; box-shadow: 0 4px 14px color-mix(in srgb, var(--c) 45%, transparent); }
+
+/* ---- Player rows + name plate ---- */
+.home-row { --pc: #8b90b3; gap: 8px; }
+.home-row .jr { width: 34px; height: 34px; object-fit: contain; flex: 0 0 auto; }
+.home-plate { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 9px;
+  background: linear-gradient(90deg, #1f2447, #171a33); border: 1px solid var(--line); border-left: 3px solid var(--pc); }
+.home-plate b { flex: 1; min-width: 0; font-size: 12.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.home-plate i { font-style: normal; font-size: 10px; font-weight: 700; color: var(--pc); letter-spacing: .06em; }
+.home-row .ps { font-size: 10px; font-weight: 700; color: var(--pc); width: 28px; text-align: center; }
+.home-row .vl { color: var(--mc, #a58bff); min-width: 56px; }
+.home-row:first-child .vl { color: var(--mc, #a58bff); }
+
+/* ---- TW Register banner ---- */
+.home-banner-ico { background: linear-gradient(135deg, #8c6dff, #3b82f6); color: #fff; box-shadow: 0 6px 16px rgba(140,109,255,.35); }

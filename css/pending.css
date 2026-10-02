@@ -1,0 +1,11 @@
+* { 
+      -webkit-tap-highlight-color: transparent; 
+    }
+    
+    /* 💡 🎯 🚀 CRITICAL MOBILE SELECT BLOCK ENGINE */
+    /* စာမျက်နှာတစ်ခုလုံးရှိ မည်သည့်စာသား၊ Loading Icon နှင့် ခလုတ်ကိုမဆို ဖိမိပါက Google Translate / Search Bar များ လုံးဝမတက်စေရန် ပိတ်ဆို့ခြင်း */
+.gold-text { background: linear-gradient(135deg, #8c6dff, #b3a1ff, #6a4de0); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .pulse-ring { animation: pulseRing 2s ease-out infinite; }
+    @keyframes pulseRing { 0% { transform:scale(0.8); opacity:1; } 100% { transform:scale(1.5); opacity:0; } }
+    .fade-in { animation: fadeIn 0.5s ease-out; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }

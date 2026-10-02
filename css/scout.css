@@ -1,0 +1,94 @@
+#player-modal.hidden { display: none !important; }
+
+* { 
+  -webkit-tap-highlight-color: transparent; 
+}
+
+/* 💡 MOBILE VIEWPORT MANAGER */
+.gold-text { background: linear-gradient(135deg, #8c6dff, #b3a1ff, #6a4de0); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.nav-item { display:flex; flex-direction:column; align-items:center; gap:2px; padding:8px 12px; color:#8c6dff; cursor:pointer; }
+.nav-item.active { color:#4ADE80; font-weight: 700; }
+
+/* 🎯 TOP POSITION FILTER BUTTONS */
+.filter-btn { border-radius:0.5rem; padding:8px 0; font-size:0.75rem; font-weight:900; cursor:pointer; text-align:center; width: 100%; border: 1px solid transparent; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+#filter-all { background: #FEF3C7 !important; color: #B45309 !important; border-color: #FCD34D !important; }
+#filter-gk  { background: #DBEAFE !important; color: #1E40AF !important; border-color: #BFDBFE !important; }
+#filter-def { background: #FEE2E2 !important; color: #991B1B !important; border-color: #FCA5A5 !important; }
+#filter-mid { background: #FEF9C3 !important; color: #854D0E !important; border-color: #FEF08A !important; }
+#filter-fwd { background: #D1FAE5 !important; color: #2d3366 !important; border-color: #A7F3D0 !important; }
+
+/* 🎯 SORT SWITCHES */
+.sort-btn { 
+  border-radius: 6px !important; 
+  padding: 8px 0 !important; 
+  font-size: 0.68rem !important; 
+  font-weight: 900 !important; 
+  cursor: pointer; 
+  text-align: center; 
+  width: 100%; 
+  background: #E2E8F0 !important; 
+  color: #334155 !important; 
+  border: 1px solid #CBD5E1 !important; 
+  box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+  white-space: nowrap !important;
+  letter-spacing: -0.01em;
+  transition: all 0.15s ease-in-out;
+}
+
+#scout-scroll-container::-webkit-scrollbar { width: 3px; }
+#scout-scroll-container::-webkit-scrollbar-thumb { background: #8c6dff; border-radius: 2px; }
+
+/* 🚨 PLAYER LIST CARD STYLING (Scope targeted strictly to #player-list) */
+#player-list > div {
+  background: #FFFFFF !important;
+  background-color: #FFFFFF !important;
+  border-radius: 14px !important;
+  border: 1px solid #E2E8F0 !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.03) !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  padding: 14px !important;
+  margin-bottom: 12px !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+}
+
+#player-list > div:has(span[style*="#1d4ed8"]) { border-left: 6px solid #1d4ed8 !important; } 
+#player-list > div:has(span[style*="#dc2626"]) { border-left: 6px solid #dc2626 !important; }   
+#player-list > div:has(span[style*="#eab308"]) { border-left: 6px solid #eab308 !important; }  
+#player-list > div:has(span[style*="#16a34a"]) { border-left: 6px solid #16a34a !important; }  
+
+#player-list > div { border-left-width: 6px !important; }
+
+/* 💡 SCOUT LIST TEXT COLOR ISOLATION ( እንዳይရှုပ်အောင် List ထဲမှာသာ သုံးရန်) */
+#player-list p, #player-list span {
+  font-weight: 800;
+  color: #0F172A;
+}
+
+#player-list > div > div:first-child > div:last-child p:last-child {
+  color: #2d3366 !important; 
+  font-weight: 900 !important;
+}
+
+/* 📊 3-COL STATS CARD */
+#player-list > div > div:last-child {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-top: 12px !important;
+  padding: 10px 14px !important;
+  background: #F8FAFC !important; 
+  border: 1px solid #E2E8F0 !important;
+  border-radius: 12px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+#player-list > div > div:last-child > div,
+#player-list > div > div:last-child > span {
+  font-size: 11px !important;
+  color: #64748B !important;
+}
