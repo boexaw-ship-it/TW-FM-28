@@ -1,3 +1,8 @@
+// ============================================
+// TW FM — Transfers & Squad Planner Controller
+// Production Ready: Dynamic Gameweek & Multi-User Support
+// ============================================
+
 import { auth, db } from "../js/firebase-config.js";
 import { onAuthStateChanged } from "./core/auth.js";
 import { doc, getDoc, getDocs, collection, getDocFromServer } from "./core/fs.js";
@@ -11,7 +16,9 @@ let originalFplSquad = [];
 let officialTeamBank = 0.0;
 let originalTeamBank = 0.0;
 let currentFplTeamId = null;
-let currentGw = 5;
+
+// 💡 GW 5 အသေ မဟုတ်တော့ဘဲ Dynamic Detect လုပ်မည့် state
+let currentGw = null; 
 let activeChip = "NONE";
 let officialFreeTransfers = 1;
 
@@ -117,7 +124,11 @@ function showLuxuryAccessDeniedToast(msg = "Only TW Members have access to this 
 
 async function enforceTwMemberAccessOnly() {
   await showLuxuryAccessDeniedToast("Only TW Members have access to this feature.");
-  window.go("dashboard", true);
+  if (typeof window.go === "function") {
+    window.go("dashboard", true);
+  } else {
+    window.location.hash = "/dashboard";
+  }
 }
 
 function checkTwMemberPermission() {
@@ -281,7 +292,7 @@ window.forceRefreshTransfersData = async function() {
   try {
     showInAppToast("🔄 ဒေတာအသစ် ရယူနေပါသည်...", false);
 
-    const projectId = db.app.options.projectId;
+    const projectId = db.app?.options?.projectId || "tw-fm-28";
     if (projectId && currentFplTeamId) {
       const pingUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/liveTeams/${currentFplTeamId}`;
       const pingRes = await fetch(pingUrl);
@@ -337,6 +348,16 @@ function fdrColor(fdr) {
   return FDR_COLORS[fdr] || "#22c55e";
 }
 
+function normalizePosition(rawPos) {
+  if (!rawPos) return "MID";
+  const s = String(rawPos).toUpperCase().trim();
+  if (s === "1" || s === "GKP" || s === "GK" || s === "GOALKEEPER") return "GK";
+  if (s === "2" || s === "DEF" || s === "DEFENDER") return "DEF";
+  if (s === "3" || s === "MID" || s === "MIDFIELDER") return "MID";
+  if (s === "4" || s === "FWD" || s === "FORWARD" || s === "ATT") return "FWD";
+  return "MID";
+}
+
 function getPlayerStatusBadge(p, master) {
   const status = String(p.status || master?.status || "a").toLowerCase();
   const chance = p.chanceOfPlaying !== undefined ? p.chanceOfPlaying : (master?.chanceOfPlaying !== undefined ? master.chanceOfPlaying : 100);
@@ -352,7 +373,7 @@ function getPlayerStatusBadge(p, master) {
 function getExactJerseyUrl(player) {
   if (!player || player.isSold) return "./public/jerseys/outfield/ars.png";
   const tCode = formatTeamShort(player?.team || player?.clubCode || player?.teamCode).toLowerCase();
-  const isGk = String(player?.position || "").toUpperCase() === "GK";
+  const isGk = normalizePosition(player?.position) === "GK";
   const subFolder = isGk ? "gk" : "outfield";
   return `./public/jerseys/${subFolder}/${tCode}.png`;
 }
@@ -386,11 +407,12 @@ window.closeTwToast = function() {
 };
 
 // =========================================================================
-// 🚀 AUTH & ENTRY GATE (TW MEMBERS ONLY)
+// 🚀 AUTH & ENTRY GATE (TW MEMBERS ONLY & MULTI-USER DYNAMIC GW)
 // =========================================================================
-onAuthStateChanged(auth, async (user) => {
+async function setupTransfersGate(user) {
   if (!user) {
-    window.go("login", true);
+    if (typeof window.go === "function") window.go("login", true);
+    else window.location.hash = "/login";
     return;
   }
 
@@ -421,8 +443,15 @@ onAuthStateChanged(auth, async (user) => {
       return;
     }
 
-    if (uData && uData.fplTeamId) {
-      currentFplTeamId = String(uData.fplTeamId);
+    // 💡 URL Hash parameters ထဲမှ fplId ပါလာပါက အခြား User ၏ အသင်းကိုပါ ကြည့်ရှုခွင့်ပြုခြင်း
+    const hashParts = window.location.hash.split("?");
+    const queryParams = new URLSearchParams(hashParts[1] || "");
+    const paramFplId = queryParams.get("fplId");
+
+    if (paramFplId) {
+      currentFplTeamId = String(paramFplId).trim();
+    } else if (uData && uData.fplTeamId) {
+      currentFplTeamId = String(uData.fplTeamId).trim();
     }
 
     triggerInitialFakeRefreshUI();
@@ -437,7 +466,7 @@ onAuthStateChanged(auth, async (user) => {
     console.warn("Transfers Gate Error:", err);
     await enforceTwMemberAccessOnly();
   }
-});
+}
 
 function setupToggleListener() {
   const btn = document.getElementById("btn-toggle-price-mode");
@@ -500,14 +529,17 @@ async function loadUserLiveSquad(forceFresh = false) {
 
   if (!forceFresh && savedSquad && savedBank !== null) {
     try {
-      currentSquad = JSON.parse(savedSquad);
-      officialTeamBank = parseFloat(savedBank);
-      if (savedOrig) originalFplSquad = JSON.parse(savedOrig);
-      if (savedOrigBank) originalTeamBank = parseFloat(savedOrigBank);
+      const parsedSquad = JSON.parse(savedSquad);
+      if (Array.isArray(parsedSquad) && parsedSquad.length === 15) {
+        currentSquad = parsedSquad;
+        officialTeamBank = parseFloat(savedBank);
+        if (savedOrig) originalFplSquad = JSON.parse(savedOrig);
+        if (savedOrigBank) originalTeamBank = parseFloat(savedOrigBank);
 
-      renderPitch();
-      updateStrategyMetrics();
-      return true;
+        renderPitch();
+        updateStrategyMetrics();
+        return true;
+      }
     } catch (_) {}
   }
 
@@ -552,12 +584,16 @@ async function loadUserLiveSquad(forceFresh = false) {
   return false;
 }
 
+// 🛡️ Data Normalizer: Dynamic GW & Resilient Starters/Bench Mapping
 function parseRawDataToSquad(data, pointsData = {}) {
   const origKey = `twf_transfers_orig_${currentFplTeamId}`;
   const origBankKey = `twf_transfers_orig_bank_${currentFplTeamId}`;
   const ftKey = `twf_transfers_ft_${currentFplTeamId}`;
 
-  currentGw = Number(data.gameweek || pointsData.gameweek || 5);
+  // 💡 GW ကို 5 အသေမထားဘဲ Data ထဲမှ dynamic ဖတ်ယူခြင်း (မပါပါက localStorage သို့မဟုတ် 1)
+  const incomingGw = Number(data.gameweek || pointsData.gameweek || localStorage.getItem("twf_current_gw"));
+  currentGw = (!isNaN(incomingGw) && incomingGw > 0) ? incomingGw : 1;
+  localStorage.setItem("twf_current_gw", String(currentGw));
   
   const rawBank = data.bank !== undefined ? data.bank : (pointsData.bank !== undefined ? pointsData.bank : 0.0);
   officialTeamBank = parseFloat(rawBank) || 0.0;
@@ -565,20 +601,41 @@ function parseRawDataToSquad(data, pointsData = {}) {
   
   officialFreeTransfers = Number(data.freeTransfers ?? data.transfersAvailable ?? pointsData.freeTransfers ?? 1);
 
-  currentSquad = (data.picks || []).map((p, idx) => {
-    const master = allPlayersCache.find(x => String(x.playerId || x.id) === String(p.playerId || p.element || p.id));
-    
+  const rawPicks = data.picks || [];
+
+  currentSquad = rawPicks.map((p, idx) => {
+    const pId = String(p.playerId || p.element || p.id || idx);
+    const master = allPlayersCache.find(x => String(x.playerId || x.id) === pId);
+
+    // Position Auto-Detect
+    let pos = normalizePosition(p.position || master?.position);
+    if (!p.position && !master?.position) {
+      if (idx === 0 || idx === 11) pos = "GK";
+      else if (idx >= 1 && idx <= 5) pos = "DEF";
+      else if (idx >= 6 && idx <= 10) pos = "MID";
+      else if (idx >= 12) pos = "FWD";
+    }
+
     const curPrice = parseFloat(p.currentPrice !== undefined ? p.currentPrice : (master?.currentPrice || p.price || 0.0));
     const purPrice = parseFloat(p.purchasePrice !== undefined ? p.purchasePrice : curPrice);
     const selPrice = parseFloat(p.sellingPrice !== undefined ? p.sellingPrice : calculateSellingPrice(purPrice, curPrice));
 
+    // Multiplier Mapping: 0-10 = Starters (1), 11-14 = Bench (0)
+    let effectiveMultiplier = 1;
+    if (p.multiplier !== undefined && p.multiplier !== null) {
+      effectiveMultiplier = Number(p.multiplier);
+    } else {
+      effectiveMultiplier = idx < 11 ? 1 : 0;
+    }
+
     return {
-      id: String(p.playerId || p.element || idx),
-      playerId: String(p.playerId || p.element || idx),
-      name: p.name || master?.name || "Player",
-      fullName: master?.fullName || p.name || master?.name || "Player",
-      position: String(p.position || master?.position || "DEF").toUpperCase().trim(),
-      team: p.team || p.teamCode || master?.team || "—",
+      id: pId,
+      playerId: pId,
+      name: p.name || master?.name || p.web_name || (p.fullName ? p.fullName.split(" ").pop() : "Player"),
+      fullName: p.fullName || master?.fullName || p.name || "Premier Player",
+      position: pos,
+      team: p.team || p.teamCode || master?.team || "ARS",
+      teamCode: formatTeamShort(p.teamCode || p.team || master?.teamCode || "ARS"),
       currentPrice: curPrice,
       purchasePrice: purPrice,
       sellingPrice: selPrice,
@@ -591,14 +648,20 @@ function parseRawDataToSquad(data, pointsData = {}) {
       ict: master?.ict || 0,
       status: p.status || master?.status || "a",
       chanceOfPlaying: p.chanceOfPlaying ?? master?.chanceOfPlaying ?? 100,
-      isSuspended: p.isSuspended || master?.isSuspended || false,
-      isInjured: p.isInjured || master?.isInjured || false,
-      multiplier: Number(p.multiplier !== undefined ? p.multiplier : (idx < 11 ? 1 : 0)),
-      isCaptain: Boolean(p.isCaptain),
-      isVice: Boolean(p.isVice),
+      isSuspended: Boolean(p.isSuspended || master?.isSuspended),
+      isInjured: Boolean(p.isInjured || master?.isInjured),
+      multiplier: effectiveMultiplier,
+      isCaptain: Boolean(p.isCaptain || p.is_captain),
+      isVice: Boolean(p.isVice || p.is_vice_captain),
       isSold: false
     };
   });
+
+  // Starters မပါလာပါက ပထမ ၁၁ ယောက်ကို Starters အဖြစ် အာမခံသတ်မှတ်ခြင်း
+  const startersCount = currentSquad.filter(p => Number(p.multiplier) > 0).length;
+  if (startersCount === 0 && currentSquad.length >= 11) {
+    currentSquad.forEach((p, i) => { p.multiplier = i < 11 ? 1 : 0; });
+  }
 
   originalFplSquad = JSON.parse(JSON.stringify(currentSquad));
   saveLocalState();
@@ -606,6 +669,7 @@ function parseRawDataToSquad(data, pointsData = {}) {
   localStorage.setItem(origBankKey, String(originalTeamBank));
   localStorage.setItem(ftKey, String(officialFreeTransfers));
 
+  // Dynamic Header Badge (Next Target Gameweek)
   const gwBadge = document.getElementById("gw-badge");
   if (gwBadge) gwBadge.textContent = `GW ${currentGw + 1}`;
 
@@ -742,7 +806,8 @@ function executeBlank442Squad() {
         playerId: `slot_${slotId}`,
         name: `Blank ${cfg.pos}`,
         position: cfg.pos,
-        team: "—",
+        team: "ARS",
+        teamCode: "ARS",
         currentPrice: 0.0,
         purchasePrice: 0.0,
         sellingPrice: 0.0,
@@ -769,37 +834,36 @@ function executeBlank442Squad() {
 // 🌟 PITCH & BENCH RENDERING
 function renderPitch() {
   const starters = currentSquad.filter(p => Number(p.multiplier) > 0);
-  
-  let subGk = currentSquad.find(p => Number(p.multiplier) === 0 && p.position === "GK");
-  let outfieldSubs = currentSquad.filter(p => Number(p.multiplier) === 0 && p.position !== "GK");
+  const subs = currentSquad.filter(p => Number(p.multiplier) === 0);
 
-  if (!subGk) {
-    const allSubs = currentSquad.filter(p => Number(p.multiplier) === 0);
-    subGk = allSubs[0];
-    outfieldSubs = allSubs.slice(1);
-  }
-
-  const gk = starters.filter(p => p.position === "GK");
-  const def = starters.filter(p => p.position === "DEF");
-  const mid = starters.filter(p => p.position === "MID");
-  const fwd = starters.filter(p => p.position === "FWD");
+  const gk = starters.filter(p => normalizePosition(p.position) === "GK");
+  const def = starters.filter(p => normalizePosition(p.position) === "DEF");
+  const mid = starters.filter(p => normalizePosition(p.position) === "MID");
+  const fwd = starters.filter(p => normalizePosition(p.position) === "FWD");
 
   const formationBadge = document.getElementById("active-formation-badge");
-  if (formationBadge) formationBadge.textContent = `${def.length}-${mid.length}-${fwd.length}`;
+  if (formationBadge) {
+    formationBadge.textContent = `${def.length}-${mid.length}-${fwd.length}`;
+  }
 
-  const renderRow = (arr, isMidRow = false) => `
-    <div class="flex justify-around items-center w-full px-1 ${isMidRow ? 'gap-0.5' : ''}">
-      ${arr.map(p => renderPlayerCard(p, false, isMidRow && arr.length >= 5)).join("")}
-    </div>
-  `;
+  const renderRow = (arr, isMidRow = false) => {
+    if (!arr || arr.length === 0) return "";
+    return `
+      <div class="flex justify-around items-center w-full px-1 ${isMidRow ? 'gap-0.5' : ''}" style="min-height: 68px;">
+        ${arr.map(p => renderPlayerCard(p, false, isMidRow && arr.length >= 5)).join("")}
+      </div>
+    `;
+  };
 
   const startersEl = document.getElementById("pitch-starters");
   if (startersEl) {
     startersEl.innerHTML = `
-      ${renderRow(gk)}
-      ${renderRow(def)}
-      ${renderRow(mid, true)}
-      ${renderRow(fwd)}
+      <div class="flex flex-col justify-around h-full w-full py-1">
+        ${renderRow(gk)}
+        ${renderRow(def)}
+        ${renderRow(mid, true)}
+        ${renderRow(fwd)}
+      </div>
     `;
   }
 
@@ -811,11 +875,19 @@ function renderPitch() {
 
   const benchEl = document.getElementById("pitch-bench");
   if (benchEl) {
-    let benchHtml = "";
-    if (subGk) {
-      benchHtml += renderPlayerCard(subGk, true, false, "GK");
+    let benchGk = subs.find(p => normalizePosition(p.position) === "GK");
+    let benchOutfield = subs.filter(p => normalizePosition(p.position) !== "GK");
+
+    if (!benchGk && subs.length > 0) {
+      benchGk = subs[0];
+      benchOutfield = subs.slice(1);
     }
-    outfieldSubs.forEach((p, idx) => {
+
+    let benchHtml = "";
+    if (benchGk) {
+      benchHtml += renderPlayerCard(benchGk, true, false, "GK");
+    }
+    benchOutfield.forEach((p, idx) => {
       benchHtml += renderPlayerCard(p, true, false, `B${idx + 1}`);
     });
     benchEl.innerHTML = benchHtml;
@@ -855,7 +927,8 @@ function renderPlayerCard(p, isBench = false, isFiveRow = false, benchLabel = nu
   const master = allPlayersCache.find(x => String(x.playerId || x.id) === String(p.playerId || p.id));
   const statusBadge = getPlayerStatusBadge(p, master);
 
-  const nextGw = currentGw + 1;
+  // 💡 Dynamic GW အလိုက် နောက်ပွဲစဉ် တွက်ချက်ခြင်း
+  const nextGw = (currentGw || 1) + 1;
   const upcoming = getUpcomingMatchesForTeam(p.team, nextGw, 1);
   const match = upcoming[0];
   let fixtureBadgeHtml = `<div class="p-fixture-bar" style="background:#334155; color:#94a3b8;">BLANK</div>`;
@@ -887,7 +960,7 @@ function renderPlayerCard(p, isBench = false, isFiveRow = false, benchLabel = nu
     : '';
 
   return `
-    <div onclick="window.handleSlotInteraction(${pIndex})" class="player-card ${subCandidateClass} relative" style="${scaleStyle}">
+    <div onclick="window.handleSlotInteraction(${pIndex})" class="player-card ${subCandidateClass} relative cursor-pointer" style="${scaleStyle}">
       ${transferMarkingHtml}
       ${benchBadgeHtml}
       <div class="jersey-box relative">
@@ -1001,7 +1074,7 @@ function updateStrategyMetrics() {
       shieldEl.textContent = `🛡️ SAFE (${avgStartersOwn}%)`;
       shieldEl.className = "px-1.5 py-0.5 rounded-lg text-[10.5px] font-black tracking-wider uppercase bg-[#2d3366] text-emerald-300 border border-emerald-500/50 truncate w-full text-center";
     } else if (avgStartersOwn >= 20) {
-      shieldEl.textContent = `⚖️ BALANCED (${avgStartersOwn}%)`;
+      shieldEl.textContent = `⚖️️ BALANCED (${avgStartersOwn}%)`;
       shieldEl.className = "px-1.5 py-0.5 rounded-lg text-[10.5px] font-black tracking-wider uppercase bg-[#713f12] text-yellow-300 border border-yellow-600/50 truncate w-full text-center";
     } else {
       shieldEl.textContent = `⚡ DIFF (${avgStartersOwn}%)`;
@@ -1037,7 +1110,7 @@ window.openPlayerAction = function(index) {
   document.getElementById("pa-form").textContent = p.form;
   document.getElementById("pa-xg-ict").textContent = `${p.xg || 0} / ${p.ict || 0}`;
 
-  const nextGw = currentGw + 1;
+  const nextGw = (currentGw || 1) + 1;
   const matches = getUpcomingMatchesForTeam(p.team, nextGw, 3);
   const fixListEl = document.getElementById("pa-fixtures-list");
 
@@ -1101,7 +1174,7 @@ function executeSubstitution(idx1, idx2) {
   const isP2Starter = Number(p2.multiplier) > 0;
 
   if (!isP1Starter && !isP2Starter) {
-    if (p1.position === "GK" || p2.position === "GK") {
+    if (normalizePosition(p1.position) === "GK" || normalizePosition(p2.position) === "GK") {
       showTwToast("လူလဲမရပါ", "အရန်ဂိုးသမား (Sub GK) သည် အရန်ခုံတွင် နေရာအသေဖြစ်သည်ခင်ဗျာ!", "⚠️");
       return;
     }
@@ -1116,8 +1189,8 @@ function executeSubstitution(idx1, idx2) {
     return;
   }
 
-  const isP1Gk = p1.position === "GK";
-  const isP2Gk = p2.position === "GK";
+  const isP1Gk = normalizePosition(p1.position) === "GK";
+  const isP2Gk = normalizePosition(p2.position) === "GK";
   if ((isP1Gk && !isP2Gk) || (!isP1Gk && isP2Gk)) {
     showTwToast("လူလဲမရပါ", "ဂိုးသမား (GK) သည် အခြားဂိုးသမားနှင့်သာ လူလဲခွင့်ရှိပါသည်ခင်ဗျာ!", "⚠️");
     return;
@@ -1128,9 +1201,9 @@ function executeSubstitution(idx1, idx2) {
   p2.multiplier = tempMult;
 
   const starters = currentSquad.filter(p => Number(p.multiplier) > 0);
-  const defCount = starters.filter(p => p.position === "DEF").length;
-  const midCount = starters.filter(p => p.position === "MID").length;
-  const fwdCount = starters.filter(p => p.position === "FWD").length;
+  const defCount = starters.filter(p => normalizePosition(p.position) === "DEF").length;
+  const midCount = starters.filter(p => normalizePosition(p.position) === "MID").length;
+  const fwdCount = starters.filter(p => normalizePosition(p.position) === "FWD").length;
 
   if (defCount < 3 || defCount > 5 || midCount < 2 || midCount > 5 || fwdCount < 1 || fwdCount > 3) {
     p2.multiplier = p1.multiplier;
@@ -1237,7 +1310,7 @@ function renderMarketList() {
   const slot = currentSquad[targetSwapIndex];
   if (!slot) return;
 
-  const targetPos = String(slot.position || "").toUpperCase().trim();
+  const targetPos = normalizePosition(slot.position);
   const ownedIds = new Set(currentSquad.filter(p => !p.isSold).map(p => String(p.playerId)));
 
   const teamCounts = {};
@@ -1249,7 +1322,7 @@ function renderMarketList() {
   });
 
   let filtered = allPlayersCache.filter(p => {
-    const pPos = String(p.position || "").toUpperCase().trim();
+    const pPos = normalizePosition(p.position);
     return pPos === targetPos;
   });
 
@@ -1271,7 +1344,7 @@ function renderMarketList() {
     return;
   }
 
-  const nextGw = currentGw + 1;
+  const nextGw = (currentGw || 1) + 1;
 
   listEl.innerHTML = filtered.slice(0, 60).map(p => {
     const pTeamCode = formatTeamShort(p.team);
@@ -1354,7 +1427,7 @@ window.openMarketDetailModal = function(playerId) {
   document.getElementById("md-form").textContent = p.form;
   document.getElementById("md-xg-ict").textContent = `${p.xg} / ${p.ict}`;
 
-  const nextGw = currentGw + 1;
+  const nextGw = (currentGw || 1) + 1;
   const matches = getUpcomingMatchesForTeam(p.team, nextGw, 3);
   const fixListEl = document.getElementById("md-fixtures-list");
 
@@ -1442,6 +1515,7 @@ window.confirmBuyPlayer = function(playerId) {
     ...newP,
     id: String(newP.playerId),
     playerId: String(newP.playerId),
+    position: normalizePosition(newP.position),
     currentPrice: buyCost,
     purchasePrice: buyCost,
     sellingPrice: buyCost,
@@ -1457,3 +1531,14 @@ window.confirmBuyPlayer = function(playerId) {
   renderPitch();
   updateStrategyMetrics();
 };
+
+// 🚀 SPA Router Connector (Export init + Auth Fallback)
+export async function init() {
+  if (auth.currentUser) {
+    await setupTransfersGate(auth.currentUser);
+  } else {
+    onAuthStateChanged(auth, setupTransfersGate);
+  }
+}
+
+onAuthStateChanged(auth, setupTransfersGate);
