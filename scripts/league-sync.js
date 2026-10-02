@@ -2,6 +2,7 @@
 // TW Fantasy Official League
 // Unified League Sync Engine (1 Doc per League = 1 Quota Pattern)
 // Features: Live BPS, Live Auto-Subs, Vice-Captain Promotion, Net GW Points
+// Fix: 1MB Document Limit Exceeded Resolution via Payload Optimization
 // ============================================
 
 const admin = require("firebase-admin");
@@ -63,7 +64,6 @@ async function getPlayerMasterMap(targetGw) {
     teamsMap[t.id] = (t.short_name || "").toUpperCase().trim();
   });
 
-  // Gameweek Live Stats Map (Minutes played, Live BPS, Goals, Assists)
   const liveStatsMap = {};
   (liveData.elements || []).forEach(item => {
     liveStatsMap[item.id] = {
@@ -114,7 +114,6 @@ async function getPlayerMasterMap(targetGw) {
       teamCode: teamsMap[p.team] || "UNKNOWN",
       price: parseFloat((p.now_cost / 10).toFixed(1)),
       
-      // Live Performance Intelligence
       livePoints: liveInfo.livePoints,
       minutesPlayed: liveInfo.minutes,
       bps: liveInfo.bps,
@@ -122,7 +121,6 @@ async function getPlayerMasterMap(targetGw) {
       goalsScored: liveInfo.goals,
       assists: liveInfo.assists,
 
-      // Availability Metadata
       status: status,
       chanceOfPlaying: chanceOfPlaying,
       chanceOfPlayingThisRound: thisChanceRaw !== null ? Number(thisChanceRaw) : null,
@@ -187,35 +185,28 @@ async function getTeamGwDetail(fplTeamId, gw, playersMasterMap) {
       return {
         playerId: p.element,
         name: master.name,
-        fullName: master.fullName,
         position: master.position,
         elementType: master.elementType,
         teamCode: master.teamCode,
-        price: master.price,
         livePoints: master.livePoints,
         minutesPlayed: master.minutesPlayed,
         bps: master.bps,
-        provisionalBonus: master.provisionalBonus,
         isCaptain: p.is_captain === true,
         isVice: p.is_vice_captain === true,
         originalMultiplier: p.multiplier,
         multiplier: p.multiplier,
         isStarter: index < 11,
-        benchIndex: index >= 11 ? (index - 10) : 0, // 1, 2, 3, 4
+        benchIndex: index >= 11 ? (index - 10) : 0,
         status: master.status,
-        isInjured: master.isInjured,
-        isSuspended: master.isSuspended,
-        news: master.news,
         autoSubbedIn: false,
         autoSubbedOut: false
       };
     });
 
-    // 💡 1. Captain / Vice-Captain Live Logic
+    // 1. Captain / Vice-Captain Live Logic
     const cap = rawPicks.find(p => p.isCaptain);
     const vice = rawPicks.find(p => p.isVice);
 
-    // Captain မကစားခဲ့ပါက (Minutes == 0 ဖြစ်ပြီး ပွဲပြီးသွားပါက) Vice-Captain သို့ Multiplier လွှဲခြင်း
     if (cap && cap.minutesPlayed === 0 && cap.status !== "a" && vice) {
       if (cap.multiplier > 1) {
         vice.multiplier = isTripleCaptain ? 3 : 2;
@@ -225,15 +216,13 @@ async function getTeamGwDetail(fplTeamId, gw, playersMasterMap) {
       }
     }
 
-    // 💡 2. Live Auto-Substitution Calculation (Bench Boost မဟုတ်မှသာ တွက်သည်)
+    // 2. Live Auto-Substitution Calculation
     if (!isBenchBoost) {
       const starters = rawPicks.filter(p => p.isStarter);
       const bench = rawPicks.filter(p => !p.isStarter);
 
       starters.forEach(starter => {
-        // Starter မကစားခဲ့ပါက
         if (starter.minutesPlayed === 0 && (starter.status === "i" || starter.status === "s" || starter.status === "u")) {
-          // Goalkeeper ဆိုပါက ခုံတန်း GK ဖြင့်သာ အစားထိုးမည်
           if (starter.elementType === 1) {
             const subGK = bench.find(b => b.elementType === 1 && b.minutesPlayed > 0 && !b.autoSubbedIn);
             if (subGK) {
@@ -243,16 +232,10 @@ async function getTeamGwDetail(fplTeamId, gw, playersMasterMap) {
               subGK.multiplier = 1;
             }
           } else {
-            // Outfield player (Formation Rules: အနည်းဆုံး Def ၃ ယောက် ရှိရမည်)
             const activeDefs = starters.filter(s => s.elementType === 2 && !s.autoSubbedOut).length;
-            
             for (const sub of bench) {
               if (sub.elementType === 1 || sub.autoSubbedIn || sub.minutesPlayed === 0) continue;
-
-              // Defender နေရာတွင် အစားထိုးပါက Def ၃ ယောက် ပြည့်မပြည့် စစ်ဆေးခြင်း
-              if (starter.elementType === 2 && activeDefs < 3 && sub.elementType !== 2) {
-                continue; 
-              }
+              if (starter.elementType === 2 && activeDefs < 3 && sub.elementType !== 2) continue;
 
               starter.autoSubbedOut = true;
               starter.multiplier = 0;
@@ -265,7 +248,7 @@ async function getTeamGwDetail(fplTeamId, gw, playersMasterMap) {
       });
     }
 
-    // 💡 3. Total Live GW Points တွက်ချက်ခြင်း
+    // 3. Total Live GW Points တွက်ချက်ခြင်း
     let calculatedLiveGwPoints = 0;
     rawPicks.forEach(p => {
       const mult = isBenchBoost ? (p.originalMultiplier || 1) : p.multiplier;
@@ -277,22 +260,40 @@ async function getTeamGwDetail(fplTeamId, gw, playersMasterMap) {
     const hitCost = data.entry_history?.event_transfers_cost || 0;
     const netLiveGwPoints = calculatedLiveGwPoints - hitCost;
 
+    // 💡 1MB Limit မကျော်စေရန် ပိုမိုကျစ်လျစ်သော Lightweight Picks Structure အဖြစ် ပြောင်းလဲခြင်း
+    const compactPicks = rawPicks.map(p => ({
+      id: p.playerId,
+      name: p.name,
+      pos: p.position,
+      pts: p.livePoints,
+      mult: p.multiplier,
+      c: p.isCaptain,
+      v: p.isVice,
+      subIn: p.autoSubbedIn,
+      subOut: p.autoSubbedOut
+    }));
+
     return {
       chip: activeChip,
       hitCost: hitCost,
       grossGwPoints: calculatedLiveGwPoints,
-      gwPoints: netLiveGwPoints, // ဒဏ်ကြေးနုတ်ပြီး အသားတင် ရမှတ်
-      picks: rawPicks
+      gwPoints: netLiveGwPoints,
+      picks: compactPicks
     };
   } catch (err) {
     return { chip: null, hitCost: 0, grossGwPoints: 0, gwPoints: 0, picks: [] };
   }
 }
 
-// === Synchronize Specific League into a SINGLE DOCUMENT ===
+// 📦 Helper: Document အရွယ်အစား 1MB မကျော်စေရန် အနီးစပ်ဆုံး တွက်ချက်ခြင်း
+function calculateByteSize(obj) {
+  return Buffer.byteLength(JSON.stringify(obj), "utf8");
+}
+
+// === Synchronize Specific League with Auto-Splitting Protection ===
 async function syncLeague(leagueConfig, gw, playersMasterMap) {
   const { firebaseId, fplLeagueId, name } = leagueConfig;
-  console.log(`📥 Syncing League: "${name}" | ID: ${fplLeagueId} (Unified 1-Doc Mode)...`);
+  console.log(`📥 Syncing League: "${name}" | ID: ${fplLeagueId}...`);
 
   try {
     const standings = await fetchAllStandings(fplLeagueId);
@@ -313,36 +314,69 @@ async function syncLeague(leagueConfig, gw, playersMasterMap) {
         rankDelta: (team.last_rank ? team.last_rank - team.rank : 0),
         totalPoints: team.total,
         grossGwPoints: detail.grossGwPoints,
-        gwPoints: detail.gwPoints, // Net Points (After transfer cost)
+        gwPoints: detail.gwPoints,
         hitCost: detail.hitCost,
         chip: detail.chip,
         picks: detail.picks
       });
 
-      // API Rate Limit မထိစေရန် 30ms sleep
-      await new Promise(r => setTimeout(r, 30));
+      await new Promise(r => setTimeout(r, 25));
     }
 
-    // 💡 Firestore Document ၁ ခုတည်းအတွင်းသို့ အကုန်ထည့်သွင်းခြင်း (1 Write Quota Only)
-    const leagueDocRef = db.collection("leagues").doc(firebaseId);
-    const finalDocPayload = {
+    // 💡 1MB Overflow Guard: အကယ်၍ Document အရွယ်အစားသည် 950KB ကျော်နေပါက အလိုအလျောက် Split လုပ်မည်
+    const basePayload = {
       leagueName: name,
       fplLeagueId: fplLeagueId,
       gameweek: gw,
       totalTeams: teamsPayload.length,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      teams: teamsPayload // <--- Array of all managers and their squad picks
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
     };
 
-    if (diff.changed("unified_league_payload", finalDocPayload)) {
-      await leagueDocRef.set(finalDocPayload, { merge: true });
-      console.log(`💾 [SAVED 1-DOC] League "${name}" (${firebaseId}) successfully written to Firestore.`);
+    const fullDocPayload = { ...basePayload, teams: teamsPayload };
+    const payloadBytes = calculateByteSize(fullDocPayload);
+    console.log(`   Estimated Document Size: ${(payloadBytes / 1024).toFixed(1)} KB (Max: 1024 KB)`);
+
+    const leagueDocRef = db.collection("leagues").doc(firebaseId);
+
+    if (payloadBytes < 950 * 1024) {
+      // 950KB အောက်ဖြစ်ပါက Single Document အဖြစ် သိမ်းဆည်းမည် (1 Write Quota)
+      if (diff.changed("unified_league_payload", fullDocPayload)) {
+        await leagueDocRef.set(fullDocPayload, { merge: true });
+        console.log(`💾 [SAVED 1-DOC] League "${name}" (${firebaseId}) successfully written to Firestore.`);
+      } else {
+        console.log(`⚡ [NO CHANGE] League "${name}" is identical to previous sync.`);
+      }
     } else {
-      console.log(`⚡ [NO CHANGE] League "${name}" data is identical to previous sync. Skipped write.`);
+      // 950KB ထက်ကျော်ပါက (ဥပမာ Amateur League တွင် ၂၄၈ ယောက်ရှိပါက) Chunked Multi-Doc အဖြစ် ခွဲထုတ်မည်
+      console.log(`⚠️ Document exceeds safe limit! Auto-partitioning into chunks...`);
+      const CHUNK_SIZE = 75; // တစ်ဖိုင်လျှင် Manager ၇၅ ယောက်ခန့်သာ ထည့်မည်
+      const totalChunks = Math.ceil(teamsPayload.length / CHUNK_SIZE);
+
+      // မူလ document တွင် Standings Summary ကိုသာ သိမ်းမည် (picks မပါဘဲ အပေါ့ဆုံး)
+      const summaryTeams = teamsPayload.map(({ picks, ...rest }) => rest);
+      await leagueDocRef.set({
+        ...basePayload,
+        isChunked: true,
+        totalChunks: totalChunks,
+        teams: summaryTeams // Standings Table တင်ရန် အပေါ့ဆုံး payload
+      }, { merge: true });
+
+      // picks အသေးစိတ်များကို sub-documents ထဲသို့ ခွဲထုတ်သိမ်းဆည်းမည်
+      for (let i = 0; i < totalChunks; i++) {
+        const chunkTeams = teamsPayload.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+        const chunkRef = leagueDocRef.collection("chunks").doc(`chunk_${i + 1}`);
+        await chunkRef.set({
+          chunkIndex: i + 1,
+          teams: chunkTeams,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+      }
+
+      console.log(`💾 [SAVED CHUNKS] League "${name}" successfully saved across ${totalChunks} chunks safely!`);
     }
 
     await diff.save({ prune: true });
-    console.log(`✅ League "${name}" Sync Complete! Used only 1 Firestore Write Quota.`);
+    console.log(`✅ League "${name}" Sync Complete!`);
   } catch (err) {
     console.error(`❌ League sync error (${name}): ${err.message}`);
   }
@@ -350,23 +384,20 @@ async function syncLeague(leagueConfig, gw, playersMasterMap) {
 
 // === Main Engine ===
 async function main() {
-  console.log("🚀 Starting Optimized 5-League Sync Engine (1-Doc Quota Architecture)...");
+  console.log("🚀 Starting Optimized 5-League Sync Engine (Safe Quota Architecture)...");
 
   try {
-    // ပထမဆုံး Events ဆွဲယူပြီး Gameweek ကို သတ်မှတ်သည်
     const bootstrapFirst = await fplFetch(`${FPL_BASE}/bootstrap-static/`);
     const targetWeek = autoDetectCurrentGameweek(bootstrapFirst.events || []);
     console.log(`🤖 Target Gameweek: GW ${targetWeek}`);
 
-    // အဆိုပါ Gameweek အတွက် Live Points + Master Map ကို တစ်ကြိမ်တည်း ဆွဲယူသည်
     const { playersMap: playersMasterMap } = await getPlayerMasterMap(targetWeek);
 
-    // League ၅ ခုကို တန်းစီ Run သည်
     for (const league of LEAGUES) {
       await syncLeague(league, targetWeek, playersMasterMap);
     }
 
-    console.log(`🎉 [COMPLETED] 5 Leagues Synced successfully using minimal Firestore Write operations!`);
+    console.log(`🎉 [COMPLETED] All Leagues Synced successfully without Firestore size limit violations!`);
     process.exit(0);
   } catch (err) {
     console.error("Fatal Error: " + err.message);
