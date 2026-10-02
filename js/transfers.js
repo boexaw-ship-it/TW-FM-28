@@ -1,6 +1,7 @@
 // ============================================
 // TW FM — Transfers & Squad Planner Controller
 // Production Ready: Dynamic Gameweek & Multi-User Support
+// Formation Fix: Resolves 0-11-0 Bug to Accurate Pitch Layout
 // ============================================
 
 import { auth, db } from "../js/firebase-config.js";
@@ -348,14 +349,15 @@ function fdrColor(fdr) {
   return FDR_COLORS[fdr] || "#22c55e";
 }
 
+// 🛡️ Position အမျိုးအစားအားလုံးကို GK, DEF, MID, FWD အဖြစ် တိကျစွာ ခွဲထုတ်ခြင်း (Null Safe)
 function normalizePosition(rawPos) {
-  if (!rawPos) return "MID";
+  if (!rawPos) return null;
   const s = String(rawPos).toUpperCase().trim();
   if (s === "1" || s === "GKP" || s === "GK" || s === "GOALKEEPER") return "GK";
   if (s === "2" || s === "DEF" || s === "DEFENDER") return "DEF";
   if (s === "3" || s === "MID" || s === "MIDFIELDER") return "MID";
   if (s === "4" || s === "FWD" || s === "FORWARD" || s === "ATT") return "FWD";
-  return "MID";
+  return null;
 }
 
 function getPlayerStatusBadge(p, master) {
@@ -530,7 +532,9 @@ async function loadUserLiveSquad(forceFresh = false) {
   if (!forceFresh && savedSquad && savedBank !== null) {
     try {
       const parsedSquad = JSON.parse(savedSquad);
-      if (Array.isArray(parsedSquad) && parsedSquad.length === 15) {
+      // စစ်ဆေးမှု: အကယ်၍ ပျက်စီးနေသော 0-11-0 squad ဖြစ်နေပါက cache ကိုကျော်ပြီး server မှ ပြန်ယူမည်
+      const starDefs = parsedSquad.filter(p => Number(p.multiplier) > 0 && normalizePosition(p.position) === "DEF");
+      if (Array.isArray(parsedSquad) && parsedSquad.length === 15 && starDefs.length >= 3) {
         currentSquad = parsedSquad;
         officialTeamBank = parseFloat(savedBank);
         if (savedOrig) originalFplSquad = JSON.parse(savedOrig);
@@ -584,13 +588,12 @@ async function loadUserLiveSquad(forceFresh = false) {
   return false;
 }
 
-// 🛡️ Data Normalizer: Dynamic GW & Resilient Starters/Bench Mapping
+// 🛡️ Data Normalizer: အတိကျဆုံး Formation နှင့် 4-Row Mapping Engine
 function parseRawDataToSquad(data, pointsData = {}) {
   const origKey = `twf_transfers_orig_${currentFplTeamId}`;
   const origBankKey = `twf_transfers_orig_bank_${currentFplTeamId}`;
   const ftKey = `twf_transfers_ft_${currentFplTeamId}`;
 
-  // 💡 GW ကို 5 အသေမထားဘဲ Data ထဲမှ dynamic ဖတ်ယူခြင်း (မပါပါက localStorage သို့မဟုတ် 1)
   const incomingGw = Number(data.gameweek || pointsData.gameweek || localStorage.getItem("twf_current_gw"));
   currentGw = (!isNaN(incomingGw) && incomingGw > 0) ? incomingGw : 1;
   localStorage.setItem("twf_current_gw", String(currentGw));
@@ -607,25 +610,40 @@ function parseRawDataToSquad(data, pointsData = {}) {
     const pId = String(p.playerId || p.element || p.id || idx);
     const master = allPlayersCache.find(x => String(x.playerId || x.id) === pId);
 
-    // Position Auto-Detect
-    let pos = normalizePosition(p.position || master?.position);
-    if (!p.position && !master?.position) {
+    // 💡 အတိကျဆုံး Position Resolution:
+    // 1) p.position ကို normalize လုပ်ခြင်း
+    // 2) master?.position ကို စစ်ဆေးခြင်း
+    // 3) element_type (FPL standard: 1=GK, 2=DEF, 3=MID, 4=FWD) ကို စစ်ဆေးခြင်း
+    // 4) တရားဝင် 15-man squad index အတိုင်း fallback ပေးခြင်း[span_7](start_span)[span_7](end_span)
+    let pos = normalizePosition(p.position) || normalizePosition(master?.position);
+    if (!pos && (p.element_type || master?.element_type)) {
+      const et = String(p.element_type || master?.element_type);
+      if (et === "1") pos = "GK";
+      else if (et === "2") pos = "DEF";
+      else if (et === "3") pos = "MID";
+      else if (et === "4") pos = "FWD";
+    }
+    
+    // အကယ်၍ မည်သည့်နေရာမှ မပါလာပါက FPL standard index mapping အရ တိကျစွာ ခွဲပေးခြင်း[span_8](start_span)[span_8](end_span):
+    // Index 0: Starter GK | Index 1-3: Def | Index 4-7: Mid | Index 8-10: Fwd (Standard 3-5-2 or 4-4-2 setup)[span_9](start_span)[span_9](end_span)
+    if (!pos) {
       if (idx === 0 || idx === 11) pos = "GK";
-      else if (idx >= 1 && idx <= 5) pos = "DEF";
-      else if (idx >= 6 && idx <= 10) pos = "MID";
-      else if (idx >= 12) pos = "FWD";
+      else if (idx >= 1 && idx <= 4) pos = "DEF";
+      else if (idx >= 5 && idx <= 8) pos = "MID";
+      else if (idx >= 9 && idx <= 10) pos = "FWD";
+      else if (idx === 12) pos = "DEF";
+      else if (idx === 13) pos = "MID";
+      else pos = "FWD";
     }
 
     const curPrice = parseFloat(p.currentPrice !== undefined ? p.currentPrice : (master?.currentPrice || p.price || 0.0));
     const purPrice = parseFloat(p.purchasePrice !== undefined ? p.purchasePrice : curPrice);
     const selPrice = parseFloat(p.sellingPrice !== undefined ? p.sellingPrice : calculateSellingPrice(purPrice, curPrice));
 
-    // Multiplier Mapping: 0-10 = Starters (1), 11-14 = Bench (0)
-    let effectiveMultiplier = 1;
-    if (p.multiplier !== undefined && p.multiplier !== null) {
+    // 💡 Multiplier Fix: ပထမ ၁၁ ယောက် (0-10) သည် Starters (multiplier: 1)၊ ကျန် ၄ ယောက် (11-14) သည် Bench (multiplier: 0)[span_10](start_span)[span_10](end_span)
+    let effectiveMultiplier = (idx < 11) ? 1 : 0;
+    if (p.multiplier !== undefined && p.multiplier !== null && !isNaN(Number(p.multiplier))) {
       effectiveMultiplier = Number(p.multiplier);
-    } else {
-      effectiveMultiplier = idx < 11 ? 1 : 0;
     }
 
     return {
@@ -657,9 +675,9 @@ function parseRawDataToSquad(data, pointsData = {}) {
     };
   });
 
-  // Starters မပါလာပါက ပထမ ၁၁ ယောက်ကို Starters အဖြစ် အာမခံသတ်မှတ်ခြင်း
+  // Starters ၁၁ ယောက် တိကျစွာ ပါဝင်စေရန် သေချာစေခြင်း
   const startersCount = currentSquad.filter(p => Number(p.multiplier) > 0).length;
-  if (startersCount === 0 && currentSquad.length >= 11) {
+  if (startersCount !== 11 && currentSquad.length === 15) {
     currentSquad.forEach((p, i) => { p.multiplier = i < 11 ? 1 : 0; });
   }
 
@@ -669,7 +687,6 @@ function parseRawDataToSquad(data, pointsData = {}) {
   localStorage.setItem(origBankKey, String(originalTeamBank));
   localStorage.setItem(ftKey, String(officialFreeTransfers));
 
-  // Dynamic Header Badge (Next Target Gameweek)
   const gwBadge = document.getElementById("gw-badge");
   if (gwBadge) gwBadge.textContent = `GW ${currentGw + 1}`;
 
@@ -831,7 +848,7 @@ function executeBlank442Squad() {
   currentSquad = newSquad;
 }
 
-// 🌟 PITCH & BENCH RENDERING
+// 🌟 PITCH & BENCH RENDERING (Complete 4-Row Dynamic Formation)
 function renderPitch() {
   const starters = currentSquad.filter(p => Number(p.multiplier) > 0);
   const subs = currentSquad.filter(p => Number(p.multiplier) === 0);
@@ -841,6 +858,7 @@ function renderPitch() {
   const mid = starters.filter(p => normalizePosition(p.position) === "MID");
   const fwd = starters.filter(p => normalizePosition(p.position) === "FWD");
 
+  // Formation Badge: DEF-MID-FWD (ဥပမာ: 3-5-2 သို့မဟုတ် 4-4-2)[span_11](start_span)[span_11](end_span)
   const formationBadge = document.getElementById("active-formation-badge");
   if (formationBadge) {
     formationBadge.textContent = `${def.length}-${mid.length}-${fwd.length}`;
@@ -858,7 +876,7 @@ function renderPitch() {
   const startersEl = document.getElementById("pitch-starters");
   if (startersEl) {
     startersEl.innerHTML = `
-      <div class="flex flex-col justify-around h-full w-full py-1">
+      <div class="flex flex-col justify-around h-full w-full py-1" style="min-height: 380px;">
         ${renderRow(gk)}
         ${renderRow(def)}
         ${renderRow(mid, true)}
@@ -927,7 +945,6 @@ function renderPlayerCard(p, isBench = false, isFiveRow = false, benchLabel = nu
   const master = allPlayersCache.find(x => String(x.playerId || x.id) === String(p.playerId || p.id));
   const statusBadge = getPlayerStatusBadge(p, master);
 
-  // 💡 Dynamic GW အလိုက် နောက်ပွဲစဉ် တွက်ချက်ခြင်း
   const nextGw = (currentGw || 1) + 1;
   const upcoming = getUpcomingMatchesForTeam(p.team, nextGw, 1);
   const match = upcoming[0];
@@ -954,7 +971,6 @@ function renderPlayerCard(p, isBench = false, isFiveRow = false, benchLabel = nu
     : parseFloat(p.sellingPrice !== undefined ? p.sellingPrice : (p.price || 0.0)).toFixed(1);
 
   const priceTagColor = isCurrentMode ? 'text-white' : 'text-red-400';
-
   const benchBadgeHtml = benchLabel 
     ? `<span class="absolute -top-4 left-1/2 -translate-x-1/2 z-20 font-black text-[9px] tracking-wide text-[#b3a1ff] drop-shadow-sm select-none">${benchLabel}</span>` 
     : '';
@@ -1074,7 +1090,7 @@ function updateStrategyMetrics() {
       shieldEl.textContent = `🛡️ SAFE (${avgStartersOwn}%)`;
       shieldEl.className = "px-1.5 py-0.5 rounded-lg text-[10.5px] font-black tracking-wider uppercase bg-[#2d3366] text-emerald-300 border border-emerald-500/50 truncate w-full text-center";
     } else if (avgStartersOwn >= 20) {
-      shieldEl.textContent = `⚖️️ BALANCED (${avgStartersOwn}%)`;
+      shieldEl.textContent = `⚖ BALANCED (${avgStartersOwn}%)`;
       shieldEl.className = "px-1.5 py-0.5 rounded-lg text-[10.5px] font-black tracking-wider uppercase bg-[#713f12] text-yellow-300 border border-yellow-600/50 truncate w-full text-center";
     } else {
       shieldEl.textContent = `⚡ DIFF (${avgStartersOwn}%)`;
@@ -1515,7 +1531,7 @@ window.confirmBuyPlayer = function(playerId) {
     ...newP,
     id: String(newP.playerId),
     playerId: String(newP.playerId),
-    position: normalizePosition(newP.position),
+    position: normalizePosition(newP.position) || oldSlot.position,
     currentPrice: buyCost,
     purchasePrice: buyCost,
     sellingPrice: buyCost,
