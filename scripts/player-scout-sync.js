@@ -1,8 +1,9 @@
 // ============================================
 // TW Fantasy Official League
-// Player Scout Sync Engine (All Core & Advanced Metrics + Next 3 Fixtures)
-// Target: scoutPlayers/allPlayers (Unified 1-Document Architecture)
-// Size: ~310KB (<1048KB Limit) | Quota: 1 Write Operation Only
+// Player Scout Sync Engine + Scout Highlights Document
+// Targets:
+//   1) scoutPlayers/allPlayers    (Full Master Player List)
+//   2) scoutPlayers/scoutHighlights (Top Leaders & Highlights Document)
 // ============================================
 
 const { initializeApp, cert, getApps } = require("firebase-admin/app");
@@ -129,6 +130,27 @@ function buildNext3FixturesMap(fixtures, currentGwId, teamNameMap, teamCodeMap) 
   return teamFixturesMap;
 }
 
+// 🌟 Format Helper: Card Rendering အတွက် အသုံးဝင်သော Player Summary Object ပြုလုပ်ခြင်း
+function createCardSummary(player) {
+  if (!player) return null;
+  return {
+    playerId: player.playerId,
+    name: player.name,
+    fullName: player.fullName,
+    position: player.position,
+    teamCode: player.teamCode,
+    price: player.price,
+    totalPoints: player.totalPoints,
+    gwPoints: player.gwPoints,
+    ownership: player.ownership,
+    form: player.form,
+    transfersInEvent: player.transfersInEvent,
+    transfersOutEvent: player.transfersOutEvent,
+    status: player.status,
+    chanceOfPlaying: player.chanceOfPlaying
+  };
+}
+
 // === Main Execution Function ===
 async function main() {
   console.log("🚀 TW Fantasy — Full Player Scout Sync Starting...");
@@ -205,7 +227,6 @@ async function main() {
       const isSuspended = status === "s";
       const isInjured = status === "i";
 
-      // 💡 Client UI ဘက်တွင် အဆင်ပြေစေရန် CamelCase ရော Original FPL Format ပါ ထည့်သွင်းခြင်း
       allValidPlayers.push({
         playerId: el.id,
         id: el.id,
@@ -220,23 +241,21 @@ async function main() {
         costChangeStart: el.cost_change_start || 0,
         costChangeEvent: el.cost_change_event || 0,
 
-        // 🌟 သင်မေးမြန်းထားသော အဓိက Points & Ownership & Form & xGI Fields
-        totalPoints: totalPoints,        // Total Point
-        total_points: totalPoints,       // FPL API alias
-        gwPoints: gwPoints,              // Week Point
-        event_points: gwPoints,          // FPL API alias
-        points: totalPoints,             // UI alias
-        form: form,                      // Form (ဥပမာ: 8.5)
-        ownership: ownership,            // Ownership (ဥပမာ: 52.4%)
-        selected_by_percent: ownership,  // FPL API alias
-        xGI: xgi,                        // Expected Goal Involvement
-        xgi: xgi,                        // Lowercase alias
-        xG: xg,                          // Expected Goals
-        xA: xa,                          // Expected Assists
+        totalPoints: totalPoints,
+        total_points: totalPoints,
+        gwPoints: gwPoints,
+        event_points: gwPoints,
+        points: totalPoints,
+        form: form,
+        ownership: ownership,
+        selected_by_percent: ownership,
+        xGI: xgi,
+        xgi: xgi,
+        xG: xg,
+        xA: xa,
         xGC: parseFloat(el.expected_goals_conceded) || 0.0,
-        ict: ict,                        // ICT Index
+        ict: ict,
 
-        // ⚽ MATCH STATS
         minutes: minutesPlayed,
         goals: el.goals_scored || 0,
         assists: el.assists || 0,
@@ -251,7 +270,6 @@ async function main() {
         bonus: el.bonus || 0,
         bps: el.bps || 0,
 
-        // 📈 MARKET TRANSFERS & RATIOS
         ppg: ppg,
         val: val,
         l5: l5,
@@ -261,10 +279,8 @@ async function main() {
         transfersInEvent: el.transfers_in_event || 0,
         transfersOutEvent: el.transfers_out_event || 0,
 
-        // 🗓️ NEXT FIXTURES (လာမည့် ၃ ပွဲတိတိ)
         nextMatches: next3FixturesMap[el.team] || [],
 
-        // 🩺 AVAILABILITY STATUS
         status: status,
         chanceOfPlaying: chanceOfPlaying,
         chanceOfPlayingThisRound: thisChanceRaw !== null ? Number(thisChanceRaw) : null,
@@ -277,7 +293,7 @@ async function main() {
       });
     }
 
-    // 💡 1-DOCUMENT MASTER PAYLOAD (scoutPlayers/allPlayers သို့ သိမ်းဆည်းမည်)
+    // 💡 1-DOCUMENT MASTER PAYLOAD (မူလ logic အတိုင်း scoutPlayers/allPlayers သို့ သိမ်းဆည်းခြင်း)
     const masterScoutPayload = {
       currentGameweek: currentGwDetails,
       isSeasonStarted: isSeasonStarted,
@@ -287,18 +303,93 @@ async function main() {
       players: allValidPlayers,
     };
 
-    // 🎯 Target: scoutPlayers collection -> allPlayers document
     const docRef = db.collection("scoutPlayers").doc("allPlayers");
     await docRef.set(masterScoutPayload);
-
     const approxSizeKb = Math.round(Buffer.byteLength(JSON.stringify(masterScoutPayload)) / 1024);
-    console.log("============================================");
-    console.log(`✅ [1-DOC QUOTA] scoutPlayers/allPlayers Sync Complete!`);
-    console.log(`📊 Active Players: ${allValidPlayers.length}`);
-    console.log(`🌟 Verified Fields: Total Points, Week Points, Ownership, Form, xGI, xG, xA`);
-    console.log(`🗓️ Next Fixtures: Exactly 3 Matches Packed per Player`);
-    console.log(`📦 Document Size: ~${approxSizeKb} KB (<1048 KB Safe Threshold)`);
-    console.log(`💰 Firestore Write Quota Used: 1 WRITE ONLY`);
+    console.log(`✅ [MASTER DOC] scoutPlayers/allPlayers Synced (~${approxSizeKb} KB)`);
+
+    // =========================================================================
+    // 🌟 DOCUMENT (၂) - SCOUT HIGHLIGHTS (သင်တောင်းဆိုထားသော ထိပ်တန်းစာရင်းများ)
+    // =========================================================================
+
+    // ၁။ Most Captained Player (FPL Bootstrap Events မှ အတိအကျ ယူသည်)
+    const mostCaptainedPlayerObj = allValidPlayers.find(p => p.playerId === currentGwDetails.mostCaptained) || null;
+    const mostViceCaptainedPlayerObj = allValidPlayers.find(p => p.playerId === currentGwDetails.mostViceCaptained) || null;
+
+    // ၂။ Total Points အများဆုံး (ထိပ်ဆုံး ၅ ယောက် နှင့် နံပါတ် ၁)
+    const sortedByTotalPoints = [...allValidPlayers].sort((a, b) => b.totalPoints - a.totalPoints);
+    const topTotalPoints = sortedByTotalPoints.slice(0, 5).map(createCardSummary);
+
+    // ၃။ Week Points အများဆုံး (ထိပ်ဆုံး ၅ ယောက် နှင့် နံပါတ် ၁)
+    const sortedByGwPoints = [...allValidPlayers].sort((a, b) => b.gwPoints - a.gwPoints);
+    const topGwPoints = sortedByGwPoints.slice(0, 5).map(createCardSummary);
+
+    // ၄။ Ownership အများဆုံး (ထိပ်ဆုံး ၅ ယောက် နှင့် နံပါတ် ၁)
+    const sortedByOwnership = [...allValidPlayers].sort((a, b) => b.ownership - a.ownership);
+    const topOwnership = sortedByOwnership.slice(0, 5).map(createCardSummary);
+
+    // ၅။ Transfers In အများဆုံး (ထိပ်ဆုံး ၅ ယောက် နှင့် နံပါတ် ၁)
+    const sortedByTransfersIn = [...allValidPlayers].sort((a, b) => b.transfersInEvent - a.transfersInEvent);
+    const topTransfersIn = sortedByTransfersIn.slice(0, 5).map(createCardSummary);
+
+    // ၆။ Transfers Out အများဆုံး (ထိပ်ဆုံး ၅ ယောက် နှင့် နံပါတ် ၁)
+    const sortedByTransfersOut = [...allValidPlayers].sort((a, b) => b.transfersOutEvent - a.transfersOutEvent);
+    const topTransfersOut = sortedByTransfersOut.slice(0, 5).map(createCardSummary);
+
+    const highlightsPayload = {
+      gameweek: currentGwDetails.id,
+      gameweekName: currentGwDetails.name,
+      updatedAt: FieldValue.serverTimestamp(),
+      
+      // 👑 Most Captained
+      mostCaptained: {
+        leader: createCardSummary(mostCaptainedPlayerObj),
+        viceLeader: createCardSummary(mostViceCaptainedPlayerObj)
+      },
+
+      // 🏆 Total Points
+      mostTotalPoints: {
+        leader: topTotalPoints[0] || null,
+        topList: topTotalPoints
+      },
+
+      // ⚡ Week Points
+      mostGwPoints: {
+        leader: topGwPoints[0] || null,
+        topList: topGwPoints
+      },
+
+      // 🛡️ Ownership
+      mostOwned: {
+        leader: topOwnership[0] || null,
+        topList: topOwnership
+      },
+
+      // 📈 Transfers In
+      mostTransferredIn: {
+        leader: topTransfersIn[0] || null,
+        topList: topTransfersIn
+      },
+
+      // 📉 Transfers Out
+      mostTransferredOut: {
+        leader: topTransfersOut[0] || null,
+        topList: topTransfersOut
+      }
+    };
+
+    // 🎯 Target: scoutPlayers collection -> scoutHighlights document
+    const highlightsDocRef = db.collection("scoutPlayers").doc("scoutHighlights");
+    await highlightsDocRef.set(highlightsPayload);
+    const highlightSizeKb = Math.round(Buffer.byteLength(JSON.stringify(highlightsPayload)) / 1024);
+    
+    console.log(`🌟 [HIGHLIGHTS DOC] scoutPlayers/scoutHighlights Synced (~${highlightSizeKb} KB)`);
+    console.log(`   👑 Most Captained: ${mostCaptainedPlayerObj?.name || 'N/A'}`);
+    console.log(`   🏆 Top Total Points: ${topTotalPoints[0]?.name || 'N/A'} (${topTotalPoints[0]?.totalPoints} pts)`);
+    console.log(`   ⚡ Top GW Points: ${topGwPoints[0]?.name || 'N/A'} (${topGwPoints[0]?.gwPoints} pts)`);
+    console.log(`   🛡️ Top Owned: ${topOwnership[0]?.name || 'N/A'} (${topOwnership[0]?.ownership}%)`);
+    console.log(`   📈 Top Transfer In: ${topTransfersIn[0]?.name || 'N/A'} (+${topTransfersIn[0]?.transfersInEvent})`);
+    console.log(`   📉 Top Transfer Out: ${topTransfersOut[0]?.name || 'N/A'} (-${topTransfersOut[0]?.transfersOutEvent})`);
     console.log("============================================");
 
     process.exit(0);
