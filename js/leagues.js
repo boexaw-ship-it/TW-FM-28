@@ -1,3 +1,8 @@
+// ============================================
+// TW FM — Fantasy Premier League Standings & Live Pitch Controller
+// Production Ready: Resilient Compact/Full Picks Schema Normalizer
+// ============================================
+
 import { auth, db } from "../js/firebase-config.js";
 import { getFixturesSnap, getScoutSnap, getLeagueStandingsSnap, onLeagueTeam } from "./core/data.js";
 import { onAuthStateChanged } from "./core/auth.js";
@@ -46,7 +51,7 @@ function mountOfflineCacheImmediately() {
 }
 
 if (document.readyState === "loading") {
-  queueMicrotask( () => {
+  queueMicrotask(() => {
     updateGwBadge();
     mountOfflineCacheImmediately();
   });
@@ -65,17 +70,15 @@ function updateGwBadge(dataArray = []) {
 
   let gw = null;
 
-  // ၁။ Standings ဒေတာထဲမှ စစ်ဆေးခြင်း
   if (Array.isArray(dataArray) && dataArray.length > 0) {
     const found = dataArray.find(d => d.gameweek || d.currentGw);
     if (found) gw = found.gameweek || found.currentGw;
   }
 
-  // ၂။ မရှိပါက App တစ်ခုလုံး၏ LocalStorage Cache များထဲမှ အဆင့်ဆင့် Fallback ဆွဲယူခြင်း
   if (!gw) {
     gw = localStorage.getItem("twf_current_gw") || 
          localStorage.getItem("twf_transfers_gw") || 
-         "5";
+         "1";
   }
 
   badge.textContent = "GW " + gw;
@@ -92,19 +95,17 @@ function getMyanmarDate(dateObj = new Date()) {
 
 function checkLeagueSlotStatus() {
   const mmNow = getMyanmarDate(new Date());
-  const day = mmNow.getDay(); // 0 = Sun, 1 = Mon, 2 = Tue, 3 = Wed, 4 = Thu, 5 = Fri, 6 = Sat
+  const day = mmNow.getDay();
   const currentH = mmNow.getHours();
   let savedTimeMs = localStorage.getItem(LEAGUE_TIME_KEY);
 
-  // 💡 အချိန်မှတ်တမ်း မရှိသေးပါက လက်ရှိအချိန်ကို မှတ်သားပြီး Schedule စတင်မည်
   if (!savedTimeMs) {
     localStorage.setItem(LEAGUE_TIME_KEY, String(Date.now()));
     savedTimeMs = String(Date.now());
   }
 
-  const isMatchDayPeriod = (day === 0 || day === 6 || day === 1); // Sat, Sun, Mon
+  const isMatchDayPeriod = (day === 0 || day === 6 || day === 1);
 
-  // ၁။ Sat, Sun, Mon (၆ နာရီခြား တစ်နေ့ ၄ ကြိမ် - 00, 06, 12, 18)
   if (isMatchDayPeriod) {
     const matchDaySlots = [0, 6, 12, 18];
     let baseH = 0;
@@ -144,7 +145,6 @@ function checkLeagueSlotStatus() {
     };
   }
 
-  // ၂။ Tue, Wed, Thu, Fri (၂၄ နာရီ ၁ ကြိမ် - ည ၁၂:၀၀ သန်းခေါင် 00:00 Window)
   const currentWindowStartDate = new Date(mmNow);
   currentWindowStartDate.setHours(0, 0, 0, 0);
 
@@ -204,7 +204,7 @@ function triggerInitialFakeRefreshUI() {
 }
 
 // =========================================================================
-// 🔄 REFRESH BUTTON (Early-Return & 0 Read Guard အတိအကျ)
+// 🔄 REFRESH BUTTON (Early-Return & 0 Read Guard)
 // =========================================================================
 
 window.forceRefreshLeague = async function() {
@@ -215,10 +215,8 @@ window.forceRefreshLeague = async function() {
   }
 
   const refreshBtn = document.getElementById("refresh-league-btn");
-
   const slotStatus = checkLeagueSlotStatus();
 
-  // 🛡️ Quota ချိန်မစေ့မချင်း ချက်ချင်း Early Return ပြန်မည် (Read = 0)
   if (!slotStatus.isExpired) {
     showLeagueNotice(slotStatus.alertText, false);
     return;
@@ -272,12 +270,12 @@ onAuthStateChanged(auth, async (user) => {
   triggerInitialFakeRefreshUI();
 
   if (!user) {
-    // အော့ဖ်လိုင်းဖြစ်နေပါက index သို့ redirect မလုပ်ဘဲ cache ဖြင့် ဆက်လက်ပြသမည်
     if (!navigator.onLine || localStorage.getItem(LEAGUE_CACHE_KEY)) {
       mountOfflineCacheImmediately();
       return;
     }
-    window.go("login");
+    if (typeof window.go === "function") window.go("login");
+    else window.location.hash = "/login";
     return;
   }
 
@@ -285,7 +283,8 @@ onAuthStateChanged(auth, async (user) => {
     try {
       const snap = await getDoc(doc(db, "users", user.uid));
       if (!snap.exists()) { 
-        window.go("login"); 
+        if (typeof window.go === "function") window.go("login");
+        else window.location.hash = "/login";
         return; 
       }
 
@@ -322,7 +321,6 @@ async function internalFetchLeagueData(forceFresh = false) {
     }
   }
 
-  // အော့ဖ်လိုင်းဖြစ်နေပါက Cache ရှိသလောက်ဖြင့်သာ ရပ်တန့်မည်
   if (!navigator.onLine) {
     mountOfflineCacheImmediately();
     return true;
@@ -410,6 +408,59 @@ function getPlayerStatusBadge(p) {
     return `<span style="${badgePositionStyle} background:#FACC15; color:#000000; border:1px solid #CA8A04;">${chance}%</span>`;
   }
   return "";
+}
+
+// 🛡️ Compact vs Full Schema Normalizer Helper
+function normalizePick(p, idx) {
+  // 1. Position Resolution (pos vs position)
+  let rawPos = String(p.pos || p.position || "").toUpperCase().trim();
+  if (rawPos === "1" || rawPos === "GKP") rawPos = "GK";
+  else if (rawPos === "2") rawPos = "DEF";
+  else if (rawPos === "3") rawPos = "MID";
+  else if (rawPos === "4") rawPos = "FWD";
+
+  // Index Fallback: 15-man standard FPL squad index
+  if (!rawPos) {
+    if (idx === 0 || idx === 11) rawPos = "GK";
+    else if (idx >= 1 && idx <= 4) rawPos = "DEF";
+    else if (idx >= 5 && idx <= 8) rawPos = "MID";
+    else if (idx >= 9 && idx <= 10) rawPos = "FWD";
+    else if (idx === 12) rawPos = "DEF";
+    else if (idx === 13) rawPos = "MID";
+    else rawPos = "FWD";
+  }
+
+  // 2. Multiplier Resolution (mult vs multiplier vs originalMultiplier)
+  let rawMult = 0;
+  if (p.mult !== undefined && p.mult !== null) {
+    rawMult = Number(p.mult);
+  } else if (p.multiplier !== undefined && p.multiplier !== null) {
+    rawMult = Number(p.multiplier);
+  } else if (p.originalMultiplier !== undefined && p.originalMultiplier !== null) {
+    rawMult = Number(p.originalMultiplier);
+  } else {
+    // Fallback: 0-10 = Starters (1), 11-14 = Bench (0)
+    rawMult = idx < 11 ? 1 : 0;
+  }
+
+  // 3. Points, Captain & Vice
+  const livePts = Number(p.pts !== undefined ? p.pts : (p.livePoints ?? 0));
+  const isCap = Boolean(p.c !== undefined ? p.c : (p.isCaptain || p.is_captain));
+  const isVc = Boolean(p.v !== undefined ? p.v : (p.isVice || p.is_vice_captain));
+
+  return {
+    playerId: p.id || p.playerId || p.element,
+    name: p.name || "?",
+    position: rawPos,
+    multiplier: rawMult,
+    livePoints: livePts,
+    isCaptain: isCap,
+    isVice: isVc,
+    teamCode: p.teamCode || p.team || "unknown",
+    status: p.status || "a",
+    isInjured: Boolean(p.isInjured),
+    isSuspended: Boolean(p.isSuspended)
+  };
 }
 
 // 🌟 TABLE RENDER
@@ -501,52 +552,67 @@ window.openTeamPopup = (leagueId, fplTeamId, teamName) => {
 
   if (unsubscribePopup) { unsubscribePopup(); unsubscribePopup = null; }
 
-    
+  // 💡 Local cache store ထဲတွင် Team picks ရှိပြီးဖြစ်ပါက ချက်ချင်း ဆွဲတင်ပြသခြင်း
+  const cachedLeague = leagueDataStore[leagueId] || [];
+  const localFoundTeam = cachedLeague.find(t => String(t.fplTeamId) === String(fplTeamId));
+  
+  if (localFoundTeam && Array.isArray(localFoundTeam.picks) && localFoundTeam.picks.length > 0) {
+    renderPopupData(localFoundTeam);
+  }
+
   unsubscribePopup = onLeagueTeam(leagueId, fplTeamId, (snap) => {
     if (!snap.exists()) {
-      document.getElementById("popup-pitch-rows").innerHTML = `<p class="text-center text-xs py-24 text-white/50">ဒေတာ မရှိသေးပါဗျာ</p>`;
+      if (!localFoundTeam) {
+        document.getElementById("popup-pitch-rows").innerHTML = `<p class="text-center text-xs py-24 text-white/50">ဒေတာ မရှိသေးပါဗျာ</p>`;
+      }
       return;
     }
     const d = snap.data();
-    const activeChipCode = d.chip && CHIP_LABELS[d.chip] ? CHIP_LABELS[d.chip] : (d.chip || "NO CHIP");
-    const isBenchBoost = activeChipCode === "BB";
-
-    let calculatedGwPoints = Number(d.gwPoints ?? 0);
-    const picks = d.picks || [];
-
-    if (picks.length > 0) {
-      let starterPts = 0;
-      let benchPts = 0;
-
-      picks.forEach(p => {
-        const mult = Number(p.multiplier ?? 0);
-        const pts = (Number(p.livePoints) || 0) * (mult > 1 ? mult : 1);
-        if (mult > 0) {
-          starterPts += pts;
-        } else {
-          benchPts += Number(p.livePoints) || 0;
-        }
-      });
-
-      calculatedGwPoints = isBenchBoost ? (starterPts + benchPts) : starterPts;
+    renderPopupData(d);
+  }, (err) => {
+    console.warn("Popup snapshot note (Offline fallback):", err);
+    if (!localFoundTeam) {
+      document.getElementById("popup-pitch-rows").innerHTML = `<p class="text-center text-xs py-24 text-white/60">အော့ဖ်လိုင်းမုဒ်တွင် လူစာရင်း Live Preview ကို မရရှိနိုင်သေးပါခင်ဗျာ</p>`;
     }
-    
+  });
+};
+
+function renderPopupData(d) {
+  const activeChipCode = d.chip && CHIP_LABELS[d.chip] ? CHIP_LABELS[d.chip] : (d.chip || "NO CHIP");
+  const isBenchBoost = activeChipCode === "BB";
+
+  let calculatedGwPoints = Number(d.gwPoints ?? 0);
+  const rawPicks = d.picks || [];
+
+  if (rawPicks.length > 0) {
+    // 💡 Auto-Normalize picks to support compact (pos, mult, pts) and full format
+    const normalizedPicks = rawPicks.map(normalizePick);
+
+    let starterPts = 0;
+    let benchPts = 0;
+
+    normalizedPicks.forEach(p => {
+      const mult = Number(p.multiplier ?? 0);
+      const pts = (Number(p.livePoints) || 0) * (mult > 1 ? mult : 1);
+      if (mult > 0) {
+        starterPts += pts;
+      } else {
+        benchPts += Number(p.livePoints) || 0;
+      }
+    });
+
+    calculatedGwPoints = isBenchBoost ? (starterPts + benchPts) : starterPts;
+
     document.getElementById("modal-gw-pts").textContent = calculatedGwPoints;
-    document.getElementById("modal-total-pts").textContent = d.points ?? "0";
+    document.getElementById("modal-total-pts").textContent = d.points ?? d.totalPoints ?? "0";
     document.getElementById("modal-hit-cost").textContent = "-" + (d.hitCost || 0);
     document.getElementById("modal-chip-badge").textContent = activeChipCode;
 
-    if (picks.length > 0) {
-      renderPopupPitch(picks);
-    } else {
-      document.getElementById("popup-pitch-rows").innerHTML = `<p class="text-center text-xs py-24 text-white/50">လူစာရင်း ဒေတာ မတွေ့ရှိပါဗျာ</p>`;
-    }
-  }, (err) => {
-    console.warn("Popup snapshot note (Offline fallback):", err);
-    // အော့ဖ်လိုင်းတွင် Snapshot fail ဖြစ်ပါက စာသားဖော်ပြခြင်း
-    document.getElementById("popup-pitch-rows").innerHTML = `<p class="text-center text-xs py-24 text-white/60">အော့ဖ်လိုင်းမုဒ်တွင် လူစာရင်း Live Preview ကို မရရှိနိုင်သေးပါခင်ဗျာ</p>`;
-  });
-};
+    renderPopupPitch(normalizedPicks);
+  } else {
+    document.getElementById("popup-pitch-rows").innerHTML = `<p class="text-center text-xs py-24 text-white/50">လူစာရင်း ဒေတာ မတွေ့ရှိပါဗျာ</p>`;
+  }
+}
 
 window.closeTeamPopup = () => {
   if (unsubscribePopup) { unsubscribePopup(); unsubscribePopup = null; }
@@ -564,7 +630,7 @@ function buildPlayerCard(p) {
   const displayPoints = (p.livePoints ?? 0) * (mult > 1 ? mult : 1); 
 
   let cornerBadge = ""; 
-  if (p.multiplier === 3) 
+  if (mult === 3) 
     cornerBadge = `<span style="position:absolute;top:-5px;right:-3px;background:#b3a1ff;color:#14172b;font-size:8px;font-weight:900;width:16px;height:16px;border-radius:9999px;display:flex;align-items:center;justify-content:center;z-index:20;box-shadow:0 1px 3px rgba(0,0,0,0.4);">3x</span>`; 
   else if (p.isCaptain || mult > 1) 
     cornerBadge = `<span style="position:absolute;top:-5px;right:-3px;background:#b3a1ff;color:#14172b;font-size:8px;font-weight:900;width:16px;height:16px;border-radius:9999px;display:flex;align-items:center;justify-content:center;z-index:20;box-shadow:0 1px 3px rgba(0,0,0,0.4);">C</span>`; 
@@ -595,16 +661,26 @@ function buildPlayerCard(p) {
   `;
 }
 
-function renderPopupPitch(picks) {
-  const starters = picks.filter(p => Number(p.multiplier ?? 0) > 0); 
-  const subs = picks.filter(p => Number(p.multiplier ?? 0) === 0); 
+function renderPopupPitch(normalizedPicks) {
+  // 💡 Starters (၁၁ ယောက်) နှင့် Subs (၄ ယောက်) အား Multiplier နှင့် Index အဆင့်ဆင့်ဖြင့် တိကျစွာ ခွဲထုတ်ခြင်း
+  let starters = normalizedPicks.filter(p => Number(p.multiplier ?? 0) > 0); 
+  let subs = normalizedPicks.filter(p => Number(p.multiplier ?? 0) === 0); 
 
-  const gk  = starters.filter(p => (p.position || "").toLowerCase() === "gk"); 
-  const def = starters.filter(p => (p.position || "").toLowerCase() === "def"); 
-  const mid = starters.filter(p => (p.position || "").toLowerCase() === "mid"); 
-  const fwd = starters.filter(p => (p.position || "").toLowerCase() === "fwd"); 
+  // Fail-Safe: အကယ်၍ Multiplier မပါလာခဲ့ပါက ပထမ ၁၁ ယောက်ကို Starters အဖြစ် သတ်မှတ်ပေးခြင်း
+  if (starters.length === 0 && normalizedPicks.length >= 11) {
+    starters = normalizedPicks.slice(0, 11);
+    subs = normalizedPicks.slice(11);
+    starters.forEach(p => p.multiplier = 1);
+    subs.forEach(p => p.multiplier = 0);
+  }
+
+  const gk  = starters.filter(p => (p.position || "").toUpperCase() === "GK"); 
+  const def = starters.filter(p => (p.position || "").toUpperCase() === "DEF"); 
+  const mid = starters.filter(p => (p.position || "").toUpperCase() === "MID"); 
+  const fwd = starters.filter(p => (p.position || "").toUpperCase() === "FWD"); 
 
   const renderRow = (players) => {
+    if (!players || players.length === 0) return "";
     const gapSize = players.length >= 5 ? "4px" : "6px";
     return `
       <div style="display:flex; justify-content:center; align-items:center; gap:${gapSize}; width:100%; overflow:visible;">
