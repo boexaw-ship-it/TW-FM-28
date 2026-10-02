@@ -1,0 +1,38 @@
+name: Build (Tailwind CSS + Service Worker)
+
+# push တင်တိုင်း GitHub ကပဲ  `node tools/build.js`  run ပေးပြီး
+# css/tailwind.css နဲ့ sw.js ကို auto commit လုပ်ပေးတယ် (ဖုန်း/Spck ကနေ build မလုပ်နိုင်လည်း ရ)
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "css/tailwind.css"
+      - "sw.js"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install build tools
+        run: npm --prefix tools install
+
+      - name: Build
+        run: node tools/build.js
+
+      - name: Commit generated files
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add css/tailwind.css sw.js
+          git diff --cached --quiet || (git commit -m "build: tailwind.css + sw.js" && git push)
