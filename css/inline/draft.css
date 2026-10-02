@@ -1,4 +1,4 @@
-/* live page inline styles (extracted) */
+/* draft page inline styles (extracted) */
     /* 📱 ၁။ Native Android APK & Mobile Base Reset (100% Fit & No Frame Broken) */
 .app-root-shell {
       width: 100%;
@@ -7,7 +7,7 @@
       display: flex;
       flex-direction: column;
       position: relative;
-      background-color: #14172b;
+      background-color: #0b0d1a;
       overflow: hidden;
     }
 
@@ -16,24 +16,36 @@
 
     /* Android Safe Areas */
     .safe-top {
-      padding-top: max(10px, env(safe-area-inset-top));
+      padding-top: max(8px, env(safe-area-inset-top));
     }
     .safe-bottom {
       padding-bottom: max(8px, env(safe-area-inset-bottom));
     }
 
-    /* Smooth Scroll Engine */
-    .chat-scroll-area {
-      flex: 1;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      overscroll-behavior: contain;
-    }
-    .chat-scroll-area::-webkit-scrollbar {
+    .no-scrollbar::-webkit-scrollbar {
       display: none;
     }
-    .chat-scroll-area {
+    .no-scrollbar {
       -ms-overflow-style: none;
       scrollbar-width: none;
+    }
+    .matrix-scroll-container {
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      transform: translateZ(0);
+      will-change: transform, scroll-position;
+    }
+    .sticky-col-header {
+      position: sticky;
+      left: 0;
+      top: 0;
+      z-index: 50;
+    }
+    .sticky-col {
+      position: sticky;
+      left: 0;
+      z-index: 30;
+      background-color: #2d3366 !important;
     }
   

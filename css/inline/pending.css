@@ -1,0 +1,40 @@
+/* pending page inline styles (extracted) */
+    /* 📱 Native Mobile & 9:16 Responsive Container Reset */
+.app-root-shell {
+      width: 100%;
+      height: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      background-color: #14172b;
+      overflow: hidden;
+    }
+
+    
+
+    .safe-top {
+      padding-top: max(16px, env(safe-area-inset-top));
+    }
+    .safe-bottom {
+      padding-bottom: max(16px, env(safe-area-inset-bottom));
+    }
+
+    .pending-scroll-area {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .pending-scroll-area::-webkit-scrollbar {
+      display: none;
+    }
+    .pending-scroll-area {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  

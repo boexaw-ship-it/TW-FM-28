@@ -1,4 +1,4 @@
-/* live page inline styles (extracted) */
+/* scout page inline styles (extracted) */
     /* 📱 ၁။ Native Android APK & Mobile Base Reset (100% Fit & No Frame Broken) */
 .app-root-shell {
       width: 100%;
@@ -22,17 +22,17 @@
       padding-bottom: max(8px, env(safe-area-inset-bottom));
     }
 
-    /* Smooth Scroll Engine */
-    .chat-scroll-area {
+    /* Scout Scroll Engine */
+    .scout-scroll-area {
       flex: 1;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
     }
-    .chat-scroll-area::-webkit-scrollbar {
+    .scout-scroll-area::-webkit-scrollbar {
       display: none;
     }
-    .chat-scroll-area {
+    .scout-scroll-area {
       -ms-overflow-style: none;
       scrollbar-width: none;
     }

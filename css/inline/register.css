@@ -1,0 +1,38 @@
+/* register page inline styles (extracted) */
+    /* 📱 Native Mobile Base Reset */
+.app-root-shell {
+      width: 100%;
+      height: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      background-color: #14172b;
+      overflow: hidden;
+    }
+
+    /* 💻 PC Browser 9:16 Mockup Frame */
+    
+
+    .safe-top {
+      padding-top: max(12px, env(safe-area-inset-top));
+    }
+    .safe-bottom {
+      padding-bottom: max(20px, env(safe-area-inset-bottom));
+    }
+
+    /* Scroll Engine */
+    .register-scroll-area {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+    }
+    .register-scroll-area::-webkit-scrollbar {
+      display: none;
+    }
+    .register-scroll-area {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  

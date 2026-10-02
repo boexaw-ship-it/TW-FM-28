@@ -1,13 +1,13 @@
-/* live page inline styles (extracted) */
-    /* 📱 ၁။ Native Android APK & Mobile Base Reset (100% Fit & No Frame Broken) */
-.app-root-shell {
+/* team page inline styles (extracted) */
+    /* 📱 ၁။ Base Setup: Mobile & Native Android APK (100% Full View) */
+.app-viewport-9-16 {
       width: 100%;
       height: 100%;
       height: 100%;
-      display: flex;
-      flex-direction: column;
       position: relative;
       background-color: #14172b;
+      display: flex;
+      flex-direction: column;
       overflow: hidden;
     }
 
@@ -16,23 +16,23 @@
 
     /* Android Safe Areas */
     .safe-top {
-      padding-top: max(10px, env(safe-area-inset-top));
+      padding-top: max(8px, env(safe-area-inset-top));
     }
     .safe-bottom {
       padding-bottom: max(8px, env(safe-area-inset-bottom));
     }
 
-    /* Smooth Scroll Engine */
-    .chat-scroll-area {
+    /* Pitch Scroll Engine */
+    .pitch-scroll-area {
       flex: 1;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
     }
-    .chat-scroll-area::-webkit-scrollbar {
+    .pitch-scroll-area::-webkit-scrollbar {
       display: none;
     }
-    .chat-scroll-area {
+    .pitch-scroll-area {
       -ms-overflow-style: none;
       scrollbar-width: none;
     }

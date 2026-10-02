@@ -1,0 +1,62 @@
+/* twsuper page inline styles (extracted) */
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* 🖥️ PC Backdrop + 📱 Android Native View Engine */
+/* 📱 Native Mobile & 9:16 PC Shell Container */
+    .app-root-shell {
+      width: 100%;
+      height: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      background: radial-gradient(circle at 50% 8%, #1b1f3a 0%, #0b0d1a 50%, #0b0d1a 100%);
+      overflow: hidden;
+    }
+
+    /* 🖥️ PC 9:16 Ratio Container (Android Simulator Frame) */
+    
+
+    /* 🛡️ Native Android / iOS Safe Area Spacers */
+    .safe-top-bar {
+      padding-top: max(10px, env(safe-area-inset-top));
+    }
+    .safe-bottom-bar {
+      padding-bottom: max(12px, env(safe-area-inset-bottom));
+    }
+
+    /* 📌 FIXED TOP SECTION ENGINE (Header + အတည်ပြုစာရင်း + Tab ၃ ခု အငြိမ်ထားခြင်း) */
+    .fixed-top-section {
+      flex-shrink: 0;
+      z-index: 40;
+      background: rgba(11,13,26, 0.96);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid rgba(140,109,255, 0.25);
+    }
+
+    /* 📜 SCROLLABLE BODY ENGINE (စာရင်းများသာ သီးသန့် Scroll ပြုလုပ်ခြင်း) */
+    .scrollable-content-engine {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 10px 12px 95px 12px;
+    }
+    .scrollable-content-engine::-webkit-scrollbar { display: none; }
+    .scrollable-content-engine { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* Drawer Backdrop inside Shell for Desktop Frame containment */
+    .drawer-backdrop-contained {
+      position: absolute;
+      inset: 0;
+      z-index: 50;
+      background: rgba(0, 0, 0, 0.82);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+  
