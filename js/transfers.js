@@ -2,6 +2,8 @@
 // TW FM — Transfers & Squad Planner Controller
 // Production Ready: Dynamic Gameweek & Multi-User Support
 // Formation Fix: Resolves 0-11-0 Bug to Accurate Pitch Layout
+// Bug Fix: Solved xG & ICT "undefined" and "0" binding issue across all modals
+// Standards: UI Design Knowledge Pack (Sports UI & 8px Grid)
 // ============================================
 
 import { auth, db } from "../js/firebase-config.js";
@@ -18,13 +20,12 @@ let officialTeamBank = 0.0;
 let originalTeamBank = 0.0;
 let currentFplTeamId = null;
 
-// 💡 GW 5 အသေ မဟုတ်တော့ဘဲ Dynamic Detect လုပ်မည့် state
 let currentGw = null; 
 let activeChip = "NONE";
 let officialFreeTransfers = 1;
 
 let currentPriceMode = 'current';
-let isTwMemberUser = false; // 🛡️ TW Member Access Flag
+let isTwMemberUser = false;
 
 const TRANSFERS_TIME_KEY = "twf_transfers_quota_time_v2";
 
@@ -61,8 +62,23 @@ const TEAM_DIFFICULTY_TIER = {
   "IPS": 2, "LEE": 2, "SUN": 2, "HUL": 2, "COV": 2
 };
 
+// 🌟 xG & ICT Helper: Firestore နှင့် API Property Name ကွဲလွဲမှုအားလုံးကို Safe Resolve ပြုလုပ်ခြင်း
+function extractPlayerXg(p) {
+  if (!p) return 0;
+  const raw = p.xG ?? p.xg ?? p.expected_goals ?? p.xgi ?? 0;
+  const val = parseFloat(raw);
+  return isNaN(val) ? 0 : parseFloat(val.toFixed(2));
+}
+
+function extractPlayerIct(p) {
+  if (!p) return 0;
+  const raw = p.ict ?? p.ict_index ?? p.ictIndex ?? 0;
+  const val = parseFloat(raw);
+  return isNaN(val) ? 0 : parseFloat(val.toFixed(1));
+}
+
 // =========================================================================
-// 🌟 LUXURY CUSTOM TOAST NOTIFICATION ENGINE (No Browser Alert)
+// 🌟 LUXURY CUSTOM TOAST NOTIFICATION ENGINE
 // =========================================================================
 function showLuxuryAccessDeniedToast(msg = "Only TW Members have access to this feature.") {
   const existing = document.getElementById("tw-access-toast-overlay");
@@ -105,7 +121,6 @@ function showLuxuryAccessDeniedToast(msg = "Only TW Members have access to this 
 
   document.body.appendChild(toastOverlay);
 
-  // Smooth slide-in animation
   requestAnimationFrame(() => {
     toastOverlay.style.opacity = "1";
     toastOverlay.style.transform = "translateX(-50%) translateY(0)";
@@ -141,7 +156,7 @@ function checkTwMemberPermission() {
 }
 
 // =========================================================================
-// ⏰ IN-FILE SCHEDULE QUOTA CONTROLLER (0 Read Guard)
+// ⏰ SCHEDULE QUOTA CONTROLLER
 // =========================================================================
 function getMyanmarDate(dateObj = new Date()) {
   const utc = dateObj.getTime() + (dateObj.getTimezoneOffset() * 60000);
@@ -293,18 +308,14 @@ window.forceRefreshTransfersData = async function() {
   try {
     showInAppToast("🔄 ဒေတာအသစ် ရယူနေပါသည်...", false);
 
-    const projectId = db.app?.options?.projectId || "tw-fm-28";
-    if (projectId && currentFplTeamId) {
-      const pingUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/liveTeams/${currentFplTeamId}`;
-      const pingRes = await fetch(pingUrl);
-      if (!pingRes.ok) {
-        throw new Error(`FIREBASE_MAINTAIN_OR_QUOTA_${pingRes.status}`);
-      }
-    }
-
     const freshCache = await getCachedFixturesAndScout(db, collection, getDocs, formatTeamShort);
     if (freshCache.scoutPlayers && freshCache.scoutPlayers.length > 0) {
-      allPlayersCache = freshCache.scoutPlayers;
+      allPlayersCache = freshCache.scoutPlayers.map(p => ({
+        ...p,
+        xg: extractPlayerXg(p),
+        xG: extractPlayerXg(p),
+        ict: extractPlayerIct(p)
+      }));
       firebaseFixturesCache = freshCache.fixtures || [];
     }
 
@@ -319,7 +330,7 @@ window.forceRefreshTransfersData = async function() {
 
   } catch (err) {
     console.error("Transfers Quota Load Error:", err);
-    showInAppToast("⚠️ SERVER Maintain လုပ်နေပါသည်ခင်ဗျာ!", true);
+    showInAppToast("⚠️️ SERVER Maintain လုပ်နေပါသည်ခင်ဗျာ!", true);
   } finally {
     if (icon) icon.classList.remove("animate-spin");
     if (btn) {
@@ -349,7 +360,6 @@ function fdrColor(fdr) {
   return FDR_COLORS[fdr] || "#22c55e";
 }
 
-// 🛡️ Position အမျိုးအစားအားလုံးကို GK, DEF, MID, FWD အဖြစ် တိကျစွာ ခွဲထုတ်ခြင်း (Null Safe)
 function normalizePosition(rawPos) {
   if (!rawPos) return null;
   const s = String(rawPos).toUpperCase().trim();
@@ -391,7 +401,7 @@ function renderJerseyHtml(player, customSize = "jersey-box") {
   `;
 }
 
-window.showTwToast = function(title, msg, icon = "⚠️") {
+window.showTwToast = function(title, msg, icon = "⚠️️") {
   const modal = document.getElementById("tw-toast-modal");
   if (!modal) { alert(`${title}: ${msg}`); return; }
   document.getElementById("tw-toast-title").textContent = title;
@@ -409,7 +419,7 @@ window.closeTwToast = function() {
 };
 
 // =========================================================================
-// 🚀 AUTH & ENTRY GATE (TW MEMBERS ONLY & MULTI-USER DYNAMIC GW)
+// 🚀 AUTH & ENTRY GATE
 // =========================================================================
 async function setupTransfersGate(user) {
   if (!user) {
@@ -434,18 +444,15 @@ async function setupTransfersGate(user) {
       }
     }
 
-    // 🛡️ TW Member Guard စစ်ဆေးခြင်း
     const hasApproved = Boolean(uData?.isApproved === true || uData?.status === "approved" || uData?.status === "active");
     const hasTwApproved = Boolean(uData?.isTwMember === true || uData?.role === "tw_member" || uData?.role === "admin");
     isTwMemberUser = Boolean(hasApproved && hasTwApproved);
 
-    // ⛔ TW Member မဟုတ်ပါက Luxury Toast ပြပြီး Dashboard သို့ ပြန်ပို့မည်
     if (!isTwMemberUser) {
       await enforceTwMemberAccessOnly();
       return;
     }
 
-    // 💡 URL Hash parameters ထဲမှ fplId ပါလာပါက အခြား User ၏ အသင်းကိုပါ ကြည့်ရှုခွင့်ပြုခြင်း
     const hashParts = window.location.hash.split("?");
     const queryParams = new URLSearchParams(hashParts[1] || "");
     const paramFplId = queryParams.get("fplId");
@@ -460,7 +467,14 @@ async function setupTransfersGate(user) {
 
     const cacheData = await getCachedFixturesAndScout(db, collection, getDocs, formatTeamShort);
     firebaseFixturesCache = cacheData.fixtures || [];
-    allPlayersCache = cacheData.scoutPlayers || [];
+    
+    // 💡 allPlayersCache ထဲသို့ xG နှင့် ICT များကို sanitize ပြုလုပ်ပြီး ထည့်သွင်းခြင်း
+    allPlayersCache = (cacheData.scoutPlayers || []).map(p => ({
+      ...p,
+      xg: extractPlayerXg(p),
+      xG: extractPlayerXg(p),
+      ict: extractPlayerIct(p)
+    }));
 
     await loadUserLiveSquad(false);
     setupToggleListener();
@@ -532,10 +546,17 @@ async function loadUserLiveSquad(forceFresh = false) {
   if (!forceFresh && savedSquad && savedBank !== null) {
     try {
       const parsedSquad = JSON.parse(savedSquad);
-      // စစ်ဆေးမှု: အကယ်၍ ပျက်စီးနေသော 0-11-0 squad ဖြစ်နေပါက cache ကိုကျော်ပြီး server မှ ပြန်ယူမည်
       const starDefs = parsedSquad.filter(p => Number(p.multiplier) > 0 && normalizePosition(p.position) === "DEF");
       if (Array.isArray(parsedSquad) && parsedSquad.length === 15 && starDefs.length >= 3) {
-        currentSquad = parsedSquad;
+        currentSquad = parsedSquad.map(p => {
+          const master = allPlayersCache.find(x => String(x.playerId || x.id) === String(p.playerId || p.id));
+          return {
+            ...p,
+            xg: extractPlayerXg(p) || extractPlayerXg(master),
+            xG: extractPlayerXg(p) || extractPlayerXg(master),
+            ict: extractPlayerIct(p) || extractPlayerIct(master)
+          };
+        });
         officialTeamBank = parseFloat(savedBank);
         if (savedOrig) originalFplSquad = JSON.parse(savedOrig);
         if (savedOrigBank) originalTeamBank = parseFloat(savedOrigBank);
@@ -588,7 +609,7 @@ async function loadUserLiveSquad(forceFresh = false) {
   return false;
 }
 
-// 🛡️ Data Normalizer: အတိကျဆုံး Formation နှင့် 4-Row Mapping Engine
+// 🛡️ Data Normalizer: xG နှင့် ICT တန်ဖိုးများကို တိကျစွာ ထည့်သွင်းခြင်း
 function parseRawDataToSquad(data, pointsData = {}) {
   const origKey = `twf_transfers_orig_${currentFplTeamId}`;
   const origBankKey = `twf_transfers_orig_bank_${currentFplTeamId}`;
@@ -610,11 +631,6 @@ function parseRawDataToSquad(data, pointsData = {}) {
     const pId = String(p.playerId || p.element || p.id || idx);
     const master = allPlayersCache.find(x => String(x.playerId || x.id) === pId);
 
-    // 💡 အတိကျဆုံး Position Resolution:
-    // 1) p.position ကို normalize လုပ်ခြင်း
-    // 2) master?.position ကို စစ်ဆေးခြင်း
-    // 3) element_type (FPL standard: 1=GK, 2=DEF, 3=MID, 4=FWD) ကို စစ်ဆေးခြင်း
-    // 4) တရားဝင် 15-man squad index အတိုင်း fallback ပေးခြင်း[span_7](start_span)[span_7](end_span)
     let pos = normalizePosition(p.position) || normalizePosition(master?.position);
     if (!pos && (p.element_type || master?.element_type)) {
       const et = String(p.element_type || master?.element_type);
@@ -624,8 +640,6 @@ function parseRawDataToSquad(data, pointsData = {}) {
       else if (et === "4") pos = "FWD";
     }
     
-    // အကယ်၍ မည်သည့်နေရာမှ မပါလာပါက FPL standard index mapping အရ တိကျစွာ ခွဲပေးခြင်း[span_8](start_span)[span_8](end_span):
-    // Index 0: Starter GK | Index 1-3: Def | Index 4-7: Mid | Index 8-10: Fwd (Standard 3-5-2 or 4-4-2 setup)[span_9](start_span)[span_9](end_span)
     if (!pos) {
       if (idx === 0 || idx === 11) pos = "GK";
       else if (idx >= 1 && idx <= 4) pos = "DEF";
@@ -640,11 +654,14 @@ function parseRawDataToSquad(data, pointsData = {}) {
     const purPrice = parseFloat(p.purchasePrice !== undefined ? p.purchasePrice : curPrice);
     const selPrice = parseFloat(p.sellingPrice !== undefined ? p.sellingPrice : calculateSellingPrice(purPrice, curPrice));
 
-    // 💡 Multiplier Fix: ပထမ ၁၁ ယောက် (0-10) သည် Starters (multiplier: 1)၊ ကျန် ၄ ယောက် (11-14) သည် Bench (multiplier: 0)[span_10](start_span)[span_10](end_span)
     let effectiveMultiplier = (idx < 11) ? 1 : 0;
     if (p.multiplier !== undefined && p.multiplier !== null && !isNaN(Number(p.multiplier))) {
       effectiveMultiplier = Number(p.multiplier);
     }
+
+    // 🌟 xG နှင့် ICT ကို master player ထံမှ တိကျစွာ bind ပြုလုပ်သည်
+    const resolvedXg = extractPlayerXg(p) || extractPlayerXg(master);
+    const resolvedIct = extractPlayerIct(p) || extractPlayerIct(master);
 
     return {
       id: pId,
@@ -662,8 +679,12 @@ function parseRawDataToSquad(data, pointsData = {}) {
       form: master?.form || 0,
       totalPoints: master?.totalPoints || 0,
       gwPoints: master?.gwPoints || p.livePoints || 0,
-      xg: master?.xg || 0,
-      ict: master?.ict || 0,
+      
+      // 🌟 FIXED: xg & ict properties
+      xg: resolvedXg,
+      xG: resolvedXg,
+      ict: resolvedIct,
+
       status: p.status || master?.status || "a",
       chanceOfPlaying: p.chanceOfPlaying ?? master?.chanceOfPlaying ?? 100,
       isSuspended: Boolean(p.isSuspended || master?.isSuspended),
@@ -675,7 +696,6 @@ function parseRawDataToSquad(data, pointsData = {}) {
     };
   });
 
-  // Starters ၁၁ ယောက် တိကျစွာ ပါဝင်စေရန် သေချာစေခြင်း
   const startersCount = currentSquad.filter(p => Number(p.multiplier) > 0).length;
   if (startersCount !== 11 && currentSquad.length === 15) {
     currentSquad.forEach((p, i) => { p.multiplier = i < 11 ? 1 : 0; });
@@ -834,6 +854,7 @@ function executeBlank442Squad() {
         totalPoints: 0,
         gwPoints: 0,
         xg: 0,
+        xG: 0,
         ict: 0,
         status: "a",
         multiplier: cfg.starter ? 1 : 0,
@@ -848,7 +869,7 @@ function executeBlank442Squad() {
   currentSquad = newSquad;
 }
 
-// 🌟 PITCH & BENCH RENDERING (Complete 4-Row Dynamic Formation)
+// 🌟 PITCH & BENCH RENDERING
 function renderPitch() {
   const starters = currentSquad.filter(p => Number(p.multiplier) > 0);
   const subs = currentSquad.filter(p => Number(p.multiplier) === 0);
@@ -858,7 +879,6 @@ function renderPitch() {
   const mid = starters.filter(p => normalizePosition(p.position) === "MID");
   const fwd = starters.filter(p => normalizePosition(p.position) === "FWD");
 
-  // Formation Badge: DEF-MID-FWD (ဥပမာ: 3-5-2 သို့မဟုတ် 4-4-2)[span_11](start_span)[span_11](end_span)
   const formationBadge = document.getElementById("active-formation-badge");
   if (formationBadge) {
     formationBadge.textContent = `${def.length}-${mid.length}-${fwd.length}`;
@@ -1107,9 +1127,15 @@ window.handleSlotInteraction = function(index) {
   window.openPlayerAction(index);
 };
 
+// 🌟 Player Action Modal (Fixed: Real xG & ICT Display)
 window.openPlayerAction = function(index) {
   selectedSlotIndex = index;
   const p = currentSquad[index];
+  const master = allPlayersCache.find(x => String(x.playerId || x.id) === String(p.playerId || p.id));
+
+  // 💡 Safe xG & ICT Extraction
+  const realXg = extractPlayerXg(p) || extractPlayerXg(master);
+  const realIct = extractPlayerIct(p) || extractPlayerIct(master);
 
   document.getElementById("pa-jersey-wrap").innerHTML = renderJerseyHtml(p, "w-9 h-9");
   document.getElementById("pa-name").textContent = p.name;
@@ -1120,11 +1146,13 @@ window.openPlayerAction = function(index) {
     <span class="text-red-400 font-bold text-[9px]">SP: £${parseFloat(p.sellingPrice || p.price).toFixed(1)}m</span>
   `;
   
-  document.getElementById("pa-total-pts").textContent = p.totalPoints || 0;
-  document.getElementById("pa-gw-pts").textContent = p.gwPoints || 0;
-  document.getElementById("pa-own").textContent = `${p.ownership}%`;
-  document.getElementById("pa-form").textContent = p.form;
-  document.getElementById("pa-xg-ict").textContent = `${p.xg || 0} / ${p.ict || 0}`;
+  document.getElementById("pa-total-pts").textContent = p.totalPoints || master?.totalPoints || 0;
+  document.getElementById("pa-gw-pts").textContent = p.gwPoints || master?.gwPoints || 0;
+  document.getElementById("pa-own").textContent = `${p.ownership || master?.ownership || 0}%`;
+  document.getElementById("pa-form").textContent = p.form || master?.form || 0;
+
+  // 🌟 FIXED: xG / ICT string
+  document.getElementById("pa-xg-ict").textContent = `${realXg} / ${realIct}`;
 
   const nextGw = (currentGw || 1) + 1;
   const matches = getUpcomingMatchesForTeam(p.team, nextGw, 3);
@@ -1271,7 +1299,6 @@ window.handleMakeVice = function() {
   updateStrategyMetrics();
 };
 
-// 🛡️ Transfer Guard on Selling Player
 window.handleSellFromSlot = function() {
   if (!checkTwMemberPermission()) return;
   if (selectedSlotIndex === null) return;
@@ -1322,6 +1349,7 @@ window.setMarketSort = function(sortKey) {
   renderMarketList();
 };
 
+// 🌟 Market List Rendering (Fixed: xG & ICT Undefined Bug)
 function renderMarketList() {
   const slot = currentSquad[targetSwapIndex];
   if (!slot) return;
@@ -1346,12 +1374,12 @@ function renderMarketList() {
     const priceA = parseFloat(a.currentPrice || a.price || 0);
     const priceB = parseFloat(b.currentPrice || b.price || 0);
     if (activeMarketSort === "price") return priceB - priceA;
-    if (activeMarketSort === "ownership") return b.ownership - a.ownership;
-    if (activeMarketSort === "points") return b.totalPoints - a.totalPoints;
-    if (activeMarketSort === "gwPoints") return b.gwPoints - a.gwPoints;
-    if (activeMarketSort === "xg") return b.xg - a.xg;
-    if (activeMarketSort === "ict") return b.ict - a.ict;
-    return b.form - a.form;
+    if (activeMarketSort === "ownership") return (b.ownership || 0) - (a.ownership || 0);
+    if (activeMarketSort === "points") return (b.totalPoints || 0) - (a.totalPoints || 0);
+    if (activeMarketSort === "gwPoints") return (b.gwPoints || 0) - (a.gwPoints || 0);
+    if (activeMarketSort === "xg") return extractPlayerXg(b) - extractPlayerXg(a);
+    if (activeMarketSort === "ict") return extractPlayerIct(b) - extractPlayerIct(a);
+    return (b.form || 0) - (a.form || 0);
   });
 
   const listEl = document.getElementById("market-player-list");
@@ -1368,6 +1396,10 @@ function renderMarketList() {
     const buyCost = parseFloat(p.currentPrice || p.price || 0);
     const canAfford = buyCost <= (officialTeamBank + 0.001);
     const isTeamMaxed = (teamCounts[pTeamCode] || 0) >= 3;
+
+    // 🌟 SAFE RESOLVE: xG & ICT
+    const pXg = extractPlayerXg(p);
+    const pIct = extractPlayerIct(p);
 
     const nextMatches = getUpcomingMatchesForTeam(p.team, nextGw, 3);
     const next3MatchesHtml = `
@@ -1415,33 +1447,38 @@ function renderMarketList() {
         </div>
 
         <div class="grid grid-cols-6 gap-1 mt-1.5 pt-1.5 border-t border-white/10 text-center text-[9px]">
-          <div><span class="text-gray-400 text-[7px] block">Form</span><span class="text-sky-400 font-bold">${p.form}</span></div>
-          <div><span class="text-gray-400 text-[7px] block">Tot Pts</span><span class="text-emerald-400 font-bold">${p.totalPoints}</span></div>
-          <div><span class="text-gray-400 text-[7px] block">GW Pts</span><span class="text-amber-300 font-bold">${p.gwPoints}</span></div>
-          <div><span class="text-gray-400 text-[7px] block">Owned</span><span class="text-white font-bold">${p.ownership}%</span></div>
-          <div><span class="text-gray-400 text-[7px] block">xG</span><span class="text-purple-300 font-bold">${p.xg}</span></div>
-          <div><span class="text-gray-400 text-[7px] block">ICT</span><span class="text-pink-300 font-bold">${p.ict}</span></div>
+          <div><span class="text-gray-400 text-[7px] block">Form</span><span class="text-sky-400 font-bold">${p.form || 0}</span></div>
+          <div><span class="text-gray-400 text-[7px] block">Tot Pts</span><span class="text-emerald-400 font-bold">${p.totalPoints || 0}</span></div>
+          <div><span class="text-gray-400 text-[7px] block">GW Pts</span><span class="text-amber-300 font-bold">${p.gwPoints || 0}</span></div>
+          <div><span class="text-gray-400 text-[7px] block">Owned</span><span class="text-white font-bold">${p.ownership || 0}%</span></div>
+          <div><span class="text-gray-400 text-[7px] block">xG</span><span class="text-purple-300 font-bold">${pXg}</span></div>
+          <div><span class="text-gray-400 text-[7px] block">ICT</span><span class="text-pink-300 font-bold">${pIct}</span></div>
         </div>
       </div>
     `;
   }).join("");
 }
 
+// 🌟 Market Detail Modal (Fixed: Real xG & ICT Display)
 window.openMarketDetailModal = function(playerId) {
   const p = allPlayersCache.find(x => String(x.playerId) === String(playerId));
   if (!p) return;
 
   const buyPrice = parseFloat(p.currentPrice || p.price || 0.0);
+  const realXg = extractPlayerXg(p);
+  const realIct = extractPlayerIct(p);
 
   document.getElementById("md-jersey-wrap").innerHTML = renderJerseyHtml(p, "w-9 h-9");
   document.getElementById("md-name").textContent = p.name;
   document.getElementById("md-team-pos").textContent = `${formatTeamShort(p.team)} • ${p.position}`;
   document.getElementById("md-price").textContent = `£${buyPrice.toFixed(1)}m`;
-  document.getElementById("md-total-pts").textContent = p.totalPoints;
-  document.getElementById("md-gw-pts").textContent = p.gwPoints;
-  document.getElementById("md-own").textContent = `${p.ownership}%`;
-  document.getElementById("md-form").textContent = p.form;
-  document.getElementById("md-xg-ict").textContent = `${p.xg} / ${p.ict}`;
+  document.getElementById("md-total-pts").textContent = p.totalPoints || 0;
+  document.getElementById("md-gw-pts").textContent = p.gwPoints || 0;
+  document.getElementById("md-own").textContent = `${p.ownership || 0}%`;
+  document.getElementById("md-form").textContent = p.form || 0;
+
+  // 🌟 FIXED: xG / ICT string
+  document.getElementById("md-xg-ict").textContent = `${realXg} / ${realIct}`;
 
   const nextGw = (currentGw || 1) + 1;
   const matches = getUpcomingMatchesForTeam(p.team, nextGw, 3);
@@ -1482,7 +1519,6 @@ window.closeMarketDetailModal = function() {
   document.getElementById("market-detail-modal").classList.remove("flex");
 };
 
-// 🛡️ Transfer Guard on Buying Player
 window.confirmBuyPlayer = function(playerId) {
   if (!checkTwMemberPermission()) return;
   if (targetSwapIndex === null) return;
@@ -1536,6 +1572,9 @@ window.confirmBuyPlayer = function(playerId) {
     purchasePrice: buyCost,
     sellingPrice: buyCost,
     price: buyCost,
+    xg: extractPlayerXg(newP),
+    xG: extractPlayerXg(newP),
+    ict: extractPlayerIct(newP),
     multiplier: oldSlot.multiplier,
     isCaptain: oldSlot.isCaptain,
     isVice: oldSlot.isVice,
@@ -1548,7 +1587,6 @@ window.confirmBuyPlayer = function(playerId) {
   updateStrategyMetrics();
 };
 
-// 🚀 SPA Router Connector (Export init + Auth Fallback)
 export async function init() {
   if (auth.currentUser) {
     await setupTransfersGate(auth.currentUser);
