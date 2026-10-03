@@ -1,7 +1,8 @@
 /* ============================================
    Home (dashboard) — TW FM purple UI
    Path: css/home.css
-   Fix: Stats Value Center Alignment & Top Players Row Alignment
+   Feature: Isolated Team Color (Logo & Team Code) + Position Palette + Full-Width Capsule
+   Standards: UI Design Knowledge Pack (8px Grid & Sports UI Contrast)
    ============================================ */
 
 :root {
@@ -258,9 +259,9 @@
   padding: 12px 6px;
   display: flex;
   flex-direction: column;
-  align-items: center;      /* 💡 Center Alignment Fix */
-  justify-content: center;   /* 💡 Center Alignment Fix */
-  text-align: center;        /* 💡 Center Alignment Fix */
+  align-items: center;
+  justify-content: center;
+  text-align: center;
   min-width: 0;
 }
 
@@ -291,7 +292,6 @@
   flex: 0 0 auto;
 }
 
-/* 💡 330, 1,896,119 နှင့် 51 ဂဏန်းများ အလယ်ဗဟိုတည့်တည့် ကျစေခြင်း */
 .home-stat b {
   display: block;
   width: 100%;
@@ -383,23 +383,23 @@
 }
 
 /* =========================================================================
-   ⚽ TOP PLAYERS (5 ယောက်) ALIGNMENT & NAME PLATE FIX
+   ⚽ TOP PLAYERS (5 ယောက်) ALIGNMENT, AVATAR & FULL-WIDTH NAME PLATE
    ========================================================================= */
 .home-card {
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 16px;
-  padding: 4px 14px;
+  padding: 6px 14px;
 }
 
-/* 💡 အကွာအဝေး ညီညာစေရန် Row Layout တည်ဆောက်ပုံ */
 .home-row {
-  --pc: #8b90b3;
+  --pc: #8b90b3;  /* Position Color */
+  --tc: #8c6dff;  /* Team Branded Color */
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 10px 0;
+  padding: 8px 0;
   border-bottom: 1px solid var(--line);
   width: 100%;
 }
@@ -408,12 +408,12 @@
   border-bottom: 0;
 }
 
-/* 💡 Rank နံပါတ် (1, 2, 3, 4, 5) တန်းညီစေရန် နေရာသတ်မှတ်ခြင်း */
+/* 💡 Rank နံပါတ် (C, V, 1, 2, 3...) */
 .home-row .rk {
-  width: 20px;
-  flex: 0 0 20px;
-  color: var(--mu);
-  font-size: 12px;
+  width: 22px;
+  flex: 0 0 22px;
+  color: #cbd5e1;
+  font-size: 11px;
   font-weight: 800;
   text-align: center;
   display: flex;
@@ -421,14 +421,65 @@
   justify-content: center;
 }
 
-.home-row .jr {
-  width: 32px;
-  height: 32px;
-  object-fit: contain;
-  flex: 0 0 auto;
+/* 🌟 Local Badge Avatar Frame */
+.home-player-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #141833;
+  border: 1.5px solid var(--tc, #8c6dff);
+  flex: 0 0 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
 }
 
-/* 💡 ကစားသမား Name Plate အပြတ်အစွန်း ညီညာစေရန် Fix */
+.home-player-avatar .avatar-img.is-badge {
+  width: 82%;
+  height: 82%;
+  object-fit: contain;
+  object-position: center;
+}
+
+/* 💫 Animated Logo Fallback (Team Color Pulse SVG Animation) */
+.home-animated-badge-wrap {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(20, 24, 51, 0.95), #0b0d1a);
+  border: 1.5px solid var(--tc, #8c6dff);
+  flex: 0 0 34px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--tc, #8c6dff) 40%, transparent);
+}
+
+.badge-pulse-svg {
+  width: 18px;
+  height: 18px;
+  animation: logoPulse 1.8s infinite ease-in-out;
+}
+
+.badge-code-text {
+  font-size: 7px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0.05em;
+  margin-top: 1px;
+}
+
+@keyframes logoPulse {
+  0%, 100% { transform: scale(0.92); opacity: 0.85; filter: drop-shadow(0 0 2px var(--tc)); }
+  50% { transform: scale(1.08); opacity: 1; filter: drop-shadow(0 0 6px var(--tc)); }
+}
+
+/* 💡 FULL-WIDTH SLEEK NAMEPLATE CAPSULE BAR */
 .home-plate {
   flex: 1 1 auto;
   min-width: 0;
@@ -439,7 +490,8 @@
   border-radius: 9px;
   background: linear-gradient(90deg, #1f2447, #171a33);
   border: 1px solid var(--line);
-  border-left: 3px solid var(--pc);
+  border-left: 3.5px solid var(--pc);  /* Position Color Bar */
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .home-plate b {
@@ -455,28 +507,31 @@
   color: #ffffff;
 }
 
+/* 💡 Team Name Tag: Animation Logo နှင့် အရောင်တူတူ ထားရှိခြင်း */
 .home-plate i {
   font-style: normal;
   font-size: 10px;
-  font-weight: 700;
-  color: var(--pc);
+  font-weight: 800;
   letter-spacing: .06em;
   text-transform: uppercase;
   flex: 0 0 auto;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid transparent;
 }
 
-/* 💡 Position တံဆိပ်ခေါင်း (MID, DEF, FWD, GK) */
+/* Position Label (GK, DEF, MID, FWD) */
 .home-row .ps {
   font-size: 10px;
-  font-weight: 700;
-  color: var(--pc);
+  font-weight: 800;
   width: 30px;
   flex: 0 0 30px;
   text-align: center;
   text-transform: uppercase;
 }
 
-/* 💡 Points တံဆိပ်ခေါင်း (17 pts, စသည်) */
+/* Points Value (39 pts, etc.) */
 .home-row .vl {
   font-weight: 800;
   font-size: 13.5px;
@@ -491,7 +546,7 @@
   color: var(--mc, #a58bff);
 }
 
-/* 💀 Skeleton Loading Animation */
+/* Skeleton Loading Animation */
 .home-skel {
   height: 18px;
   margin: 14px 0;
@@ -516,9 +571,7 @@
   font-size: 13px;
 }
 
-/* =========================================================================
-   🏆 TW REGISTER BANNER
-   ========================================================================= */
+/* 🏆 TW Register Banner */
 .home-banner {
   display: flex;
   align-items: center;
