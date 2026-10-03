@@ -1,13 +1,14 @@
 // ============================================
 // TW Fantasy Official League — Home UI Controller
 // Path: js/home.js
-// Features:
-//   1. 100% Bulletproof Self-Contained Engine (Zero External Import Crash)
-//   2. Polished Manager & Team Card (Luxury Glassmorphism)
-//   3. Fixed Deadline Countdown Frame (No Unwanted Route Jumps)
-//   4. 3-Column Balanced Stats Alignment (330, 1.8M, 51)
-//   5. Top 5 Real Captains Card Grid (Official 250x250 HD Cutout Photos on Dashboard)
-// Standards: UI Design Knowledge Pack (Sports UI, 8px Grid, Rounded 16-20px)
+// Standards: UI Design Knowledge Pack (Sports UI & 8px Grid)
+// Architecture: Bulletproof Defensive DOM Engine (Zero Script Crash)
+// Targets:
+//   - Safe Manager & Team Header Styling
+//   - Safe Deadline Frame (No DOM Overwrite, No Route Jump)
+//   - 3-Column Stats Sync (330, 1.8M, 51)
+//   - Top 5 Leaders Grid (Reads Directly from scoutPlayers/scoutHighlights)
+//   - 6 Quick Stats Tabs Working Smoothly
 // ============================================
 
 import { db } from "./firebase-config.js";
@@ -17,8 +18,8 @@ import { loadFixturesMaster } from "./core/data.js";
 const $ = (id) => document.getElementById(id);
 const MIN = 60 * 1000;
 
-// 💡 Version 16 Cache Key (ဒေတာအသစ် တန်းဖတ်စေရန်)
-const SCOUT_CACHE_KEY = "twfm_scout_highlights_v16";
+// 💡 Version 17 Cache Key (Cache အဟောင်းများကို အလိုအလျောက် သန့်စင်စေခြင်း)
+const SCOUT_CACHE_KEY_V17 = "twfm_scout_highlights_v17";
 
 const LS = {
   get(k, ttl) { 
@@ -138,40 +139,40 @@ const MODES = {
 };
 
 // ============================================
-// 👑 MANAGER & TEAM HEADER FRAME
+// 👑 MANAGER & TEAM HEADER FRAME (SAFE DOM UPDATE)
 // ============================================
 function decorateManagerFrame(profile) {
-  const teamNameEl = $("welcome-name") \vert{}\vert{} $("team-title-text");
-  const managerNameEl = $("welcome-manager") \vert{}\vert{} $("manager-title-text");
-  const managerCardEl = $("manager-profile-card") \vert{}\vert{} $("header-profile-box");
+  try {
+    const teamNameEl = $("welcome-name") \vert{}\vert{} $("team-title-text");
+    const managerNameEl = $("welcome-manager") \vert{}\vert{} $("manager-title-text");
+    const managerCardEl = $("manager-profile-card") \vert{}\vert{} $("header-profile-box") || teamNameEl?.closest("div.rounded-2xl");
 
-  const teamName = profile?.teamName || "SEAROKER Tw";
-  const managerName = profile?.managerName || profile?.displayName || "zaw moe";
+    const teamName = profile?.teamName || "SEAROKER Tw";
+    const managerName = profile?.managerName || profile?.displayName || "zaw moe";
 
-  if (teamNameEl) {
-    teamNameEl.innerHTML = `<span style="font-weight:900; letter-spacing:0.02em;">${esc(teamName)}</span> <span style="filter: drop-shadow(0 0 8px rgba(251,191,36,0.6));">👑</span>`;
-  }
-  if (managerNameEl) {
-    managerNameEl.innerHTML = `<span style="opacity:0.75; font-size:11px;">Manager:</span> <span style="color:#e2e8f0; font-weight:700;">${esc(managerName)}</span>`;
-  }
+    if (teamNameEl) {
+      teamNameEl.innerHTML = `<span style="font-weight:900; letter-spacing:0.02em;">${esc(teamName)}</span> <span style="filter: drop-shadow(0 0 8px rgba(251,191,36,0.6));">👑</span>`;
+    }
+    if (managerNameEl) {
+      managerNameEl.innerHTML = `<span style="opacity:0.75; font-size:11px;">Manager:</span> <span style="color:#e2e8f0; font-weight:700;">${esc(managerName)}</span>`;
+    }
 
-  if (managerCardEl) {
-    managerCardEl.style.cssText = `
-      background: linear-gradient(135deg, rgba(20, 23, 43, 0.95), rgba(15, 17, 33, 0.98));
-      border: 1px solid rgba(140, 109, 255, 0.35);
-      border-radius: 18px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(12px);
-      padding: 14px 16px;
-    `;
+    if (managerCardEl) {
+      managerCardEl.style.background = "linear-gradient(135deg, rgba(20, 23, 43, 0.95), rgba(15, 17, 33, 0.98))";
+      managerCardEl.style.border = "1px solid rgba(140, 109, 255, 0.35)";
+      managerCardEl.style.borderRadius = "18px";
+      managerCardEl.style.boxShadow = "0 10px 25px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.1)";
+    }
+  } catch (err) {
+    console.warn("Manager frame decorate note:", err);
   }
 }
 
 // ============================================
-// ⏳ DEADLINE COUNTDOWN FRAME ENGINE
+// ⏳ DEADLINE COUNTDOWN FRAME ENGINE (SAFE TICK)
 // ============================================
 async function loadDeadline() {
-  let info = LS.get("twfm_deadline_v16", 10 * MIN);
+  let info = LS.get("twfm_deadline_v17", 10 * MIN);
   if (!info || (info.ts && info.ts < Date.now())) {
     try {
       const m = await loadFixturesMaster();
@@ -187,7 +188,7 @@ async function loadDeadline() {
       } else {
         info = { gw: 6, ts: 0, lastDone: null };
       }
-      LS.set("twfm_deadline_v16", info);
+      LS.set("twfm_deadline_v17", info);
     } catch (e) { 
       console.warn("Deadline load note:", e); 
       info = info || { gw: 6, ts: 0, lastDone: null }; 
@@ -198,61 +199,30 @@ async function loadDeadline() {
   currentGwNumber = info.gw || 6;
   lastDone = info.lastDone ?? null;
 
-  renderDeadlineFrame(info);
+  // Safe update for Deadline labels without destroying existing HTML
+  if ($("gw-label")) $("gw-label").textContent = `GW${currentGwNumber} DEADLINE`;
+  if ($("gw-when") && info.ts) {
+    $("gw-when").textContent = new Date(info.ts).toLocaleString("en-GB", { 
+      timeZone: "Asia/Yangon", 
+      weekday: "short", 
+      day: "numeric", 
+      month: "short", 
+      year: "numeric", 
+      hour: "2-digit", 
+      minute: "2-digit", 
+      hour12: false 
+    }) + " MMT";
+  }
+
+  // 💡 Hero card ပေါ်တွင် fixtures သို့ အလိုအလျောက် ခုန်မသွားစေရန် Click ဖယ်ရှားခြင်း
+  const heroCard = $("hero-deadline-card");
+  if (heroCard) {
+    heroCard.onclick = null;
+    heroCard.style.cursor = "default";
+  }
+
   tick();
   paintStats();
-}
-
-function renderDeadlineFrame(info) {
-  const container = $("hero-deadline-card") \vert{}\vert{} $("deadline-timer-container");
-  if (!container) return;
-
-  container.onclick = null;
-  container.style.cursor = "default";
-
-  const whenStr = info.ts ? new Date(info.ts).toLocaleString("en-GB", { 
-    timeZone: "Asia/Yangon", 
-    weekday: "short", 
-    day: "numeric", 
-    month: "short", 
-    year: "numeric", 
-    hour: "2-digit", 
-    minute: "2-digit", 
-    hour12: false 
-  }) + " MMT" : "Sat, 10 Oct 2026, 16:30 MMT";
-
-  container.innerHTML = `
-    <div style="background: linear-gradient(135deg, rgba(26, 31, 58, 0.9), rgba(15, 17, 33, 0.95)); border: 1.2px solid rgba(140, 109, 255, 0.4); border-radius: 18px; padding: 12px 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); position: relative; overflow: hidden;">
-      
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-        <div style="display: flex; align-items: center; gap: 6px;">
-          <span style="display:inline-block; width:7px; height:7px; border-radius:50%; background:#fbbf24; box-shadow:0 0 10px #fbbf24;"></span>
-          <span id="gw-label" style="font-size: 11px; font-weight: 900; letter-spacing: 0.06em; color: #fbbf24; text-transform: uppercase;">GW${currentGwNumber} DEADLINE</span>
-        </div>
-        <span id="gw-when" style="font-size: 10.5px; font-weight: 700; color: #94a3b8;">${whenStr}</span>
-      </div>
-
-      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; text-align: center;">
-        <div style="background: rgba(11, 13, 26, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 6px 0;">
-          <div id="cd-d" style="font-size: 16px; font-weight: 900; color: #ffffff; font-family: monospace;">00</div>
-          <div style="font-size: 7.5px; font-weight: 800; color: #8c6dff; text-transform: uppercase;">DAYS</div>
-        </div>
-        <div style="background: rgba(11, 13, 26, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 6px 0;">
-          <div id="cd-h" style="font-size: 16px; font-weight: 900; color: #ffffff; font-family: monospace;">00</div>
-          <div style="font-size: 7.5px; font-weight: 800; color: #8c6dff; text-transform: uppercase;">HOURS</div>
-        </div>
-        <div style="background: rgba(11, 13, 26, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 6px 0;">
-          <div id="cd-m" style="font-size: 16px; font-weight: 900; color: #ffffff; font-family: monospace;">00</div>
-          <div style="font-size: 7.5px; font-weight: 800; color: #8c6dff; text-transform: uppercase;">MINS</div>
-        </div>
-        <div style="background: rgba(11, 13, 26, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 6px 0;">
-          <div id="cd-s" style="font-size: 16px; font-weight: 900; color: #38bdf8; font-family: monospace;">00</div>
-          <div style="font-size: 7.5px; font-weight: 800; color: #38bdf8; text-transform: uppercase;">SECS</div>
-        </div>
-      </div>
-
-    </div>
-  `;
 }
 
 function tick() {
@@ -261,12 +231,20 @@ function tick() {
   const h = Math.floor(d / 36e5); d -= h * 36e5;
   const m = Math.floor(d / 6e4); d -= m * 6e4;
   const s = Math.floor(d / 1e3);
-  const set = (id, v) => { const e = $(id); if (e && e.textContent !== v) e.textContent = v; };
-  set("cd-d", pad(days)); set("cd-h", pad(h)); set("cd-m", pad(m)); set("cd-s", pad(s));
+
+  // Safe setter (element ရှိမှသာ update လုပ်မည် - crash မဖြစ်စေပါ)
+  const set = (id, v) => { 
+    const e = $(id); 
+    if (e && e.textContent !== v) e.textContent = v; 
+  };
+  set("cd-d", pad(days)); 
+  set("cd-h", pad(h)); 
+  set("cd-m", pad(m)); 
+  set("cd-s", pad(s));
 }
 
 // ============================================
-// 📊 PERFORMANCE STATS ENGINE
+// 📊 PERFORMANCE STATS ENGINE (SAFE DOM)
 // ============================================
 function paintStats() {
   if (!live) return;
@@ -285,7 +263,12 @@ function paintStats() {
   }
 
   const gw = Number(shown.gwPoints ?? 0), avg = Number(shown.averagePoints);
-  const t = (id, v, cls) => { const e = $(id); if (!e) return; e.textContent = v; if (cls !== undefined) e.className = cls; };
+  const t = (id, v, cls) => { 
+    const e = $(id); 
+    if (!e) return; 
+    e.textContent = v; 
+    if (cls !== undefined) e.className = cls; 
+  };
 
   t("st-total", fmt(live.totalPoints));
   t("st-total-d", shown.gw ? `▲ +${fmt(gw)} (GW${shown.gw})` : "", "up");
@@ -327,21 +310,23 @@ async function loadStats() {
       LS.set(`twfm_points_${fplId}`, live);
       paintStats();
     }
-  } catch (e) { console.warn("Live points load note:", e); }
+  } catch (e) { 
+    console.warn("Live points load note:", e); 
+  }
 }
 
 // ============================================
-// 🌟 TOP 5 PLAYERS CARD GRID RENDERER
+// 🌟 TOP 5 PLAYERS CARD GRID RENDERER (FIRESTORE HIGHLIGHTS)
 // ============================================
 async function loadScoutHighlights() {
-  scoutHighlightsData = LS.get(SCOUT_CACHE_KEY, 15 * MIN);
+  scoutHighlightsData = LS.get(SCOUT_CACHE_KEY_V17, 15 * MIN);
 
   if (!scoutHighlightsData) {
     try {
       const snap = await getDoc(doc(db, "scoutPlayers", "scoutHighlights"));
       if (snap.exists()) {
         scoutHighlightsData = snap.data();
-        LS.set(SCOUT_CACHE_KEY, scoutHighlightsData);
+        LS.set(SCOUT_CACHE_KEY_V17, scoutHighlightsData);
       }
     } catch (err) {
       console.warn("scoutHighlights load note:", err);
@@ -414,7 +399,7 @@ function renderPlayerCards() {
     const teamShort = teamMeta.short;
     const localBadgeUrl = teamMeta.badgePath;
 
-    // 📸 Safe & Pure Photo URL Resolver (Zero Import Crash)
+    // 📸 Safe Photo URL (Firestore photoUrl မှ တိုက်ရိုက်ယူသည်)
     const directPhotoUrl = resolvePlayerPhotoUrl(p);
 
     const fallbackSvg = `
@@ -531,32 +516,41 @@ async function loadNextFixture() {
 }
 
 // ============================================
-// 🚀 EXPORT INITIALIZER
+// 🚀 EXPORT INITIALIZER (GUARDED PIPELINE)
 // ============================================
 export async function initHomeTab(user, profile) {
   if (profile?.fplTeamId) {
     fplId = String(profile.fplTeamId);
   }
 
-  // 👑 Manager Frame အလှဆင်ခြင်း
+  // ၁။ Manager Frame
   decorateManagerFrame(profile);
 
-  // ⏳ Deadline Countdown Frame တည်ဆောက်ခြင်း
+  // ၂။ Deadline Frame
   await loadDeadline();
 
-  // 📊 Stats & Cards
+  // ၃။ Stats Loading (330, 1.8M, 51)
   loadStats();
-  loadScoutHighlights();
+
+  // ၄။ Top 5 Player Cards (Most Captained etc.)
+  await loadScoutHighlights();
+
+  // ၅။ Next Fixture Card
   await loadNextFixture();
 
+  // ၆။ Timer Interval
   if (timerInterval) clearInterval(timerInterval);
   timerInterval = setInterval(tick, 1000);
 
-  // Tab Switching
-  $("leader-tabs")?.addEventListener("click", (e) => {
-    const b = e.target.closest("button[data-k]");
-    if (!b) return;
-    mode = b.dataset.k;
-    renderPlayerCards();
-  });
+  // ၇။ Tab Switching Listener (Most Captain, Ownership, Transfers In/Out, Total/GW Points)
+  const tabsContainer = $("leader-tabs");
+  if (tabsContainer) {
+    // Event listener အဟောင်းများ ထပ်မနေစေရန် cloneNode မသုံးဘဲ clean delegate လုပ်ခြင်း
+    tabsContainer.onclick = (e) => {
+      const b = e.target.closest("button[data-k]");
+      if (!b) return;
+      mode = b.dataset.k;
+      renderPlayerCards();
+    };
+  }
 }
