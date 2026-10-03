@@ -1,12 +1,11 @@
 // ============================================
 // TW Fantasy Official League
 // Player Scout Sync Engine + Scout Highlights Document
-// Season: 2026-2027 Official Premier League Sync
-// Features:
-//   - Official FPL Photo Engine (el.photo -> el.opta_code ONLY, no el.code/id)
-//   - Pure Premier League CDN URLs (No query parameters)
-//   - True Team & Fixture Alignment for João Pedro & Morgan Rogers (Chelsea FC)
-//   - Full Metrics Sync (PPG, VAL, L5, XGI, ICT) for all 6 Highlight Categories
+// Standalone Node.js Runner for GitHub Actions
+// Targets:
+//   1) scoutPlayers/allPlayers      (Full Master Player List)
+//   2) scoutPlayers/scoutHighlights (Top Leaders & Highlights Document)
+// Fix: 2026-27 Official Player Photo Code Update & CDN Resolution
 // Path: scripts/player-scout-sync.js
 // ============================================
 
@@ -47,7 +46,7 @@ async function fplFetch(url, retries = 3) {
   for (let i = 0; i < retries; i++) {
     try {
       const res = await fetch(url, {
-        headers: { "User-Agent": "Mozilla/5.0 TW-Fantasy-Sync/10.0 (Official-FPL-Engine)" },
+        headers: { "User-Agent": "Mozilla/5.0 TW-Fantasy-Sync/6.0 (Full-Scout-Metrics)" },
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return await res.json();
@@ -97,19 +96,11 @@ function autoDetectGameweek(events = []) {
 function buildTeamMaps(bootstrap) {
   const teamCodeMap = {};
   const teamNameMap = {};
-  let chelseaTeamId = 6;
-  
-  (bootstrap.teams || []).forEach((t) => {
-    const rawShort = (t.short_name || "").toUpperCase().trim();
-    teamCodeMap[t.id] = rawShort;
+  bootstrap.teams.forEach((t) => {
+    teamCodeMap[t.id] = (t.short_name || "").toLowerCase().trim();
     teamNameMap[t.id] = t.name;
-
-    if (rawShort === "CHE" || (t.name && t.name.toLowerCase().includes("chelsea"))) {
-      chelseaTeamId = t.id;
-    }
   });
-  
-  return { teamCodeMap, teamNameMap, chelseaTeamId };
+  return { teamCodeMap, teamNameMap };
 }
 
 // === Next 3 Fixtures Buffer Map ===
@@ -131,7 +122,7 @@ function buildNext3FixturesMap(fixtures, currentGwId, teamNameMap, teamCodeMap) 
       return {
         gw: f.event,
         opp: teamNameMap[opponentId] || "TBC",
-        oppCode: (teamCodeMap[opponentId] || "UNK").toUpperCase(),
+        oppCode: (teamCodeMap[opponentId] || "unk").toUpperCase(),
         isHome: isHome,
         fdr: fdr || 3,
       };
@@ -140,7 +131,7 @@ function buildNext3FixturesMap(fixtures, currentGwId, teamNameMap, teamCodeMap) 
   return teamFixturesMap;
 }
 
-// 🌟 Format Helper: Card Summary Object for Dashboard Cards
+// 🌟 Format Helper: Card Rendering Summary Object (PPG, VAL, L5, XGI, ICT နှင့် Clean Photo ပါဝင်သည်)
 function createCardSummary(player) {
   if (!player) return null;
   return {
@@ -152,8 +143,8 @@ function createCardSummary(player) {
     team: player.team,
     teamCode: player.teamCode,
     price: player.price,
-    photoCode: player.photoCode, // 📸 Clean Numeric ID
-    photoUrl: player.photoUrl,   // 📸 Pure Premier League CDN URL
+    photoCode: player.photoCode,
+    photoUrl: player.photoUrl,
     totalPoints: player.totalPoints,
     gwPoints: player.gwPoints,
     ownership: player.ownership,
@@ -172,7 +163,7 @@ function createCardSummary(player) {
 
 // === Main Execution Function ===
 async function main() {
-  console.log("🚀 TW Fantasy — Master Sync Starting (Pure el.photo Engine)...");
+  console.log("🚀 TW Fantasy — Full Player Scout Sync Starting...");
   console.log("Time:", new Date().toISOString());
 
   try {
@@ -185,7 +176,7 @@ async function main() {
     console.log(`📅 Current Gameweek: ${currentGwDetails.name} (Live: ${currentGwDetails.isCurrent})`);
 
     const isSeasonStarted = bootstrap.events.some((e) => e.is_current || e.finished);
-    const { teamCodeMap, teamNameMap, chelseaTeamId } = buildTeamMaps(bootstrap);
+    const { teamCodeMap, teamNameMap } = buildTeamMaps(bootstrap);
     const next3FixturesMap = buildNext3FixturesMap(fixtures, currentGwDetails.id, teamNameMap, teamCodeMap);
 
     const posMap = {};
@@ -218,51 +209,20 @@ async function main() {
       const xgi = parseFloat((!isNaN(xgiRaw) && xgiRaw > 0 ? xgiRaw : (xg + xa)).toFixed(2));
       const ict = parseFloat(parseFloat(el.ict_index || 0.0).toFixed(1));
 
-      // ============================================
-      // 📸 OFFICIAL FPL PLAYER PHOTO ENGINE (2026/27)
-      // Source priority:
-      // 1. el.photo
-      // 2. el.opta_code
-      // NEVER use: el.id, el.code for player photo URL!
-      // ============================================
+      // 📸 2026-27 OFFICIAL PHOTO CODE RESOLUTION ENGINE
+      // 1) el.photo မှ .jpg/.png နှင့် 'p' prefix ဖယ်ရှားခြင်း
       let cleanPhotoCode = "";
-
-      // 1️⃣ Official FPL photo field
       if (el.photo) {
-        cleanPhotoCode = String(el.photo)
-          .replace(/\.(jpg|jpeg|png)$/i, "")
-          .replace(/^p/i, "")
-          .trim();
+        cleanPhotoCode = String(el.photo).replace(/\.(jpg|png)$/i, "").replace(/^p/i, "");
       }
-
-      // 2️⃣ Fallback to Opta code
-      if (!cleanPhotoCode && el.opta_code) {
-        cleanPhotoCode = String(el.opta_code)
-          .replace(/^p/i, "")
-          .trim();
-      }
-
-      // 3️⃣ Build official Premier League CDN URL (Pure, No ?v= query)
-      const photoUrl = cleanPhotoCode
-        ? `https://resources.premierleague.com/premierleague/photos/players/250x250/p${cleanPhotoCode}.png`
-        : "";
-
-      // 🌟 ၂၀၂၆-၂၇ အပြောင်းအရွှေ့ စစ်မှန်ရေး (Pedro & Rogers -> Chelsea FC)
-      let resolvedTeamId = el.team;
-      let resolvedTeamName = teamNameMap[el.team] || "Unknown";
-      let resolvedTeamCode = (teamCodeMap[el.team] || "UNK").toUpperCase();
-
-      const pNameLower = `${el.first_name} ${el.second_name} ${el.web_name}`.toLowerCase();
       
-      if (pNameLower.includes("joão pedro") || pNameLower.includes("joao pedro") || pNameLower.includes("pedro")) {
-        resolvedTeamId = chelseaTeamId;
-        resolvedTeamCode = "CHE";
-        resolvedTeamName = "Chelsea";
-      } else if (pNameLower.includes("morgan rogers") || pNameLower.includes("rogers")) {
-        resolvedTeamId = chelseaTeamId;
-        resolvedTeamCode = "CHE";
-        resolvedTeamName = "Chelsea";
+      // 2) အကယ်၍ photo code မရှိပါက element.code သို့မဟုတ် element.id ဖြင့် fallback ပြုလုပ်ခြင်း
+      if (!cleanPhotoCode || cleanPhotoCode === "undefined") {
+        cleanPhotoCode = String(el.code || el.id);
       }
+
+      // 3) Cache Buster Query ပါဝင်သော တရားဝင် 250x250 Premier League CDN URL
+      const photoUrl = `https://resources.premierleague.com/premierleague/photos/players/250x250/p${cleanPhotoCode}.png?v=2026_27`;
 
       const nextChanceRaw = el.chance_of_playing_next_round;
       let chanceOfPlaying = 100;
@@ -274,6 +234,11 @@ async function main() {
         chanceOfPlaying = 75;
       }
 
+      const isAvailable = status === "a" && chanceOfPlaying === 100;
+      const isDoubtful = status === "d" || (chanceOfPlaying > 0 && chanceOfPlaying < 100);
+      const isSuspended = status === "s";
+      const isInjured = status === "i";
+
       allValidPlayers.push({
         playerId: el.id,
         id: el.id,
@@ -281,12 +246,12 @@ async function main() {
         fullName: `${el.first_name} ${el.second_name}`,
         position: posMap[el.element_type] || "mid",
         elementType: el.element_type,
-        teamId: resolvedTeamId,
-        team: resolvedTeamName,
-        teamCode: resolvedTeamCode,
+        teamId: el.team,
+        team: teamNameMap[el.team] || "Unknown",
+        teamCode: (teamCodeMap[el.team] || "unk").toUpperCase(),
         price: price,
         photoCode: cleanPhotoCode,
-        photoUrl: photoUrl, // 💡 Pure Premier League CDN URL
+        photoUrl: photoUrl, // 💡 Real 2026-27 CDN Photo URL
         
         ppg: ppg,
         val: val,
@@ -326,18 +291,15 @@ async function main() {
         transfersInEvent: el.transfers_in_event || 0,
         transfersOutEvent: el.transfers_out_event || 0,
 
-        // 💡 Chelsea Fixture နှင့် ၁၀၀% ကိုက်ညီစေခြင်း
-        nextMatches: next3FixturesMap[resolvedTeamId] || [],
+        nextMatches: next3FixturesMap[el.team] || [],
 
         status: status,
         chanceOfPlaying: chanceOfPlaying,
-        chanceOfPlayingThisRound: el.chance_of_playing_this_round !== null && el.chance_of_playing_this_round !== undefined 
-          ? Number(el.chance_of_playing_this_round) 
-          : null,
-        isAvailable: status === "a" && chanceOfPlaying === 100,
-        isDoubtful: status === "d" || (chanceOfPlaying > 0 && chanceOfPlaying < 100),
-        isSuspended: status === "s",
-        isInjured: status === "i",
+        chanceOfPlayingThisRound: el.chance_of_playing_this_round !== null ? Number(el.chance_of_playing_this_round) : null,
+        isAvailable: isAvailable,
+        isDoubtful: isDoubtful,
+        isSuspended: isSuspended,
+        isInjured: isInjured,
         news: el.news || "",
         newsAdded: el.news_added || null,
       });
@@ -356,7 +318,7 @@ async function main() {
     const docRef = db.collection("scoutPlayers").doc("allPlayers");
     await docRef.set(masterScoutPayload);
     const approxSizeKb = Math.round(Buffer.byteLength(JSON.stringify(masterScoutPayload)) / 1024);
-    console.log(`✅ [MASTER DOC] scoutPlayers/allPlayers Synced (~${approxSizeKb} KB)`);
+    console.log(`✅ [MASTER DOC] scoutPlayers/allPlayers Synced (~${approxSizeKb} KB) with Updated Photo Pipeline`);
 
     // =========================================================================
     // 👑 TRUE CURRENT GAMEWEEK TOP 5 MOST CAPTAINED RESOLUTION
@@ -364,18 +326,29 @@ async function main() {
     const topCaptainsList = [];
     const chosenIds = new Set();
 
+    // ၁။ နံပါတ် ၁: FPL Official Verified Most Captained
     const officialMostCap = allValidPlayers.find(p => p.playerId === currentGwDetails.mostCaptained);
     if (officialMostCap) {
-      topCaptainsList.push(createCardSummary(officialMostCap));
+      topCaptainsList.push({
+        ...createCardSummary(officialMostCap),
+        roleBadge: "C",
+        roleTitle: "Captain"
+      });
       chosenIds.add(officialMostCap.playerId);
     }
 
+    // ၂။ နံပါတ် ၂: FPL Official Verified Most Vice-Captained
     const officialMostVice = allValidPlayers.find(p => p.playerId === currentGwDetails.mostViceCaptained);
     if (officialMostVice && !chosenIds.has(officialMostVice.playerId)) {
-      topCaptainsList.push(createCardSummary(officialMostVice));
+      topCaptainsList.push({
+        ...createCardSummary(officialMostVice),
+        roleBadge: "V",
+        roleTitle: "Vice-Captain"
+      });
       chosenIds.add(officialMostVice.playerId);
     }
 
+    // ၃။ နံပါတ် ၃၊ ၄၊ ၅: Current Gameweek အများဆုံး ရွေးချယ်ခံရသည့် Attackers
     const currentGwCaptainContenders = allValidPlayers
       .filter(p => 
         !chosenIds.has(p.playerId) && 
@@ -409,7 +382,7 @@ async function main() {
       }
     }
 
-    // 💡 ကဏ္ဍ ၆ ခုစလုံးအတွက် Top 5 စာရင်းများ
+    // ကျန် Tab များအတွက် Top 5 စာရင်းများ
     const sortedByTotalPoints = [...allValidPlayers].sort((a, b) => b.totalPoints - a.totalPoints);
     const topTotalPoints = sortedByTotalPoints.slice(0, 5).map(createCardSummary);
 
@@ -425,32 +398,22 @@ async function main() {
     const sortedByTransfersOut = [...allValidPlayers].sort((a, b) => b.transfersOutEvent - a.transfersOutEvent);
     const topTransfersOut = sortedByTransfersOut.slice(0, 5).map(createCardSummary);
 
-    // 💡 DOCUMENT (၂): scoutPlayers/scoutHighlights (Dashboard သီးသန့် အသေးစား Document)
+    // 💡 DOCUMENT (၂): scoutPlayers/scoutHighlights
     const highlightsPayload = {
       gameweek: currentGwDetails.id,
       gameweekName: currentGwDetails.name,
       updatedAt: FieldValue.serverTimestamp(),
 
-      // ၁။ Most Captained (၅ ယောက်)
       mostCaptained: {
         leader: topCaptainsList[0] || null,
         viceLeader: topCaptainsList[1] || null,
         topList: topCaptainsList
       },
 
-      // ၂။ Total Points (၅ ယောက်)
       mostTotalPoints: { leader: topTotalPoints[0] || null, topList: topTotalPoints },
-
-      // ၃။ Week Points (၅ ယောက်)
       mostGwPoints: { leader: topGwPoints[0] || null, topList: topGwPoints },
-
-      // ၄။ Ownership (၅ ယောက်)
       mostOwned: { leader: topOwnership[0] || null, topList: topOwnership },
-
-      // ၅။ Transfers In (၅ ယောက်)
       mostTransferredIn: { leader: topTransfersIn[0] || null, topList: topTransfersIn },
-
-      // ၆။ Transfers Out (၅ ယောက်)
       mostTransferredOut: { leader: topTransfersOut[0] || null, topList: topTransfersOut }
     };
 
@@ -459,7 +422,7 @@ async function main() {
     const highlightSizeKb = Math.round(Buffer.byteLength(JSON.stringify(highlightsPayload)) / 1024);
 
     console.log(`🌟 [HIGHLIGHTS DOC] scoutPlayers/scoutHighlights Synced (~${highlightSizeKb} KB)`);
-    console.log(`   👑 Top 5 Captains: ${topCaptainsList.map((c, i) => `#${i + 1} ${c.name} (${c.photoUrl})`).join(", ")}`);
+    console.log(`   👑 Top 5 Captains: ${topCaptainsList.map((c, i) => `#${i + 1} ${c.name} (Photo:${c.photoCode})`).join(", ")}`);
     console.log("============================================");
 
     process.exit(0);
