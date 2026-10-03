@@ -1,171 +1,150 @@
-<div class="home-root">
-  <!-- 🔝 Top Header: Clean Premium Brand Bar (No Bell/User Icons) -->
-  <header class="home-head safe-top">
-    <div class="home-brand">
-      <span class="home-logo font-black">TW</span>
-      <div class="home-brand-text">
-        <h1 class="brand-title">TW FM</h1>
-        <p class="brand-subtitle">TOGETHER WE PLAY</p>
+<!-- ============================================
+  TW FM — Dashboard View Layout
+  Path: views/dashboard.html
+  Standards: UI Design Knowledge Pack (8px Grid & Sports UI)
+============================================ -->
+
+<div class="dashboard-page max-w-md mx-auto min-h-screen p-3 space-y-3 pb-24">
+
+  <!-- 🌟 FRAME 1: TOP APP HEADER (TW FM + TW MEMBER BADGE) -->
+  <header class="luxury-app-header flex items-center justify-between px-3.5 py-2.5 rounded-2xl">
+    <div class="flex items-center gap-2.5">
+      <div class="app-logo-badge w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm text-white shadow-lg">
+        TW
+      </div>
+      <div>
+        <h1 class="text-base font-black tracking-wider text-white uppercase leading-none">TW FM</h1>
+        <p class="text-[9.5px] font-bold tracking-widest text-[#8c6dff] uppercase mt-0.5">TOGETHER WE PLAY</p>
       </div>
     </div>
-    <div class="home-who">
-      <span id="account-type-pill" class="home-pill">TW MEMBER</span>
-      <button id="pending-refresh-btn" onclick="handleCheckApprovalStatus()" class="hidden home-refresh" type="button" aria-label="Refresh Status">
-        <span id="check-icon">⟳</span><span>REFRESH</span>
-      </button>
+    <div class="tw-member-badge px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider text-[#b3a1ff] border border-[#8c6dff]/40 shadow-sm">
+      TW MEMBER
     </div>
   </header>
-  
-  <main class="home-scroll">
-    <!-- 👤 Manager Profile Card Component (Clean Card - No Chevron Arrow) -->
-    <section class="home-profile" aria-label="User Profile">
-      <div class="home-avatar" aria-hidden="true">⚽</div>
-      <div class="home-pf-text">
-        <h2 id="welcome-name">SEAROKER Tw <span class="crown-ico">👑</span></h2>
-        <p id="welcome-sub">Manager: <span id="welcome-manager">zaw moe</span></p>
+
+  <!-- 🌟 FRAME 2: MANAGER & TEAM PROFILE CARD -->
+  <section id="manager-profile-card" class="luxury-manager-card rounded-2xl p-3.5 flex items-center justify-between relative overflow-hidden">
+    <div class="flex items-center gap-3 min-w-0">
+      <div class="ball-icon-wrap w-10 h-10 rounded-xl flex items-center justify-center text-lg shadow-inner shrink-0">
+        ⚽
       </div>
-    </section>
-    
-    <!-- ⏳ Gameweek Deadline Hero Box (Clickable -> #/fixtures) -->
-    <section class="home-hero clickable-hero" id="hero-deadline-card" role="button" tabindex="0" aria-label="View Gameweek Fixtures">
-      <div class="home-tw-anim-bg" aria-hidden="true">
-        <div class="tw-crest-glow">TW</div>
-      </div>
-      
-      <div class="home-hero-top">
-        <span id="gw-label" class="home-tag">GW6 DEADLINE</span>
-        <span id="gw-when" class="home-hero-when">Sat, 10 Oct 2026 · 16:30 MMT</span>
-      </div>
-      
-      <div class="home-cd" id="home-cd" aria-live="polite">
-        <div><b id="cd-d">--</b><small>DAYS</small></div>
-        <div><b id="cd-h">--</b><small>HRS</small></div>
-        <div><b id="cd-m">--</b><small>MIN</small></div>
-        <div><b id="cd-s">--</b><small>SEC</small></div>
-      </div>
-      
-      <div class="hero-tap-hint">
-        <span>Tap to open Fixtures schedule</span>
-        <span class="hint-arrow">›</span>
-      </div>
-    </section>
-    
-    <!-- 📊 3-Column Performance Stats Section (Balanced Alignment) -->
-    <section class="home-stats" aria-label="Season Performance Overview">
-      <div class="home-stat c-violet">
-        <div class="stat-icon" aria-hidden="true">★</div>
-        <span class="t">Total Points</span>
-        <b id="st-total">–</b>
-        <em id="st-total-d" class="up"></em>
-      </div>
-      
-      <div class="home-stat c-blue wide">
-        <div class="stat-icon" aria-hidden="true">🏆</div>
-        <span class="t">Overall Rank</span>
-        <b id="st-rank">–</b>
-        <em id="st-rank-d" class="up"></em>
-      </div>
-      
-      <div class="home-stat c-green">
-        <div class="stat-icon" aria-hidden="true">📊</div>
-        <span class="t" id="st-gw-l">GW Score</span>
-        <b id="st-gw">–</b>
-        <em id="st-gw-d" class="up"></em>
-      </div>
-    </section>
-    
-    <!-- 🌟 Top 5 Players Card Grid Hub (250x250 Photos / Badges) -->
-    <section class="home-top-grid-section" aria-label="Top 5 Players">
-      <div class="home-section-header">
-        <h3 class="home-h">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="section-icon">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-            <circle cx="9" cy="7" r="4"></circle>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-          </svg>
-          Top 5 Players
-        </h3>
-        <a href="#/scout" class="home-see-all">View All ›</a>
-      </div>
-      
-      <!-- Card ၅ ခု ဘေးတိုက် အံဝင်ခွင်ကျ Grid Container -->
-      <div class="home-player-cards-grid" id="leader-cards-container" aria-live="polite">
-        <div class="player-card-skel"></div>
-        <div class="player-card-skel"></div>
-        <div class="player-card-skel"></div>
-        <div class="player-card-skel"></div>
-        <div class="player-card-skel"></div>
-      </div>
-    </section>
-    
-    <!-- ⚡ Quick Stats Tabs Hub (Button ၆ ခု) -->
-    <section class="home-quick-stats-section" aria-label="Quick Stats Filters">
-      <div class="home-section-header">
-        <h3 class="home-h">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="section-icon">
-            <line x1="18" y1="20" x2="18" y2="10"></line>
-            <line x1="12" y1="20" x2="12" y2="4"></line>
-            <line x1="6" y1="20" x2="6" y2="14"></line>
-          </svg>
-          Quick Stats
-        </h3>
-      </div>
-      
-      <div class="home-tabs scroll-touch" id="leader-tabs" role="tablist">
-        <button class="on" data-k="cap" style="--c:#8c6dff" role="tab" aria-selected="true" type="button">
-          <span class="tab-ico">👑</span>
-          <span class="tab-txt">Most Captain</span>
-        </button>
-        <button data-k="own" style="--c:#38bdf8" role="tab" aria-selected="false" type="button">
-          <span class="tab-ico">🛡️</span>
-          <span class="tab-txt">Ownership</span>
-        </button>
-        <button data-k="tin" style="--c:#22c55e" role="tab" aria-selected="false" type="button">
-          <span class="tab-ico">⇄</span>
-          <span class="tab-txt">Transfer In</span>
-        </button>
-        <button data-k="tout" style="--c:#ef4444" role="tab" aria-selected="false" type="button">
-          <span class="tab-ico">⇄</span>
-          <span class="tab-txt">Transfer Out</span>
-        </button>
-        <button data-k="total" style="--c:#fbbf24" role="tab" aria-selected="false" type="button">
-          <span class="tab-ico">★</span>
-          <span class="tab-txt">Total Point</span>
-        </button>
-        <button data-k="gw" style="--c:#34d399" role="tab" aria-selected="false" type="button">
-          <span class="tab-ico">⚡</span>
-          <span class="tab-txt">Week Point</span>
-        </button>
-      </div>
-    </section>
-    
-    <!-- 🗓️ Next Fixture Card Component (Clickable -> #/fixtures) -->
-    <a class="home-next-fixture-card text-decoration-none" id="next-fixture-card-link" href="#/fixtures" aria-label="Open Full Fixtures">
-      <div class="fixture-head">
-        <span class="fixture-tag">📅 Next Fixture</span>
-        <span class="fixture-time" id="next-fixture-time">GW6 · 10 Oct 2026 · 19:00</span>
-      </div>
-      <div class="fixture-body">
-        <div class="fixture-team home-side">
-          <img src="./assets/badges/ars.png" alt="ARS" class="fixture-badge" id="fixture-home-badge" onerror="this.src='./assets/badges/ars.png'">
-          <div class="team-meta">
-            <b id="fixture-home-code">ARS</b>
-            <small id="fixture-home-name">Arsenal</small>
-          </div>
+      <div class="min-w-0">
+        <div id="welcome-name" class="flex items-center gap-1.5 text-sm font-black text-white truncate">
+          <span class="truncate">SEAROKER Tw</span>
+          <span class="text-amber-400 shrink-0 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]">👑</span>
         </div>
-        
-        <div class="fixture-vs-pill">VS</div>
-        
-        <div class="fixture-team away-side">
-          <div class="team-meta text-right">
-            <b id="fixture-away-code">LEE</b>
-            <small id="fixture-away-name">Leeds United</small>
-          </div>
-          <img src="./assets/badges/lee.png" alt="LEE" class="fixture-badge" id="fixture-away-badge" onerror="this.src='./assets/badges/lee.png'">
-        </div>
-        <span class="fixture-arrow" aria-hidden="true">›</span>
+        <p id="welcome-manager" class="text-[11px] font-semibold text-slate-300 truncate mt-0.5">
+          <span class="opacity-70">Manager:</span> <span class="font-bold text-white">zaw moe</span>
+        </p>
       </div>
-    </a>
-  </main>
+    </div>
+    <div class="manager-sparkle-glow shrink-0"></div>
+  </section>
+
+  <!-- 🌟 FRAME 3: DEDICATED DEADLINE FRAME (NO UNWANTED CLICK, PURE SPORTS UI) -->
+  <section id="hero-deadline-card" class="luxury-deadline-card rounded-2xl p-3 relative overflow-hidden">
+    <div class="flex items-center justify-between mb-2">
+      <div class="flex items-center gap-2">
+        <span class="deadline-pulse-dot"></span>
+        <span id="gw-label" class="text-[11px] font-black tracking-wider text-amber-400 uppercase">GW6 DEADLINE</span>
+      </div>
+      <span id="gw-when" class="text-[10px] font-bold text-slate-300">Sat, 10 Oct 2026, 16:30 MMT</span>
+    </div>
+
+    <!-- 4-Grid Digital Countdown Timer -->
+    <div class="grid grid-cols-4 gap-1.5 text-center">
+      <div class="timer-digit-box rounded-xl py-1.5">
+        <span id="cd-d" class="timer-num block font-mono text-base font-black text-white">00</span>
+        <span class="timer-label block text-[7.5px] font-extrabold uppercase text-[#b3a1ff]">DAYS</span>
+      </div>
+      <div class="timer-digit-box rounded-xl py-1.5">
+        <span id="cd-h" class="timer-num block font-mono text-base font-black text-white">00</span>
+        <span class="timer-label block text-[7.5px] font-extrabold uppercase text-[#b3a1ff]">HOURS</span>
+      </div>
+      <div class="timer-digit-box rounded-xl py-1.5">
+        <span id="cd-m" class="timer-num block font-mono text-base font-black text-white">00</span>
+        <span class="timer-label block text-[7.5px] font-extrabold uppercase text-[#b3a1ff]">MINS</span>
+      </div>
+      <div class="timer-digit-box rounded-xl py-1.5">
+        <span id="cd-s" class="timer-num block font-mono text-base font-black text-[#38bdf8]">00</span>
+        <span class="timer-label block text-[7.5px] font-extrabold uppercase text-[#38bdf8]">SECS</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3-Column Performance Stats -->
+  <section class="grid grid-cols-3 gap-2 text-center">
+    <div class="dashboard-stat-card rounded-2xl p-2.5">
+      <div class="flex items-center justify-center gap-1 text-[8.5px] font-extrabold uppercase text-[#b3a1ff] mb-1">
+        <span>★</span> TOTAL POINTS
+      </div>
+      <div id="st-total" class="text-lg font-black text-white font-mono">330</div>
+      <div id="st-total-d" class="text-[9px] font-bold text-emerald-400 mt-0.5">▲ +51 (GW5)</div>
+    </div>
+
+    <div class="dashboard-stat-card rounded-2xl p-2.5">
+      <div class="flex items-center justify-center gap-1 text-[8.5px] font-extrabold uppercase text-[#b3a1ff] mb-1">
+        <span>🏆</span> OVERALL RANK
+      </div>
+      <div id="st-rank" class="text-base font-black text-white font-mono tracking-tight">1,896,119</div>
+      <div id="st-rank-d" class="text-[9px] font-bold text-emerald-400 mt-0.5">▲ +4,209,708</div>
+    </div>
+
+    <div class="dashboard-stat-card rounded-2xl p-2.5">
+      <div class="flex items-center justify-center gap-1 text-[8.5px] font-extrabold uppercase text-[#b3a1ff] mb-1">
+        <span>📊</span> <span id="st-gw-l">GW5 SCORE</span>
+      </div>
+      <div id="st-gw" class="text-lg font-black text-white font-mono">51</div>
+      <div id="st-gw-d" class="text-[9px] font-bold text-emerald-400 mt-0.5">▲ avg 48</div>
+    </div>
+  </section>
+
+  <!-- Top 5 Players Header & Container -->
+  <section class="space-y-2">
+    <div class="flex items-center justify-between px-1">
+      <div class="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-white">
+        <span class="text-[#8c6dff]">👥</span> Top 5 Players
+      </div>
+      <button onclick="window.go && window.go('scout')" class="text-[10px] font-bold text-slate-400 hover:text-white transition">
+        View All ›
+      </button>
+    </div>
+
+    <div id="leader-cards-container" class="grid grid-cols-5 gap-1.5">
+      <!-- Player cards injected by home.js -->
+    </div>
+  </section>
+
+  <!-- Quick Stats 6 Tabs -->
+  <section class="space-y-2">
+    <div class="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-white px-1">
+      <span class="text-[#8c6dff]">📊</span> Quick Stats
+    </div>
+
+    <div id="leader-tabs" class="grid grid-cols-6 gap-1 p-1 rounded-xl bg-black/40 border border-white/5">
+      <button data-k="cap" class="py-1.5 rounded-lg text-[8.5px] font-black uppercase transition text-slate-400">👑<br>Captain</button>
+      <button data-k="own" class="py-1.5 rounded-lg text-[8.5px] font-black uppercase transition text-slate-400">🛡️<br>Owned</button>
+      <button data-k="tin" class="py-1.5 rounded-lg text-[8.5px] font-black uppercase transition text-slate-400">⇄<br>Trans In</button>
+      <button data-k="tout" class="py-1.5 rounded-lg text-[8.5px] font-black uppercase transition text-slate-400">⇄<br>Trans Out</button>
+      <button data-k="total" class="py-1.5 rounded-lg text-[8.5px] font-black uppercase transition text-slate-400">★<br>Tot Pts</button>
+      <button data-k="gw" class="py-1.5 rounded-lg text-[8.5px] font-black uppercase transition text-slate-400">⚡<br>GW Pts</button>
+    </div>
+  </section>
+
+  <!-- Next Fixture Card -->
+  <section id="next-fixture-box" class="luxury-manager-card rounded-2xl p-3 flex items-center justify-between cursor-pointer" onclick="window.go && window.go('fixtures')">
+    <div class="flex items-center gap-2">
+      <img id="fixture-home-badge" src="./assets/badges/ars.png" class="w-6 h-6 object-contain" alt="Home" />
+      <span id="fixture-home-code" class="text-xs font-black text-white">ARS</span>
+    </div>
+    <div class="text-center">
+      <span class="text-[9px] font-black text-amber-400 uppercase tracking-widest block">VS</span>
+      <span id="next-fixture-time" class="text-[8px] font-semibold text-slate-400 block mt-0.5">GW6 · 10 Oct 2026</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <span id="fixture-away-code" class="text-xs font-black text-white">LEE</span>
+      <img id="fixture-away-badge" src="./assets/badges/lee.png" class="w-6 h-6 object-contain" alt="Away" />
+    </div>
+  </section>
+
 </div>
