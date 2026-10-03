@@ -3,9 +3,9 @@
 // Player Scout Sync Engine + Scout Highlights Document
 // Season: 2026-2027 Official Premier League Sync
 // Features:
-//   - Official FPL Photo Engine (el.photo -> el.opta_code ONLY, no el.code/id)
-//   - Pure Premier League CDN URLs (without ?v= query)
-//   - True Team & Fixture Sync for João Pedro & Morgan Rogers (Chelsea FC)
+//   - Official FPL Photo Engine (el.photo -> el.opta_code ONLY)
+//   - Pure Premier League CDN URLs (No ?v= parameter)
+//   - Fixed Team & Fixture Alignment for João Pedro & Morgan Rogers (Chelsea FC)
 // Path: scripts/player-scout-sync.js
 // ============================================
 
@@ -41,7 +41,6 @@ const FPL_BASE = "https://fantasy.premierleague.com/api";
 const BOOTSTRAP_URL = `${FPL_BASE}/bootstrap-static/`;
 const FIXTURES_URL = `${FPL_BASE}/fixtures/`;
 
-// === Helper: Exponential Backoff Fetcher ===
 async function fplFetch(url, retries = 3) {
   for (let i = 0; i < retries; i++) {
     try {
@@ -58,7 +57,6 @@ async function fplFetch(url, retries = 3) {
   }
 }
 
-// 🤖 Auto-Detect Current Gameweek Lifecycle Engine
 function autoDetectGameweek(events = []) {
   const currentEvent = events.find((e) => e.is_current === true) 
     || events.find((e) => e.is_next === true) 
@@ -92,11 +90,10 @@ function autoDetectGameweek(events = []) {
   };
 }
 
-// === Team Code & Name Mappings ===
 function buildTeamMaps(bootstrap) {
   const teamCodeMap = {};
   const teamNameMap = {};
-  let chelseaTeamId = 6; // Default Chelsea ID fallback
+  let chelseaTeamId = 6;
   
   (bootstrap.teams || []).forEach((t) => {
     const rawShort = (t.short_name || "").toUpperCase().trim();
@@ -111,7 +108,6 @@ function buildTeamMaps(bootstrap) {
   return { teamCodeMap, teamNameMap, chelseaTeamId };
 }
 
-// === Next 3 Fixtures Buffer Map ===
 function buildNext3FixturesMap(fixtures, currentGwId, teamNameMap, teamCodeMap) {
   const upcoming = fixtures
     .filter((f) => !f.finished && f.event && f.event >= currentGwId)
@@ -139,7 +135,6 @@ function buildNext3FixturesMap(fixtures, currentGwId, teamNameMap, teamCodeMap) 
   return teamFixturesMap;
 }
 
-// 🌟 Format Helper: Card Summary Object
 function createCardSummary(player) {
   if (!player) return null;
   return {
@@ -169,7 +164,6 @@ function createCardSummary(player) {
   };
 }
 
-// === Main Execution Function ===
 async function main() {
   console.log("🚀 TW Fantasy — Master Sync Starting (Pure el.photo Engine)...");
   console.log("Time:", new Date().toISOString());
@@ -181,7 +175,7 @@ async function main() {
     ]);
 
     const currentGwDetails = autoDetectGameweek(bootstrap.events || []);
-    console.log(`📅 Current Gameweek: ${currentGwDetails.name} (Live: ${currentGwDetails.isCurrent})`);
+    console.log(`📅 Current Gameweek: ${currentGwDetails.name}`);
 
     const isSeasonStarted = bootstrap.events.some((e) => e.is_current || e.finished);
     const { teamCodeMap, teamNameMap, chelseaTeamId } = buildTeamMaps(bootstrap);
@@ -330,7 +324,7 @@ async function main() {
 
         status: status,
         chanceOfPlaying: chanceOfPlaying,
-        chanceOfPlayingThisRound: el.chance_of_playing_this_round !== null ? Number(el.chance_of_playing_this_round) : null,
+        chanceOfPlayingThisRound: el.chanceOfPlayingThisRound !== null ? Number(el.chanceOfPlayingThisRound) : null,
         isAvailable: status === "a" && chanceOfPlaying === 100,
         isDoubtful: status === "d" || (chanceOfPlaying > 0 && chanceOfPlaying < 100),
         isSuspended: status === "s",
@@ -340,7 +334,7 @@ async function main() {
       });
     }
 
-    // 💡 1-DOCUMENT MASTER PAYLOAD (scoutPlayers/allPlayers)
+    // Master scout payload
     const masterScoutPayload = {
       currentGameweek: currentGwDetails,
       isSeasonStarted: isSeasonStarted,
@@ -355,9 +349,7 @@ async function main() {
     const approxSizeKb = Math.round(Buffer.byteLength(JSON.stringify(masterScoutPayload)) / 1024);
     console.log(`✅ [MASTER DOC] scoutPlayers/allPlayers Synced (~${approxSizeKb} KB)`);
 
-    // =========================================================================
-    // 👑 TRUE CURRENT GAMEWEEK TOP 5 MOST CAPTAINED RESOLUTION
-    // =========================================================================
+    // Top 5 Captains & Highlights Document
     const topCaptainsList = [];
     const chosenIds = new Set();
 
@@ -421,7 +413,6 @@ async function main() {
     const sortedByTransfersOut = [...allValidPlayers].sort((a, b) => b.transfersOutEvent - a.transfersOutEvent);
     const topTransfersOut = sortedByTransfersOut.slice(0, 5).map(createCardSummary);
 
-    // 💡 DOCUMENT (၂): scoutPlayers/scoutHighlights
     const highlightsPayload = {
       gameweek: currentGwDetails.id,
       gameweekName: currentGwDetails.name,
