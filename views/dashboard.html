@@ -1,11 +1,11 @@
 <div class="home-root">
-  <!-- Top Header Navigation -->
+  <!-- 🔝 Top Header: Clean Premium Brand Bar (No Bell/User Icons) -->
   <header class="home-head safe-top">
     <div class="home-brand">
       <span class="home-logo font-black">TW</span>
-      <div>
-        <h1 class="tracking-wide">TW FM</h1>
-        <p>Together We Play</p>
+      <div class="home-brand-text">
+        <h1 class="brand-title">TW FM</h1>
+        <p class="brand-subtitle">TOGETHER WE PLAY</p>
       </div>
     </div>
     <div class="home-who">
@@ -15,99 +15,157 @@
       </button>
     </div>
   </header>
-
+  
   <main class="home-scroll">
-    <!-- Profile Card Component (Padding 16-24px, Rounded 16px) -->
+    <!-- 👤 Manager Profile Card Component (Clean Card - No Chevron Arrow) -->
     <section class="home-profile" aria-label="User Profile">
       <div class="home-avatar" aria-hidden="true">⚽</div>
       <div class="home-pf-text">
-        <h2 id="welcome-name">Loading...</h2>
-        <p id="welcome-sub">Manager: <span></span></p>
+        <h2 id="welcome-name">SEAROKER Tw <span class="crown-ico">👑</span></h2>
+        <p id="welcome-sub">Manager: <span id="welcome-manager">zaw moe</span></p>
       </div>
     </section>
-
-    <!-- Gameweek Deadline Countdown Hero Box -->
-    <section class="home-hero" aria-label="Deadline Countdown">
-      <div class="home-hero-top">
-        <span id="gw-label" class="home-tag">GW DEADLINE</span>
-        <span id="gw-when" class="home-hero-when"></span>
+    
+    <!-- ⏳ Gameweek Deadline Hero Box (Clickable -> #/fixtures) -->
+    <section class="home-hero clickable-hero" id="hero-deadline-card" role="button" tabindex="0" aria-label="View Gameweek Fixtures">
+      <div class="home-tw-anim-bg" aria-hidden="true">
+        <div class="tw-crest-glow">TW</div>
       </div>
+      
+      <div class="home-hero-top">
+        <span id="gw-label" class="home-tag">GW6 DEADLINE</span>
+        <span id="gw-when" class="home-hero-when">Sat, 10 Oct 2026 · 16:30 MMT</span>
+      </div>
+      
       <div class="home-cd" id="home-cd" aria-live="polite">
         <div><b id="cd-d">--</b><small>DAYS</small></div>
         <div><b id="cd-h">--</b><small>HRS</small></div>
         <div><b id="cd-m">--</b><small>MIN</small></div>
         <div><b id="cd-s">--</b><small>SEC</small></div>
       </div>
+      
+      <div class="hero-tap-hint">
+        <span>Tap to open Fixtures schedule</span>
+        <span class="hint-arrow">›</span>
+      </div>
     </section>
-
-    <!-- Balanced Stats Section (3 Columns: Total, Rank, GW Score) -->
-    <!-- Grid System ဖြင့် 330 နှင့် 51 ဂဏန်းများ အတိအကျ Center ကျစေရန် ပြင်ဆင်ထားသည် -->
+    
+    <!-- 📊 3-Column Performance Stats Section (Balanced Alignment) -->
     <section class="home-stats" aria-label="Season Performance Overview">
       <div class="home-stat c-violet">
-        <span class="t">TOTAL PTS</span>
+        <div class="stat-icon" aria-hidden="true">★</div>
+        <span class="t">Total Points</span>
         <b id="st-total">–</b>
-        <em id="st-total-d"></em>
+        <em id="st-total-d" class="up"></em>
       </div>
-
+      
       <div class="home-stat c-blue wide">
-        <span class="t">OVERALL RANK</span>
+        <div class="stat-icon" aria-hidden="true">🏆</div>
+        <span class="t">Overall Rank</span>
         <b id="st-rank">–</b>
-        <em id="st-rank-d"></em>
+        <em id="st-rank-d" class="up"></em>
       </div>
-
+      
       <div class="home-stat c-green">
-        <span class="t" id="st-gw-l">GW SCORE</span>
+        <div class="stat-icon" aria-hidden="true">📊</div>
+        <span class="t" id="st-gw-l">GW Score</span>
         <b id="st-gw">–</b>
-        <em id="st-gw-d"></em>
+        <em id="st-gw-d" class="up"></em>
       </div>
     </section>
-
-    <!-- Top Players Hub Section -->
-    <section class="home-leaders-wrap" aria-label="Top Player Insights">
-      <div class="home-h-wrap">
-        <h3 class="home-h"><i aria-hidden="true"></i>Top Players</h3>
+    
+    <!-- 🌟 Top 5 Players Card Grid Hub (250x250 Photos / Badges) -->
+    <section class="home-top-grid-section" aria-label="Top 5 Players">
+      <div class="home-section-header">
+        <h3 class="home-h">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="section-icon">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          Top 5 Players
+        </h3>
+        <a href="#/scout" class="home-see-all">View All ›</a>
       </div>
-
-      <!-- 💡 Button ၆ ခုပါဝင်သော Filter Hub Bar (Horizontally Scrollable / Grid Responsive) -->
-      <div class="home-tabs scroll-touch" id="leader-tabs" role="tablist" aria-label="Player Leaderboard Categories">
+      
+      <!-- Card ၅ ခု ဘေးတိုက် အံဝင်ခွင်ကျ Grid Container -->
+      <div class="home-player-cards-grid" id="leader-cards-container" aria-live="polite">
+        <div class="player-card-skel"></div>
+        <div class="player-card-skel"></div>
+        <div class="player-card-skel"></div>
+        <div class="player-card-skel"></div>
+        <div class="player-card-skel"></div>
+      </div>
+    </section>
+    
+    <!-- ⚡ Quick Stats Tabs Hub (Button ၆ ခု) -->
+    <section class="home-quick-stats-section" aria-label="Quick Stats Filters">
+      <div class="home-section-header">
+        <h3 class="home-h">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="section-icon">
+            <line x1="18" y1="20" x2="18" y2="10"></line>
+            <line x1="12" y1="20" x2="12" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="14"></line>
+          </svg>
+          Quick Stats
+        </h3>
+      </div>
+      
+      <div class="home-tabs scroll-touch" id="leader-tabs" role="tablist">
         <button class="on" data-k="cap" style="--c:#8c6dff" role="tab" aria-selected="true" type="button">
-          👑 Most Captain
+          <span class="tab-ico">👑</span>
+          <span class="tab-txt">Most Captain</span>
         </button>
-        <button data-k="own" style="--c:#10b981" role="tab" aria-selected="false" type="button">
-          🛡️ Ownership
+        <button data-k="own" style="--c:#38bdf8" role="tab" aria-selected="false" type="button">
+          <span class="tab-ico">🛡️</span>
+          <span class="tab-txt">Ownership</span>
         </button>
-        <button data-k="tin" style="--c:#06b6d4" role="tab" aria-selected="false" type="button">
-          📈 Transfer In
+        <button data-k="tin" style="--c:#22c55e" role="tab" aria-selected="false" type="button">
+          <span class="tab-ico">⇄</span>
+          <span class="tab-txt">Transfer In</span>
         </button>
         <button data-k="tout" style="--c:#ef4444" role="tab" aria-selected="false" type="button">
-          📉 Transfer Out
+          <span class="tab-ico">⇄</span>
+          <span class="tab-txt">Transfer Out</span>
         </button>
-        <button data-k="total" style="--c:#3b82f6" role="tab" aria-selected="false" type="button">
-          🏆 Total Points
+        <button data-k="total" style="--c:#fbbf24" role="tab" aria-selected="false" type="button">
+          <span class="tab-ico">★</span>
+          <span class="tab-txt">Total Point</span>
         </button>
-        <button data-k="gw" style="--c:#f59e0b" role="tab" aria-selected="false" type="button">
-          ⚡ Week Point
+        <button data-k="gw" style="--c:#34d399" role="tab" aria-selected="false" type="button">
+          <span class="tab-ico">⚡</span>
+          <span class="tab-txt">Week Point</span>
         </button>
-      </div>
-
-      <!-- Player Leader List Container -->
-      <div class="home-card home-list" id="leader-list" aria-live="polite">
-        <div class="home-skel"></div>
-        <div class="home-skel"></div>
-        <div class="home-skel"></div>
       </div>
     </section>
-
-    <!-- TW Register Tournament Banner -->
-    <a class="home-banner" href="#/twsuper" aria-label="Navigate to TW Register Tournament Page">
-      <span class="home-banner-ico" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="4" width="14" height="17" rx="2.5"/><path d="M9 4h6v3H9z"/><path d="M8.5 14l2.5 2.5 4.5-5.5"/></svg>
-      </span>
-      <span class="home-banner-txt">
-        <b>TW Register</b>
-        <small>Weekly · Super Cup · Results</small>
-      </span>
-      <span class="home-new">NEW</span>
+    
+    <!-- 🗓️ Next Fixture Card Component (Clickable -> #/fixtures) -->
+    <a class="home-next-fixture-card text-decoration-none" id="next-fixture-card-link" href="#/fixtures" aria-label="Open Full Fixtures">
+      <div class="fixture-head">
+        <span class="fixture-tag">📅 Next Fixture</span>
+        <span class="fixture-time" id="next-fixture-time">GW6 · 10 Oct 2026 · 19:00</span>
+      </div>
+      <div class="fixture-body">
+        <div class="fixture-team home-side">
+          <img src="./assets/badges/ars.png" alt="ARS" class="fixture-badge" id="fixture-home-badge" onerror="this.src='./assets/badges/ars.png'">
+          <div class="team-meta">
+            <b id="fixture-home-code">ARS</b>
+            <small id="fixture-home-name">Arsenal</small>
+          </div>
+        </div>
+        
+        <div class="fixture-vs-pill">VS</div>
+        
+        <div class="fixture-team away-side">
+          <div class="team-meta text-right">
+            <b id="fixture-away-code">LEE</b>
+            <small id="fixture-away-name">Leeds United</small>
+          </div>
+          <img src="./assets/badges/lee.png" alt="LEE" class="fixture-badge" id="fixture-away-badge" onerror="this.src='./assets/badges/lee.png'">
+        </div>
+        <span class="fixture-arrow" aria-hidden="true">›</span>
+      </div>
     </a>
   </main>
 </div>
