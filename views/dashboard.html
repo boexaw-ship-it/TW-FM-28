@@ -1,37 +1,38 @@
 <div class="home-root">
+  <!-- Top Header Navigation -->
   <header class="home-head safe-top">
     <div class="home-brand">
-      <span class="home-logo">TW</span>
+      <span class="home-logo font-black">TW</span>
       <div>
-        <h1>TW FM</h1>
+        <h1 class="tracking-wide">TW FM</h1>
         <p>Together We Play</p>
       </div>
     </div>
     <div class="home-who">
       <span id="account-type-pill" class="home-pill">TW MEMBER</span>
-      <button id="pending-refresh-btn" onclick="handleCheckApprovalStatus()" class="hidden home-refresh">
+      <button id="pending-refresh-btn" onclick="handleCheckApprovalStatus()" class="hidden home-refresh" type="button" aria-label="Refresh Status">
         <span id="check-icon">⟳</span><span>REFRESH</span>
       </button>
     </div>
   </header>
 
   <main class="home-scroll">
-    <!-- Profile -->
-    <section class="home-profile">
-      <div class="home-avatar">⚽</div>
+    <!-- Profile Card Component (Padding 16-24px, Rounded 16px) -->
+    <section class="home-profile" aria-label="User Profile">
+      <div class="home-avatar" aria-hidden="true">⚽</div>
       <div class="home-pf-text">
         <h2 id="welcome-name">Loading...</h2>
         <p id="welcome-sub">Manager: <span></span></p>
       </div>
     </section>
 
-    <!-- Deadline countdown -->
-    <section class="home-hero">
+    <!-- Gameweek Deadline Countdown Hero Box -->
+    <section class="home-hero" aria-label="Deadline Countdown">
       <div class="home-hero-top">
         <span id="gw-label" class="home-tag">GW DEADLINE</span>
         <span id="gw-when" class="home-hero-when"></span>
       </div>
-      <div class="home-cd">
+      <div class="home-cd" id="home-cd" aria-live="polite">
         <div><b id="cd-d">--</b><small>DAYS</small></div>
         <div><b id="cd-h">--</b><small>HRS</small></div>
         <div><b id="cd-m">--</b><small>MIN</small></div>
@@ -39,43 +40,73 @@
       </div>
     </section>
 
-    <!-- Stats (title တစ်ခုချင်း အရောင်ခြားထား) -->
-    <section class="home-stats">
+    <!-- Balanced Stats Section (3 Columns: Total, Rank, GW Score) -->
+    <!-- Grid System ဖြင့် 330 နှင့် 51 ဂဏန်းများ အတိအကျ Center ကျစေရန် ပြင်ဆင်ထားသည် -->
+    <section class="home-stats" aria-label="Season Performance Overview">
       <div class="home-stat c-violet">
-        <span class="t">Total pts</span>
+        <span class="t">TOTAL PTS</span>
         <b id="st-total">–</b>
         <em id="st-total-d"></em>
       </div>
+
       <div class="home-stat c-blue wide">
-        <span class="t">Overall rank</span>
+        <span class="t">OVERALL RANK</span>
         <b id="st-rank">–</b>
         <em id="st-rank-d"></em>
       </div>
+
       <div class="home-stat c-green">
-        <span class="t" id="st-gw-l">GW score</span>
+        <span class="t" id="st-gw-l">GW SCORE</span>
         <b id="st-gw">–</b>
         <em id="st-gw-d"></em>
       </div>
     </section>
 
-    <!-- Top players -->
-    <h3 class="home-h"><i></i>Top Players</h3>
-    <div class="home-tabs" id="leader-tabs">
-      <button class="on" data-k="gw" style="--c:#8c6dff">GW Pts</button>
-      <button data-k="total" style="--c:#3b82f6">Total</button>
-      <button data-k="form" style="--c:#f59e0b">Form</button>
-      <button data-k="own" style="--c:#10b981">Owned</button>
-    </div>
-    <div class="home-card home-list" id="leader-list">
-      <div class="home-skel"></div><div class="home-skel"></div><div class="home-skel"></div>
-    </div>
+    <!-- Top Players Hub Section -->
+    <section class="home-leaders-wrap" aria-label="Top Player Insights">
+      <div class="home-h-wrap">
+        <h3 class="home-h"><i aria-hidden="true"></i>Top Players</h3>
+      </div>
 
-    <!-- TW Register -->
-    <a class="home-banner" href="#/twsuper">
-      <span class="home-banner-ico">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2.5"/><path d="M9 4h6v3H9z"/><path d="M8.5 14l2.5 2.5 4.5-5.5"/></svg>
+      <!-- 💡 Button ၆ ခုပါဝင်သော Filter Hub Bar (Horizontally Scrollable / Grid Responsive) -->
+      <div class="home-tabs scroll-touch" id="leader-tabs" role="tablist" aria-label="Player Leaderboard Categories">
+        <button class="on" data-k="cap" style="--c:#8c6dff" role="tab" aria-selected="true" type="button">
+          👑 Most Captain
+        </button>
+        <button data-k="own" style="--c:#10b981" role="tab" aria-selected="false" type="button">
+          🛡️ Ownership
+        </button>
+        <button data-k="tin" style="--c:#06b6d4" role="tab" aria-selected="false" type="button">
+          📈 Transfer In
+        </button>
+        <button data-k="tout" style="--c:#ef4444" role="tab" aria-selected="false" type="button">
+          📉 Transfer Out
+        </button>
+        <button data-k="total" style="--c:#3b82f6" role="tab" aria-selected="false" type="button">
+          🏆 Total Points
+        </button>
+        <button data-k="gw" style="--c:#f59e0b" role="tab" aria-selected="false" type="button">
+          ⚡ Week Point
+        </button>
+      </div>
+
+      <!-- Player Leader List Container -->
+      <div class="home-card home-list" id="leader-list" aria-live="polite">
+        <div class="home-skel"></div>
+        <div class="home-skel"></div>
+        <div class="home-skel"></div>
+      </div>
+    </section>
+
+    <!-- TW Register Tournament Banner -->
+    <a class="home-banner" href="#/twsuper" aria-label="Navigate to TW Register Tournament Page">
+      <span class="home-banner-ico" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="4" width="14" height="17" rx="2.5"/><path d="M9 4h6v3H9z"/><path d="M8.5 14l2.5 2.5 4.5-5.5"/></svg>
       </span>
-      <span class="home-banner-txt"><b>TW Register</b><small>Weekly · Super Cup · Results</small></span>
+      <span class="home-banner-txt">
+        <b>TW Register</b>
+        <small>Weekly · Super Cup · Results</small>
+      </span>
       <span class="home-new">NEW</span>
     </a>
   </main>
