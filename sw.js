@@ -6,7 +6,7 @@
  * - Firebase data / auth call တွေ မစွက်ဖက်
  * VERSION နဲ့ precache list ကို `node tools/build.js` က auto ထည့်ပေးတယ်
  */
-const VERSION = 'b0ae7bab';
+const VERSION = 'cfa63f24';
 const CACHE_NAME = 'twfm-spa-' + VERSION;
 const PRECACHE = /*PRECACHE_START*/
 [
@@ -69,6 +69,25 @@ const PRECACHE = /*PRECACHE_START*/
   "./js/twsuper.js",
   "./js/weekfixtures.js",
   "./public/jerseys/gk/ars.png",
+  "./public/jerseys/gk/avl.png",
+  "./public/jerseys/gk/bha_gk.png",
+  "./public/jerseys/gk/bou.png",
+  "./public/jerseys/gk/bre.png",
+  "./public/jerseys/gk/che.png",
+  "./public/jerseys/gk/cov_gk.png",
+  "./public/jerseys/gk/cry.png",
+  "./public/jerseys/gk/eve.png",
+  "./public/jerseys/gk/ful.png",
+  "./public/jerseys/gk/hul.png",
+  "./public/jerseys/gk/ips.png",
+  "./public/jerseys/gk/lee.png",
+  "./public/jerseys/gk/liv.png",
+  "./public/jerseys/gk/mci.png",
+  "./public/jerseys/gk/mun.png",
+  "./public/jerseys/gk/new.png",
+  "./public/jerseys/gk/nfo.png",
+  "./public/jerseys/gk/sun.png",
+  "./public/jerseys/gk/tot.png",
   "./public/jerseys/outfield/ars.png",
   "./public/jerseys/outfield/avl.png",
   "./public/jerseys/outfield/bha.png",
