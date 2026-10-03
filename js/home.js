@@ -1,8 +1,13 @@
 // ============================================
 // TW Fantasy Official League — Home UI Controller
 // Path: js/home.js
+// Features:
+//   1. Deadline Countdown Timer Engine & Hero Click -> Fixtures Navigation
+//   2. 3-Column Balanced Stats Alignment (330, 1.8M, 51)
+//   3. Top 5 Real Captains Card Grid (Clean View - C / V Badges Removed)
+//   4. Tab Color = Points Color 100% Sync System
+//   5. Live Next Fixture Match Card (Current Gameweek Filter + Code-only Badges)
 // Standards: UI Design Knowledge Pack (Sports UI & 8px Grid)
-// Architecture: Bulletproof Defensive DOM Engine (Zero Script Crash)
 // ============================================
 
 import { db } from "./firebase-config.js";
@@ -11,9 +16,6 @@ import { loadFixturesMaster } from "./core/data.js";
 
 const $ = (id) => document.getElementById(id);
 const MIN = 60 * 1000;
-
-// 💡 Version 18 Cache Key
-const SCOUT_CACHE_KEY_V18 = "twfm_scout_highlights_v18";
 
 const LS = {
   get(k, ttl) { 
@@ -40,7 +42,7 @@ let lastDone = null;
 let live = null;
 let fplId = null;
 let scoutHighlightsData = null;
-let mode = "cap";
+let mode = "cap"; // Default: Most Captained
 let timerInterval = null;
 
 // ============================================
@@ -55,7 +57,7 @@ const POS = {
 };
 
 // ============================================
-// 🛡️ TEAM DETAILS & CODE-ONLY LOCAL BADGE MAP (2026-27 Season)
+// 🛡️ TEAM DETAILS & CODE-ONLY LOCAL BADGE MAP
 // ============================================
 const teamDetailsMap = {
   1:  { name: "Arsenal", short: "ARS", code: "ars", color: "#EF0107" },
@@ -71,7 +73,7 @@ const teamDetailsMap = {
   11: { name: "Hull City", short: "HUL", code: "hul", color: "#F5971E" },
   12: { name: "Ipswich Town", short: "IPS", code: "ips", color: "#0047AB" },
   13: { name: "Leeds United", short: "LEE", code: "lee", color: "#FFCD00" },
-  14: { name: "Liverpool", short: "LIV", color: "#C8102E" },
+  14: { name: "Liverpool", short: "LIV", code: "liv", color: "#C8102E" },
   15: { name: "Manchester City", short: "MCI", code: "mci", color: "#6CABDD" },
   16: { name: "Manchester United", short: "MUN", code: "mun", color: "#DA291C" },
   17: { name: "Newcastle United", short: "NEW", code: "new", color: "#F8FAFC" },
@@ -90,32 +92,22 @@ Object.entries(teamDetailsMap).forEach(([id, meta]) => {
 
 function getTeamMeta(teamIdentifier) {
   if (!teamIdentifier) {
-    return { id: 6, name: "Chelsea", short: "CHE", code: "che", color: "#034694", badgePath: "./assets/badges/che.png" };
+    return { id: 1, name: "Arsenal", short: "ARS", code: "ars", color: "#EF0107", badgePath: "./assets/badges/ars.png" };
   }
   const clean = String(teamIdentifier).trim().toLowerCase();
   const matched = TEAM_LOOKUP[clean];
   if (matched) {
-    return { ...matched, badgePath: `./assets/badges/${matched.code}.png` };
+    return {
+      ...matched,
+      badgePath: `./assets/badges/${matched.code}.png`
+    };
   }
-  return { id: 6, name: "Chelsea", short: "CHE", code: "che", color: "#034694", badgePath: `./assets/badges/che.png` };
+  return { id: 1, name: "Arsenal", short: "ARS", code: "ars", color: "#8C6DFF", badgePath: `./assets/badges/ars.png` };
 }
 
-// 📸 Safe Photo Resolver
-function resolvePlayerPhotoUrl(p) {
-  if (!p) return "";
-  if (p.photoUrl && typeof p.photoUrl === "string" && p.photoUrl.startsWith("http")) {
-    return p.photoUrl;
-  }
-  const rawCode = p.photoCode || p.photo || p.opta_code;
-  if (!rawCode) return "";
-  const clean = String(rawCode)
-    .replace(/\.(jpg|jpeg|png)$/i, "")
-    .replace(/^p/i, "")
-    .trim();
-  return clean ? `https://resources.premierleague.com/premierleague/photos/players/250x250/p${clean}.png` : "";
-}
-
-// 🔘 Modes Config
+// ============================================
+// 🔘 6 MODES CONFIG (Tab Color = Point Color 100% Sync)
+// ============================================
 const MODES = {
   cap: { color: "#8c6dff", key: "mostCaptained", show: (p) => `${p.totalPoints || p.gwPoints || 0} pts` },
   own: { color: "#38bdf8", key: "mostOwned", show: (p) => `${Number(p.ownership || 0).toFixed(1)}%` },
@@ -125,34 +117,11 @@ const MODES = {
   gw: { color: "#34d399", key: "mostGwPoints", show: (p) => `${p.gwPoints || 0} pts` }
 };
 
-// 👑 Manager Frame
-function decorateManagerFrame(profile) {
-  try {
-    const teamNameEl = $("welcome-name") \vert{}\vert{} $("team-title-text");
-    const managerNameEl = $("welcome-manager") \vert{}\vert{} $("manager-title-text");
-    const managerCardEl = $("manager-profile-card") \vert{}\vert{} $("header-profile-box") || teamNameEl?.closest("div");
-
-    const teamName = profile?.teamName || "SEAROKER Tw";
-    const managerName = profile?.managerName || profile?.displayName || "zaw moe";
-
-    if (teamNameEl) {
-      teamNameEl.innerHTML = `<span style="font-weight:900; letter-spacing:0.02em;">${esc(teamName)}</span> <span>👑</span>`;
-    }
-    if (managerNameEl) {
-      managerNameEl.innerHTML = `<span style="opacity:0.75; font-size:11px;">Manager:</span> <span style="color:#e2e8f0; font-weight:700;">${esc(managerName)}</span>`;
-    }
-    if (managerCardEl) {
-      managerCardEl.style.borderRadius = "18px";
-      managerCardEl.style.border = "1px solid rgba(140, 109, 255, 0.35)";
-    }
-  } catch (err) {
-    console.warn("Manager frame decorate note:", err);
-  }
-}
-
-// ⏳ Deadline Engine (Non-Destructive DOM Safe)
+// ============================================
+// ⏳ DEADLINE COUNTDOWN ENGINE
+// ============================================
 async function loadDeadline() {
-  let info = LS.get("twfm_deadline_v18", 10 * MIN);
+  let info = LS.get("twfm_deadline_v10", 10 * MIN);
   if (!info || (info.ts && info.ts < Date.now())) {
     try {
       const m = await loadFixturesMaster();
@@ -168,8 +137,9 @@ async function loadDeadline() {
       } else {
         info = { gw: 6, ts: 0, lastDone: null };
       }
-      LS.set("twfm_deadline_v18", info);
+      LS.set("twfm_deadline_v10", info);
     } catch (e) { 
+      console.warn("Deadline load note:", e); 
       info = info || { gw: 6, ts: 0, lastDone: null }; 
     }
   }
@@ -191,13 +161,6 @@ async function loadDeadline() {
       hour12: false 
     }) + " MMT";
   }
-
-  const heroCard = $("hero-deadline-card");
-  if (heroCard) {
-    heroCard.onclick = null;
-    heroCard.style.cursor = "default";
-  }
-
   tick();
   paintStats();
 }
@@ -208,18 +171,13 @@ function tick() {
   const h = Math.floor(d / 36e5); d -= h * 36e5;
   const m = Math.floor(d / 6e4); d -= m * 6e4;
   const s = Math.floor(d / 1e3);
-
-  const set = (id, v) => { 
-    const e = $(id); 
-    if (e && e.textContent !== v) e.textContent = v; 
-  };
-  set("cd-d", pad(days)); 
-  set("cd-h", pad(h)); 
-  set("cd-m", pad(m)); 
-  set("cd-s", pad(s));
+  const set = (id, v) => { const e = $(id); if (e && e.textContent !== v) e.textContent = v; };
+  set("cd-d", pad(days)); set("cd-h", pad(h)); set("cd-m", pad(m)); set("cd-s", pad(s));
 }
 
-// 📊 Stats Engine
+// ============================================
+// 📊 PERFORMANCE STATS ENGINE
+// ============================================
 function paintStats() {
   if (!live) return;
   const g = Number(live.gameweek) || 0;
@@ -237,12 +195,7 @@ function paintStats() {
   }
 
   const gw = Number(shown.gwPoints ?? 0), avg = Number(shown.averagePoints);
-  const t = (id, v, cls) => { 
-    const e = $(id); 
-    if (!e) return; 
-    e.textContent = v; 
-    if (cls !== undefined) e.className = cls; 
-  };
+  const t = (id, v, cls) => { const e = $(id); if (!e) return; e.textContent = v; if (cls !== undefined) e.className = cls; };
 
   t("st-total", fmt(live.totalPoints));
   t("st-total-d", shown.gw ? `▲ +${fmt(gw)} (GW${shown.gw})` : "", "up");
@@ -284,21 +237,21 @@ async function loadStats() {
       LS.set(`twfm_points_${fplId}`, live);
       paintStats();
     }
-  } catch (e) { 
-    console.warn("Live points load note:", e); 
-  }
+  } catch (e) { console.warn("Live points load note:", e); }
 }
 
-// 🌟 Top 5 Cards
+// ============================================
+// 🌟 TOP 5 PLAYERS CARD GRID RENDERER (CLEAN NO C/V BADGES)
+// ============================================
 async function loadScoutHighlights() {
-  scoutHighlightsData = LS.get(SCOUT_CACHE_KEY_V18, 15 * MIN);
+  scoutHighlightsData = LS.get("twfm_scout_highlights_v10", 15 * MIN);
 
   if (!scoutHighlightsData) {
     try {
       const snap = await getDoc(doc(db, "scoutPlayers", "scoutHighlights"));
       if (snap.exists()) {
         scoutHighlightsData = snap.data();
-        LS.set(SCOUT_CACHE_KEY_V18, scoutHighlightsData);
+        LS.set("twfm_scout_highlights_v10", scoutHighlightsData);
       }
     } catch (err) {
       console.warn("scoutHighlights load note:", err);
@@ -326,6 +279,7 @@ function renderPlayerCards() {
   const M = MODES[mode];
   const activeColor = M.color;
 
+  // Active Tab Highlight State
   document.querySelectorAll("#leader-tabs button").forEach((b) => {
     const isActive = b.dataset.k === mode;
     b.classList.toggle("on", isActive);
@@ -359,6 +313,7 @@ function renderPlayerCards() {
     return;
   }
 
+  // 💡 ထိပ်တန်းကစားသမား (၅) ဦး Card Grid Render ပြုလုပ်ခြင်း (Captain / Vice-Captain Badge မပါရှိပါ)
   container.innerHTML = list.slice(0, 5).map((p, i) => {
     const rawPos = String(p.position || "mid").toLowerCase().trim();
     const isGk = rawPos === "gk" || rawPos === "gkp";
@@ -369,7 +324,14 @@ function renderPlayerCards() {
     const teamShort = teamMeta.short;
     const localBadgeUrl = teamMeta.badgePath;
 
-    const directPhotoUrl = resolvePlayerPhotoUrl(p);
+    // 📸 Official FPL 250x250 HD Headshot URL
+    const photoCode = p.photoCode || p.photo;
+    const pId = p.playerId || p.id;
+    const photoUrl = p.photoUrl || (photoCode 
+      ? `https://resources.premierleague.com/premierleague/photos/players/250x250/p${photoCode}.png`
+      : pId 
+      ? `https://resources.premierleague.com/premierleague/photos/players/250x250/p${pId}.png`
+      : "");
 
     const fallbackSvg = `
       <div class="home-animated-badge-wrap" style="--tc:${teamColor}; width:68px; height:68px; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center;">
@@ -383,10 +345,11 @@ function renderPlayerCards() {
 
     return `
       <div class="top-player-card" style="border-top: 3.5px solid ${posColor};">
+        <!-- 💡 Rank Number Only (1, 2, 3, 4, 5) -->
         <span class="player-card-rank">${i + 1}</span>
 
         <div class="player-card-photo-wrap">
-          <img src="${directPhotoUrl || localBadgeUrl}" 
+          <img src="${photoUrl}" 
                alt="${esc(p.name)}" 
                loading="lazy" 
                class="player-card-photo"
@@ -407,6 +370,7 @@ function renderPlayerCards() {
           ${isGk ? "GK" : rawPos.toUpperCase()}
         </div>
         
+        <!-- 💡 Tab Color နှင့် Points Color ၁၀၀% Sync ဖြစ်ခြင်း -->
         <div class="player-card-pts" style="color: ${activeColor} !important; text-shadow: 0 0 10px color-mix(in srgb, ${activeColor} 30%, transparent);">
           ${M.show(p)}
         </div>
@@ -415,7 +379,9 @@ function renderPlayerCards() {
   }).join("");
 }
 
-// 🗓 Next Fixture
+// ============================================
+// 🗓 NEXT FIXTURE MATCH RENDERER
+// ============================================
 async function loadNextFixture() {
   try {
     const meta = await loadFixturesMaster();
@@ -433,8 +399,8 @@ async function loadNextFixture() {
     if (!targetMatch) {
       targetMatch = {
         event: targetGw,
-        team_h: 1,
-        team_a: 13,
+        team_h: 1,  // Arsenal (ars.png)
+        team_a: 13, // Leeds United (lee.png)
         kickoff_time: "2026-10-10T12:30:00Z"
       };
     }
@@ -461,6 +427,7 @@ async function loadNextFixture() {
     if (hNameEl) hNameEl.textContent = homeTeam.name;
     if (hBadgeEl) {
       hBadgeEl.src = homeTeam.badgePath;
+      hBadgeEl.alt = homeTeam.short;
       hBadgeEl.onerror = () => { hBadgeEl.src = "./assets/badges/ars.png"; };
     }
 
@@ -471,6 +438,7 @@ async function loadNextFixture() {
     if (aNameEl) aNameEl.textContent = awayTeam.name;
     if (aBadgeEl) {
       aBadgeEl.src = awayTeam.badgePath;
+      aBadgeEl.alt = awayTeam.short;
       aBadgeEl.onerror = () => { aBadgeEl.src = "./assets/badges/lee.png"; };
     }
 
@@ -479,28 +447,37 @@ async function loadNextFixture() {
   }
 }
 
-// 🚀 Export Initializer
+// ============================================
+// 🚀 EXPORT INITIALIZER
+// ============================================
 export async function initHomeTab(user, profile) {
   if (profile?.fplTeamId) {
     fplId = String(profile.fplTeamId);
   }
 
-  decorateManagerFrame(profile);
   await loadDeadline();
   loadStats();
-  await loadScoutHighlights();
+  loadScoutHighlights();
   await loadNextFixture();
 
   if (timerInterval) clearInterval(timerInterval);
   timerInterval = setInterval(tick, 1000);
 
-  const tabsContainer = $("leader-tabs");
-  if (tabsContainer) {
-    tabsContainer.onclick = (e) => {
-      const b = e.target.closest("button[data-k]");
-      if (!b) return;
-      mode = b.dataset.k;
-      renderPlayerCards();
+  const heroCard = $("hero-deadline-card");
+  if (heroCard) {
+    heroCard.onclick = () => {
+      if (typeof window.go === "function") {
+        window.go("fixtures");
+      } else {
+        window.location.hash = "#/fixtures";
+      }
     };
   }
+
+  $("leader-tabs")?.addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-k]");
+    if (!b) return;
+    mode = b.dataset.k;
+    renderPlayerCards();
+  });
 }
