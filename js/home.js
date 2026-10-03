@@ -1,29 +1,70 @@
 // ============================================
 // Home tab: deadline countdown · stats (နောက်ဆုံးပြီးတဲ့ GW) · top players
-// Firestore read: livePoints 1 + fixturesMeta 1 + scoutPlayers/allPlayers 1 (LS cache နဲ့ ထပ်သက်သာ)
+// Source: scoutPlayers/scoutHighlights (Pre-computed Top Leaders Document)
+// Read Quota: Only 1 Read with LocalStorage Cache Guard
+// Standards: UI Design Knowledge Pack (Sports UI & Position Palette)
 // ============================================
+
 import { auth, db } from "./firebase-config.js";
 import { onAuthStateChanged } from "./core/auth.js";
 import { doc, getDoc } from "./core/fs.js";
-import { loadFixturesMaster, loadScoutMaster } from "./core/data.js";
+import { loadFixturesMaster } from "./core/data.js";
 
 const $ = (id) => document.getElementById(id);
 const MIN = 60 * 1000;
+
 const LS = {
-  get(k, ttl) { try { const o = JSON.parse(localStorage.getItem(k)); if (o && Date.now() - o.t < ttl) return o.v; } catch (_) {} return null; },
-  set(k, v) { try { localStorage.setItem(k, JSON.stringify({ t: Date.now(), v })); } catch (_) {} },
+  get(k, ttl) { 
+    try { 
+      const o = JSON.parse(localStorage.getItem(k)); 
+      if (o && Date.now() - o.t < ttl) return o.v; 
+    } catch (_) {} 
+    return null; 
+  },
+  set(k, v) { 
+    try { 
+      localStorage.setItem(k, JSON.stringify({ t: Date.now(), v })); 
+    } catch (_) {} 
+  },
 };
+
 const fmt = (n) => (Number.isFinite(+n) && n !== null && n !== undefined && n !== "" ? Number(n).toLocaleString("en-US") : "–");
 const pad = (n) => String(Math.max(0, n)).padStart(2, "0");
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 let deadlineTs = 0;   // နောက် deadline (ms)
-let lastDone = null;  // နောက်ဆုံး ပြီးဆုံးသွားတဲ့ GW (fixtures အားလုံး finished)
+let lastDone = null;  // နောက်ဆုံး ပြီးဆုံးသွားတဲ့ GW
 let live = null;      // livePoints doc
 let fplId = null;
 
+// ============================================
+// 🎨 POSITION COLORS (ဆရာ့သတ်မှတ်ချက်အတိုင်း)
+// GK = အပြာ (#2563EB) | DEF = အနီ (#EF4444) | MID = အဝါ (#F59E0B) | FWD = အစိမ်း (#22C55E)
+// ============================================
+const POS = { 
+  gk: "#2563EB",   // 🧤 GK အပြာ (Primary Blue)
+  gkp: "#2563EB", 
+  def: "#EF4444",  // 🛡️ DEF အနီ (Vivid Red)
+  mid: "#F59E0B",  // ⚡ MID အဝါ (Golden Amber)
+  fwd: "#22C55E"   // ⚽ FWD အစိမ်း (Emerald Green)
+};
+
+// ============================================
+// 🔘 6 MODES (scoutHighlights payload နှင့် ချိတ်ဆက်မှု)
+// ============================================
+const MODES = {
+  cap:  { c: "#8c6dff", key: "mostCaptained",      badge: "👑", show: (p) => `${p.totalPoints || p.gwPoints || 0} pts` },
+  own:  { c: "#10b981", key: "mostOwned",          badge: "🛡️", show: (p) => `${Number(p.ownership || 0).toFixed(1)}%` },
+  tin:  { c: "#06b6d4", key: "mostTransferredIn",  badge: "📈", show: (p) => `+${fmt(p.transfersInEvent || 0)}` },
+  tout: { c: "#ef4444", key: "mostTransferredOut", badge: "📉", show: (p) => `-${fmt(p.transfersOutEvent || 0)}` },
+  total:{ c: "#3b82f6", key: "mostTotalPoints",    badge: "🏆", show: (p) => `${p.totalPoints || 0} pts` },
+  gw:   { c: "#f59e0b", key: "mostGwPoints",       badge: "⚡", show: (p) => `${p.gwPoints || 0} pts` }
+};
+
+let scoutHighlightsData = null;
+let mode = "cap"; // Default ကို Most Captained ဖြင့် စတင်ပြသမည်
+
 // ---------- Deadline + နောက်ဆုံးပြီးတဲ့ GW ----------
-// fixturesMeta/allFixtures.currentGameweek (sync script က FPL events ကနေ တွက်ပေး) — read 1 ခုပဲ
 async function loadDeadline() {
   let info = LS.get("twfm_deadline_v3", 10 * MIN);
   if (!info || (info.ts && info.ts < Date.now())) {
@@ -32,7 +73,6 @@ async function loadDeadline() {
       const cur = m.currentGameweek;
       if (cur) {
         const next = cur.nextGw;
-        // deadline ကျော်ပြီးသား current ကို မပြဘဲ နောက် deadline ကိုပြ
         const target = next && next.deadlineTimeEpoch > Date.now() ? next
           : cur.deadlineTimeEpoch > Date.now() ? { id: cur.id, deadlineTimeEpoch: cur.deadlineTimeEpoch }
           : null;
@@ -40,17 +80,31 @@ async function loadDeadline() {
         info = { gw: target ? target.id : 0, ts: target ? target.deadlineTimeEpoch : 0, lastDone: lastDoneGw };
       } else info = { gw: 0, ts: 0, lastDone: null };
       LS.set("twfm_deadline_v3", info);
-    } catch (e) { console.warn("deadline load failed", e); info = info || { gw: 0, ts: 0, lastDone: null }; }
+    } catch (e) { 
+      console.warn("deadline load failed", e); 
+      info = info || { gw: 0, ts: 0, lastDone: null }; 
+    }
   }
+
   deadlineTs = info.ts || 0;
   lastDone = info.lastDone ?? null;
+
   if ($("gw-label")) $("gw-label").textContent = info.gw ? `GW${info.gw} DEADLINE` : "NO DEADLINE";
   if ($("gw-when") && info.ts) {
-    $("gw-when").textContent = new Date(info.ts).toLocaleString("en-GB", { timeZone: "Asia/Yangon", weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false }) + " MMT";
+    $("gw-when").textContent = new Date(info.ts).toLocaleString("en-GB", { 
+      timeZone: "Asia/Yangon", 
+      weekday: "short", 
+      day: "numeric", 
+      month: "short", 
+      hour: "2-digit", 
+      minute: "2-digit", 
+      hour12: false 
+    }) + " MMT";
   }
   tick();
-  paintStats(); // lastDone သိပြီ → stats ပြန်တွက်
+  paintStats();
 }
+
 function tick() {
   let d = deadlineTs ? Math.max(0, deadlineTs - Date.now()) : 0;
   const days = Math.floor(d / 864e5); d -= days * 864e5;
@@ -60,10 +114,9 @@ function tick() {
   const set = (id, v) => { const e = $(id); if (e && e.textContent !== v) e.textContent = v; };
   set("cd-d", pad(days)); set("cd-h", pad(h)); set("cd-m", pad(m)); set("cd-s", pad(s));
 }
-setInterval(tick, 1000); // scope က page ထွက်ရင် auto clear
+setInterval(tick, 1000);
 
 // ---------- Stats ----------
-// GW score card = "နောက်ဆုံးပြီးတဲ့ GW" ကိုပဲ ပြ (live GW ဆိုရင် ပြီးခဲ့တဲ့ GW snapshot ကိုပြ၊ မရှိမှ LIVE နဲ့ပြ)
 function paintStats() {
   if (!live) return;
   const g = Number(live.gameweek) || 0;
@@ -71,6 +124,7 @@ function paintStats() {
   const key = `twfm_lastdone_${fplId}`;
   let shown = { gw: g, gwPoints: live.gwPoints, averagePoints: live.averagePoints, gwRank: live.gwRank };
   let isLive = false;
+
   if (finished) {
     try { localStorage.setItem(key, JSON.stringify(shown)); } catch (_) {}
   } else {
@@ -78,6 +132,7 @@ function paintStats() {
     try { snap = JSON.parse(localStorage.getItem(key)); } catch (_) {}
     if (snap && snap.gw) shown = snap; else isLive = true;
   }
+
   const gw = Number(shown.gwPoints ?? 0), avg = Number(shown.averagePoints);
   const t = (id, v, cls) => { const e = $(id); if (!e) return; e.textContent = v; if (cls !== undefined) e.className = cls; };
 
@@ -87,6 +142,7 @@ function paintStats() {
   t("st-rank-d", shown.gwRank ? `GW${shown.gw} rank ${fmt(shown.gwRank)}` : "", "mu");
   t("st-gw-l", `${shown.gw ? "GW" + shown.gw : "GW"} score${isLive ? " · LIVE" : ""}`);
   t("st-gw", fmt(gw));
+
   if (Number.isFinite(avg) && avg > 0) {
     const up = gw >= avg;
     t("st-gw-d", `${up ? "▲" : "▼"} avg ${fmt(avg)}`, up ? "up" : "dn");
@@ -95,65 +151,120 @@ function paintStats() {
 
 async function loadStats() {
   if (!fplId) return;
-  try { live = JSON.parse(localStorage.getItem(`twf_shared_points_v2_${fplId}`)); paintStats(); } catch (_) {}
+  try { 
+    live = JSON.parse(localStorage.getItem(`twf_shared_points_v2_${fplId}`)); 
+    paintStats(); 
+  } catch (_) {}
+
   const fresh = LS.get(`twfm_points_${fplId}`, 5 * MIN);
   if (fresh) { live = fresh; paintStats(); return; }
+
   try {
     const s = await getDoc(doc(db, "livePoints", String(fplId)));
     if (s.exists()) {
       const d = s.data();
-      live = { totalPoints: d.totalPoints, gwPoints: d.gwPoints, overallRank: d.overallRank, gwRank: d.gwRank, averagePoints: d.averagePoints, gameweek: d.gameweek };
+      live = { 
+        totalPoints: d.totalPoints, 
+        gwPoints: d.gwPoints, 
+        overallRank: d.overallRank, 
+        gwRank: d.gwRank, 
+        averagePoints: d.averagePoints, 
+        gameweek: d.gameweek 
+      };
       LS.set(`twfm_points_${fplId}`, live);
       paintStats();
     }
   } catch (e) { console.warn("points load failed", e); }
 }
 
-// ---------- Top players ----------
-const POS = { gk: "#22c55e", gkp: "#22c55e", def: "#3b82f6", mid: "#8c6dff", fwd: "#ef4444" };
-const MODES = {
-  gw:    { c: "#8c6dff", sort: (p) => p.gwPoints,    show: (p) => `${p.gwPoints} pts` },
-  total: { c: "#3b82f6", sort: (p) => p.totalPoints, show: (p) => `${p.totalPoints} pts` },
-  form:  { c: "#f59e0b", sort: (p) => p.form,        show: (p) => Number(p.form).toFixed(1) },
-  own:   { c: "#10b981", sort: (p) => p.ownership,   show: (p) => `${Number(p.ownership).toFixed(1)}%` },
-};
-let players = null, mode = "gw";
+// =========================================================================
+// 🌟 TOP PLAYERS: `scoutPlayers/scoutHighlights` မှ တိုက်ရိုက်ဖတ်ယူခြင်း
+// (allPlayers ဖိုင်ကြီးကို မဖတ်တော့သဖြင့် 0 Read/Instant Load ရရှိသည်)
+// =========================================================================
+async function loadScoutHighlights() {
+  // 15 မိနစ် Cache Guard
+  scoutHighlightsData = LS.get("twfm_scout_highlights_v1", 15 * MIN);
 
-async function loadPlayers() {
-  players = LS.get("twfm_leaders_v3", 30 * MIN);
-  if (!players) {
+  if (!scoutHighlightsData) {
     try {
-      const m = await loadScoutMaster(); // doc 1 ခု (players ~700 ကို doc တစ်ခုထဲက)
-      players = m.players.map((x) => ({
-        name: x.name || x.fullName || "?", pos: String(x.position || "").toLowerCase().trim(), tc: String(x.teamCode || "").toLowerCase().trim(),
-        gwPoints: +x.gwPoints || 0, totalPoints: +x.totalPoints || 0, form: +x.form || 0, ownership: +x.ownership || 0,
-      }))
-        // LS ကြီးမသွားအောင် tab တစ်ခုချင်း top 8 ပဲသိမ်း
-        .filter((p, _, all) => true);
-      const keep = new Set();
-      ["gwPoints", "totalPoints", "form", "ownership"].forEach((k) => [...players].sort((a, b) => b[k] - a[k]).slice(0, 8).forEach((p) => keep.add(p)));
-      players = [...keep];
-      LS.set("twfm_leaders_v3", players);
-    } catch (e) { console.warn("players load failed", e); players = []; }
+      const snap = await getDoc(doc(db, "scoutPlayers", "scoutHighlights"));
+      if (snap.exists()) {
+        scoutHighlightsData = snap.data();
+        LS.set("twfm_scout_highlights_v1", scoutHighlightsData);
+      }
+    } catch (err) {
+      console.warn("scoutHighlights load note:", err);
+    }
   }
+
   renderLeaders();
 }
+
 function renderLeaders() {
   const box = $("leader-list");
-  if (!box || !players) return;
+  if (!box) return;
+
+  if (!scoutHighlightsData) {
+    box.innerHTML = `<div class="home-empty">Data ရယူနေပါသည်...</div>`;
+    return;
+  }
+
   const M = MODES[mode];
   document.querySelectorAll("#leader-tabs button").forEach((b) => b.classList.toggle("on", b.dataset.k === mode));
   box.style.setProperty("--mc", M.c);
-  const top = [...players].sort((a, b) => M.sort(b) - M.sort(a)).slice(0, 5).filter((p) => M.sort(p) > 0);
-  box.innerHTML = top.length
-    ? top.map((p, i) => {
-        const isGk = p.pos === "gk" || p.pos === "gkp";
-        const col = POS[p.pos] || "#8b90b3";
-        const img = p.tc ? `<img class="jr" src="./public/jerseys/${isGk ? "gk" : "outfield"}/${esc(p.tc)}.png" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : `<span class="jr"></span>`;
-        return `<div class="home-row" style="--pc:${col}"><span class="rk">${i + 1}</span>${img}<span class="home-plate"><b>${esc(p.name)}</b><i>${esc(p.tc.toUpperCase().slice(0, 3))}</i></span><span class="ps">${isGk ? "GK" : p.pos.toUpperCase()}</span><span class="vl">${M.show(p)}</span></div>`;
-      }).join("")
-    : `<div class="home-empty">Data မရသေးပါ</div>`;
+
+  let list = [];
+
+  // scoutHighlights ထဲရှိ payload အလိုက် စာရင်းခွဲထုတ်ခြင်း
+  if (mode === "cap") {
+    const capData = scoutHighlightsData.mostCaptained || {};
+    if (capData.leader) list.push({ ...capData.leader, rankTag: "Captain" });
+    if (capData.viceLeader) list.push({ ...capData.viceLeader, rankTag: "Vice-Cap" });
+  } else {
+    const sectionData = scoutHighlightsData[M.key] || {};
+    list = sectionData.topList || (sectionData.leader ? [sectionData.leader] : []);
+  }
+
+  if (!list || list.length === 0) {
+    box.innerHTML = `<div class="home-empty">Data မရရှိသေးပါ</div>`;
+    return;
+  }
+
+  // Top 5 သာ ညီညာစွာ ပြသမည်
+  box.innerHTML = list.slice(0, 5).map((p, i) => {
+    const rawPos = String(p.position || "mid").toLowerCase().trim();
+    const isGk = rawPos === "gk" || rawPos === "gkp";
+    
+    // 🎨 သတ်မှတ်ထားသော အရောင်သီးသန့် ယူသုံးခြင်း
+    const posColor = POS[rawPos] || "#F59E0B"; 
+    const tc = String(p.teamCode || "unk").toLowerCase();
+
+    const jerseyImg = tc && tc !== "unk"
+      ? `<img class="jr" src="./public/jerseys/${isGk ? "gk" : "outfield"}/${esc(tc)}.png" alt="" loading="lazy" onerror="this.outerHTML='<span class=\\'jr flex items-center justify-center text-sm\\'>👕</span>'">`
+      : `<span class="jr flex items-center justify-center text-sm">👕</span>`;
+
+    const displayRank = p.rankTag ? p.rankTag : (i + 1);
+
+    return `
+      <div class="home-row" style="--pc:${posColor}">
+        <span class="rk">${displayRank}</span>
+        ${jerseyImg}
+        <span class="home-plate">
+          <b>${esc(p.name)}</b>
+          <i>${esc(tc.toUpperCase().slice(0, 3))}</i>
+        </span>
+        <span class="ps" style="color:${posColor}; font-weight:800;">
+          ${isGk ? "GK" : rawPos.toUpperCase()}
+        </span>
+        <span class="vl">
+          ${M.show(p)}
+        </span>
+      </div>
+    `;
+  }).join("");
 }
+
+// 6 Tabs Click Event Listener
 $("leader-tabs")?.addEventListener("click", (e) => {
   const b = e.target.closest("button[data-k]");
   if (!b) return;
@@ -161,14 +272,20 @@ $("leader-tabs")?.addEventListener("click", (e) => {
   renderLeaders();
 });
 
-// ---------- boot ----------
+// ---------- Boot Controller ----------
 onAuthStateChanged(auth, async (user) => {
-  if (!user) return; // dashboard.js က login ပို့ပေးမယ်
-  try { fplId = JSON.parse(localStorage.getItem(`twf_user_profile_${user.uid}`))?.fplTeamId; } catch (_) {}
+  if (!user) return;
+  try { 
+    fplId = JSON.parse(localStorage.getItem(`twf_user_profile_${user.uid}`))?.fplTeamId; 
+  } catch (_) {}
+
   if (!fplId) {
-    try { fplId = (await getDoc(doc(db, "users", user.uid))).data()?.fplTeamId; } catch (_) {}
+    try { 
+      fplId = (await getDoc(doc(db, "users", user.uid))).data()?.fplTeamId; 
+    } catch (_) {}
   }
+
   loadStats();
   loadDeadline();
-  loadPlayers();
+  loadScoutHighlights(); // 🚀 scoutHighlights document မှ အသစ်စတင်ခေါ်ယူခြင်း
 });
