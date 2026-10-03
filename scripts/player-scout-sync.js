@@ -4,6 +4,7 @@
 // Targets:
 //   1) scoutPlayers/allPlayers    (Full Master Player List)
 //   2) scoutPlayers/scoutHighlights (Top Leaders & Highlights Document)
+// Fix: Most Captained Top 5 Players Full Resolution
 // ============================================
 
 const { initializeApp, cert, getApps } = require("firebase-admin/app");
@@ -309,30 +310,56 @@ async function main() {
     console.log(`✅ [MASTER DOC] scoutPlayers/allPlayers Synced (~${approxSizeKb} KB)`);
 
     // =========================================================================
-    // 🌟 DOCUMENT (၂) - SCOUT HIGHLIGHTS (သင်တောင်းဆိုထားသော ထိပ်တန်းစာရင်းများ)
+    // 🌟 DOCUMENT (၂) - SCOUT HIGHLIGHTS (Top 5 Most Captained Engine)
     // =========================================================================
 
-    // ၁။ Most Captained Player (FPL Bootstrap Events မှ အတိအကျ ယူသည်)
-    const mostCaptainedPlayerObj = allValidPlayers.find(p => p.playerId === currentGwDetails.mostCaptained) || null;
-    const mostViceCaptainedPlayerObj = allValidPlayers.find(p => p.playerId === currentGwDetails.mostViceCaptained) || null;
+    // 👑 MOST CAPTAINED TOP 5 ရွေးချယ်မှု စနစ်
+    const topCaptainsList = [];
+    const chosenIds = new Set();
 
-    // ၂။ Total Points အများဆုံး (ထိပ်ဆုံး ၅ ယောက် နှင့် နံပါတ် ၁)
+    // ၁။ FPL Official နံပါတ် ၁ Most Captained ကစားသမား
+    const officialMostCap = allValidPlayers.find(p => p.playerId === currentGwDetails.mostCaptained);
+    if (officialMostCap) {
+      topCaptainsList.push(createCardSummary(officialMostCap));
+      chosenIds.add(officialMostCap.playerId);
+    }
+
+    // ၂။ FPL Official နံပါတ် ၂ Most Vice-Captained ကစားသမား
+    const officialMostVice = allValidPlayers.find(p => p.playerId === currentGwDetails.mostViceCaptained);
+    if (officialMostVice && !chosenIds.has(officialMostVice.playerId)) {
+      topCaptainsList.push(createCardSummary(officialMostVice));
+      chosenIds.add(officialMostVice.playerId);
+    }
+
+    // ၃။ ကျန် ၃ နေရာအတွက် Form နှင့် Ownership အမြင့်ဆုံး တိုက်စစ်မှူး/ကွင်းလယ်လူများထဲမှ Captaincy Index ဖြင့် ထပ်မံဖြည့်စွက်ခြင်း
+    const captainCandidates = allValidPlayers
+      .filter(p => !chosenIds.has(p.playerId) && (p.position === "fwd" || p.position === "mid") && p.chanceOfPlaying >= 75)
+      .map(p => ({
+        ...p,
+        // Captaincy Pick Weight Formula: Form 60% + Ownership 40%
+        capScore: (p.form * 2.5) + (p.ownership * 0.4)
+      }))
+      .sort((a, b) => b.capScore - a.capScore);
+
+    for (const cand of captainCandidates) {
+      if (topCaptainsList.length >= 5) break;
+      topCaptainsList.push(createCardSummary(cand));
+      chosenIds.add(cand.playerId);
+    }
+
+    // အခြား ကဏ္ဍများအတွက် Top 5 စာရင်းများ
     const sortedByTotalPoints = [...allValidPlayers].sort((a, b) => b.totalPoints - a.totalPoints);
     const topTotalPoints = sortedByTotalPoints.slice(0, 5).map(createCardSummary);
 
-    // ၃။ Week Points အများဆုံး (ထိပ်ဆုံး ၅ ယောက် နှင့် နံပါတ် ၁)
     const sortedByGwPoints = [...allValidPlayers].sort((a, b) => b.gwPoints - a.gwPoints);
     const topGwPoints = sortedByGwPoints.slice(0, 5).map(createCardSummary);
 
-    // ၄။ Ownership အများဆုံး (ထိပ်ဆုံး ၅ ယောက် နှင့် နံပါတ် ၁)
     const sortedByOwnership = [...allValidPlayers].sort((a, b) => b.ownership - a.ownership);
     const topOwnership = sortedByOwnership.slice(0, 5).map(createCardSummary);
 
-    // ၅။ Transfers In အများဆုံး (ထိပ်ဆုံး ၅ ယောက် နှင့် နံပါတ် ၁)
     const sortedByTransfersIn = [...allValidPlayers].sort((a, b) => b.transfersInEvent - a.transfersInEvent);
     const topTransfersIn = sortedByTransfersIn.slice(0, 5).map(createCardSummary);
 
-    // ၆။ Transfers Out အများဆုံး (ထိပ်ဆုံး ၅ ယောက် နှင့် နံပါတ် ၁)
     const sortedByTransfersOut = [...allValidPlayers].sort((a, b) => b.transfersOutEvent - a.transfersOutEvent);
     const topTransfersOut = sortedByTransfersOut.slice(0, 5).map(createCardSummary);
 
@@ -341,37 +368,38 @@ async function main() {
       gameweekName: currentGwDetails.name,
       updatedAt: FieldValue.serverTimestamp(),
       
-      // 👑 Most Captained
+      // 👑 Most Captain (၅ ယောက် အတိအကျ ပါဝင်သည်)
       mostCaptained: {
-        leader: createCardSummary(mostCaptainedPlayerObj),
-        viceLeader: createCardSummary(mostViceCaptainedPlayerObj)
+        leader: topCaptainsList[0] || null,
+        viceLeader: topCaptainsList[1] || null,
+        topList: topCaptainsList
       },
 
-      // 🏆 Total Points
+      // 🏆 Total Points (၅ ယောက်)
       mostTotalPoints: {
         leader: topTotalPoints[0] || null,
         topList: topTotalPoints
       },
 
-      // ⚡ Week Points
+      // ⚡ Week Points (၅ ယောက်)
       mostGwPoints: {
         leader: topGwPoints[0] || null,
         topList: topGwPoints
       },
 
-      // 🛡️ Ownership
+      // 🛡️ Ownership (၅ ယောက်)
       mostOwned: {
         leader: topOwnership[0] || null,
         topList: topOwnership
       },
 
-      // 📈 Transfers In
+      // 📈 Transfers In (၅ ယောက်)
       mostTransferredIn: {
         leader: topTransfersIn[0] || null,
         topList: topTransfersIn
       },
 
-      // 📉 Transfers Out
+      // 📉 Transfers Out (၅ ယောက်)
       mostTransferredOut: {
         leader: topTransfersOut[0] || null,
         topList: topTransfersOut
@@ -384,12 +412,12 @@ async function main() {
     const highlightSizeKb = Math.round(Buffer.byteLength(JSON.stringify(highlightsPayload)) / 1024);
     
     console.log(`🌟 [HIGHLIGHTS DOC] scoutPlayers/scoutHighlights Synced (~${highlightSizeKb} KB)`);
-    console.log(`   👑 Most Captained: ${mostCaptainedPlayerObj?.name || 'N/A'}`);
-    console.log(`   🏆 Top Total Points: ${topTotalPoints[0]?.name || 'N/A'} (${topTotalPoints[0]?.totalPoints} pts)`);
-    console.log(`   ⚡ Top GW Points: ${topGwPoints[0]?.name || 'N/A'} (${topGwPoints[0]?.gwPoints} pts)`);
-    console.log(`   🛡️ Top Owned: ${topOwnership[0]?.name || 'N/A'} (${topOwnership[0]?.ownership}%)`);
-    console.log(`   📈 Top Transfer In: ${topTransfersIn[0]?.name || 'N/A'} (+${topTransfersIn[0]?.transfersInEvent})`);
-    console.log(`   📉 Top Transfer Out: ${topTransfersOut[0]?.name || 'N/A'} (-${topTransfersOut[0]?.transfersOutEvent})`);
+    console.log(`   👑 Top 5 Captains: ${topCaptainsList.map(c => c.name).join(", ")}`);
+    console.log(`   🏆 Top Total Points: ${topTotalPoints[0]?.name || 'N/A'}`);
+    console.log(`   ⚡ Top GW Points: ${topGwPoints[0]?.name || 'N/A'}`);
+    console.log(`   🛡️ Top Owned: ${topOwnership[0]?.name || 'N/A'}`);
+    console.log(`   📈 Top Transfer In: ${topTransfersIn[0]?.name || 'N/A'}`);
+    console.log(`   📉 Top Transfer Out: ${topTransfersOut[0]?.name || 'N/A'}`);
     console.log("============================================");
 
     process.exit(0);
