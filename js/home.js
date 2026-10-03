@@ -1,8 +1,10 @@
 // ============================================
 // Home tab: deadline countdown · stats (နောက်ဆုံးပြီးတဲ့ GW) · top players
 // Source: scoutPlayers/scoutHighlights (Pre-computed Top Leaders Document)
-// Read Quota: Only 1 Read with LocalStorage Cache Guard
+// Visual Engine: Local Assets Badge -> Animated SVG (Team Branded Color Match)
+// Feature: Active Tab Color & Metric Points Color 100% Synced (တူညီသောအရောင် စနစ်)
 // Standards: UI Design Knowledge Pack (Sports UI & Position Palette)
+// Path: js/home.js
 // ============================================
 
 import { auth, db } from "./firebase-config.js";
@@ -38,7 +40,7 @@ let live = null;      // livePoints doc
 let fplId = null;
 
 // ============================================
-// 🎨 POSITION COLORS (ဆရာ့သတ်မှတ်ချက်အတိုင်း)
+// 🎨 POSITION COLORS (ဆရာ့သတ်မှတ်ချက်အတိုင်း သီးသန့်အရောင်)
 // GK = အပြာ (#2563EB) | DEF = အနီ (#EF4444) | MID = အဝါ (#F59E0B) | FWD = အစိမ်း (#22C55E)
 // ============================================
 const POS = { 
@@ -50,21 +52,99 @@ const POS = {
 };
 
 // ============================================
-// 🔘 6 MODES (scoutHighlights payload နှင့် ချိတ်ဆက်မှု)
+// 🛡️ TEAM DETAILS & COLOR PALETTE MAP (အသင်း ၂၀ တရားဝင်အရောင်များ)
+// ============================================
+const teamDetailsMap = {
+  1:  { name: "Arsenal", short: "ARS", code: "ars", color: "#EF0107" },
+  2:  { name: "Aston Villa", short: "AVL", code: "avl", color: "#95BFE5" },
+  3:  { name: "AFC Bournemouth", short: "BOU", code: "bou", color: "#DA291C" },
+  4:  { name: "Brentford", short: "BRE", code: "bre", color: "#E30613" },
+  5:  { name: "Brighton & Hove Albion", short: "BHA", code: "bha", color: "#0057B8" },
+  6:  { name: "Chelsea", short: "CHE", code: "che", color: "#034694" },
+  7:  { name: "Coventry City", swift: "COV", short: "COV", code: "cov", color: "#0099D8" },
+  8:  { name: "Crystal Palace", short: "CRY", code: "cry", color: "#1B458F" },
+  9:  { name: "Everton", short: "EVE", code: "eve", color: "#003399" },
+  10: { name: "Fulham", short: "FUL", code: "ful", color: "#F8FAFC" },
+  11: { name: "Hull City", short: "HUL", code: "hul", color: "#F5971E" },
+  12: { name: "Ipswich Town", short: "IPS", code: "ips", color: "#0047AB" },
+  13: { name: "Leeds United", short: "LEE", code: "lee", color: "#FFCD00" },
+  14: { name: "Liverpool", short: "LIV", code: "liv", color: "#C8102E" },
+  15: { name: "Manchester City", short: "MCI", code: "mci", color: "#6CABDD" },
+  16: { name: "Manchester United", short: "MUN", code: "mun", color: "#DA291C" },
+  17: { name: "Newcastle United", short: "NEW", code: "new", color: "#F8FAFC" },
+  18: { name: "Nottingham Forest", short: "NFO", code: "nfo", color: "#DD0000" },
+  19: { name: "Tottenham Hotspur", short: "TOT", code: "tot", color: "#8E9BB4" },
+  20: { name: "Sunderland", short: "SUN", code: "sun", color: "#EB172B" }
+};
+
+const TEAM_LOOKUP = {};
+Object.entries(teamDetailsMap).forEach(([id, meta]) => {
+  TEAM_LOOKUP[meta.code.toLowerCase()] = { id, ...meta };
+  TEAM_LOOKUP[meta.short.toLowerCase()] = { id, ...meta };
+  TEAM_LOOKUP[meta.name.toLowerCase()] = { id, ...meta };
+});
+
+function getTeamMeta(teamIdentifier) {
+  if (!teamIdentifier) {
+    return { id: 1, short: "UNK", code: "unk", color: "#8C6DFF", badgePath: "./assets/badges/1.ars.png" };
+  }
+  const clean = String(teamIdentifier).trim().toLowerCase();
+  const matched = TEAM_LOOKUP[clean];
+  if (matched) {
+    return {
+      ...matched,
+      badgePath: `./assets/badges/${matched.id}.${matched.code}.png`
+    };
+  }
+  return { id: 1, short: clean.slice(0, 3).toUpperCase(), code: clean, color: "#8C6DFF", badgePath: `./assets/badges/1.ars.png` };
+}
+
+// ============================================
+// 🔘 6 MODES (💡 Tab အရောင် နှင့် Point အရောင် ၁၀၀% တူညီစေရန် သတ်မှတ်ထားသည်)
 // ============================================
 const MODES = {
-  cap:  { c: "#8c6dff", key: "mostCaptained",      badge: "👑", show: (p) => `${p.totalPoints || p.gwPoints || 0} pts` },
-  own:  { c: "#10b981", key: "mostOwned",          badge: "🛡️", show: (p) => `${Number(p.ownership || 0).toFixed(1)}%` },
-  tin:  { c: "#06b6d4", key: "mostTransferredIn",  badge: "📈", show: (p) => `+${fmt(p.transfersInEvent || 0)}` },
-  tout: { c: "#ef4444", key: "mostTransferredOut", badge: "📉", show: (p) => `-${fmt(p.transfersOutEvent || 0)}` },
-  total:{ c: "#3b82f6", key: "mostTotalPoints",    badge: "🏆", show: (p) => `${p.totalPoints || 0} pts` },
-  gw:   { c: "#f59e0b", key: "mostGwPoints",       badge: "⚡", show: (p) => `${p.gwPoints || 0} pts` }
+  cap: { 
+    color: "#8c6dff",      // 👑 Most Captain: ခရမ်းရောင် (Tab ရော Point ပါ တူညီသည်)
+    key: "mostCaptained", 
+    badge: "👑", 
+    show: (p) => `${p.totalPoints || p.gwPoints || 0} pts` 
+  },
+  own: { 
+    color: "#38bdf8",      // 🛡️ Ownership: Cyan/Sky Blue (Tab ရော Point ပါ တူညီသည်)
+    key: "mostOwned", 
+    badge: "🛡️", 
+    show: (p) => `${Number(p.ownership || 0).toFixed(1)}%` 
+  },
+  tin: { 
+    color: "#22c55e",      // 📈 Transfer In: အစိမ်းရောင် (Tab ရော Point ပါ တူညီသည်)
+    key: "mostTransferredIn", 
+    badge: "📈", 
+    show: (p) => `+${fmt(p.transfersInEvent || 0)}` 
+  },
+  tout: { 
+    color: "#ef4444",      // 📉 Transfer Out: အနီရောင် (Tab ရော Point ပါ တူညီသည်)
+    key: "mostTransferredOut", 
+    badge: "📉", 
+    show: (p) => `-${fmt(p.transfersOutEvent || 0)}` 
+  },
+  total: { 
+    color: "#fbbf24",      // 🏆 Total Points: ရွှေဝါရောင် Gold (Tab ရော Point ပါ တူညီသည်)
+    key: "mostTotalPoints", 
+    badge: "🏆", 
+    show: (p) => `${p.totalPoints || 0} pts` 
+  },
+  gw: { 
+    color: "#34d399",      // ⚡ Week Point: စိမ်းပြာရောင် Mint (Tab ရော Point ပါ တူညီသည်)
+    key: "mostGwPoints", 
+    badge: "⚡", 
+    show: (p) => `${p.gwPoints || 0} pts` 
+  }
 };
 
 let scoutHighlightsData = null;
-let mode = "cap"; // Default ကို Most Captained ဖြင့် စတင်ပြသမည်
+let mode = "cap"; // Default: Most Captained
 
-// ---------- Deadline + နောက်ဆုံးပြီးတဲ့ GW ----------
+// ---------- Deadline + Stats ----------
 async function loadDeadline() {
   let info = LS.get("twfm_deadline_v3", 10 * MIN);
   if (!info || (info.ts && info.ts < Date.now())) {
@@ -116,7 +196,6 @@ function tick() {
 }
 setInterval(tick, 1000);
 
-// ---------- Stats ----------
 function paintStats() {
   if (!live) return;
   const g = Number(live.gameweek) || 0;
@@ -177,20 +256,15 @@ async function loadStats() {
   } catch (e) { console.warn("points load failed", e); }
 }
 
-// =========================================================================
-// 🌟 TOP PLAYERS: `scoutPlayers/scoutHighlights` မှ တိုက်ရိုက်ဖတ်ယူခြင်း
-// (allPlayers ဖိုင်ကြီးကို မဖတ်တော့သဖြင့် 0 Read/Instant Load ရရှိသည်)
-// =========================================================================
 async function loadScoutHighlights() {
-  // 15 မိနစ် Cache Guard
-  scoutHighlightsData = LS.get("twfm_scout_highlights_v1", 15 * MIN);
+  scoutHighlightsData = LS.get("twfm_scout_highlights_v3", 15 * MIN);
 
   if (!scoutHighlightsData) {
     try {
       const snap = await getDoc(doc(db, "scoutPlayers", "scoutHighlights"));
       if (snap.exists()) {
         scoutHighlightsData = snap.data();
-        LS.set("twfm_scout_highlights_v1", scoutHighlightsData);
+        LS.set("twfm_scout_highlights_v3", scoutHighlightsData);
       }
     } catch (err) {
       console.warn("scoutHighlights load note:", err);
@@ -198,6 +272,37 @@ async function loadScoutHighlights() {
   }
 
   renderLeaders();
+}
+
+/**
+ * 🌟 Smart Avatar Generator:
+ * 1. Local Badge (assets/badges/{teamId}.{code}.png)
+ * 2. Fallback: Animated Pulse SVG Logo (အသင်းအရောင်အတိုင်း တူညီစွာ တောက်ပသည်)
+ */
+function buildSmartMediaAvatar(teamMeta) {
+  const teamColor = teamMeta.color;
+  const teamCode = teamMeta.short;
+  const localBadgeUrl = teamMeta.badgePath;
+
+  const animatedSvgLogo = `
+    <div class="home-animated-badge-wrap" style="--tc:${teamColor}">
+      <svg class="badge-pulse-svg" viewBox="0 0 24 24" fill="none" stroke="${teamColor}">
+        <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="12" cy="12" r="3.5" fill="${teamColor}"/>
+      </svg>
+      <span class="badge-code-text" style="color:${teamColor}">${esc(teamCode)}</span>
+    </div>
+  `;
+
+  return `
+    <div class="home-player-avatar" style="border-color:${teamColor}; box-shadow: 0 0 8px color-mix(in srgb, ${teamColor} 30%, transparent);">
+      <img src="${localBadgeUrl}" 
+           alt="${esc(teamCode)}" 
+           loading="lazy" 
+           class="avatar-img is-badge"
+           onerror="this.parentElement.outerHTML = \`${animatedSvgLogo.replace(/\n/g, '').replace(/"/g, "'")}\`;">
+    </div>
+  `;
 }
 
 function renderLeaders() {
@@ -210,16 +315,35 @@ function renderLeaders() {
   }
 
   const M = MODES[mode];
-  document.querySelectorAll("#leader-tabs button").forEach((b) => b.classList.toggle("on", b.dataset.k === mode));
-  box.style.setProperty("--mc", M.c);
+  const activeColor = M.color;
+
+  // 💡 Active Tab Button Highlight (Style နှင့် Class အား တူညီသော အရောင်သတ်မှတ်ခြင်း)
+  document.querySelectorAll("#leader-tabs button").forEach((b) => {
+    const isActive = b.dataset.k === mode;
+    b.classList.toggle("on", isActive);
+    if (isActive) {
+      b.style.setProperty("--c", activeColor);
+      b.style.backgroundColor = activeColor;
+      b.style.color = "#FFFFFF";
+      b.style.boxShadow = `0 4px 14px color-mix(in srgb, ${activeColor} 45%, transparent)`;
+    } else {
+      b.style.backgroundColor = "";
+      b.style.color = "";
+      b.style.boxShadow = "";
+    }
+  });
+
+  box.style.setProperty("--mc", activeColor);
 
   let list = [];
 
-  // scoutHighlights ထဲရှိ payload အလိုက် စာရင်းခွဲထုတ်ခြင်း
   if (mode === "cap") {
     const capData = scoutHighlightsData.mostCaptained || {};
-    if (capData.leader) list.push({ ...capData.leader, rankTag: "Captain" });
-    if (capData.viceLeader) list.push({ ...capData.viceLeader, rankTag: "Vice-Cap" });
+    list = capData.topList || [];
+    if (list.length === 0) {
+      if (capData.leader) list.push({ ...capData.leader, captainRankTag: "Captain" });
+      if (capData.viceLeader) list.push({ ...capData.viceLeader, captainRankTag: "Vice-Cap" });
+    }
   } else {
     const sectionData = scoutHighlightsData[M.key] || {};
     list = sectionData.topList || (sectionData.leader ? [sectionData.leader] : []);
@@ -230,33 +354,45 @@ function renderLeaders() {
     return;
   }
 
-  // Top 5 သာ ညီညာစွာ ပြသမည်
+  // ၅ ယောက်တိတိ အပြည့်အဝ Render ပြုလုပ်ခြင်း
   box.innerHTML = list.slice(0, 5).map((p, i) => {
     const rawPos = String(p.position || "mid").toLowerCase().trim();
     const isGk = rawPos === "gk" || rawPos === "gkp";
     
-    // 🎨 သတ်မှတ်ထားသော အရောင်သီးသန့် ယူသုံးခြင်း
+    // 🎨 ၁။ Position သီးသန့် အရောင် (GK=Blue, DEF=Red, MID=Yellow, FWD=Green)
     const posColor = POS[rawPos] || "#F59E0B"; 
-    const tc = String(p.teamCode || "unk").toLowerCase();
 
-    const jerseyImg = tc && tc !== "unk"
-      ? `<img class="jr" src="./public/jerseys/${isGk ? "gk" : "outfield"}/${esc(tc)}.png" alt="" loading="lazy" onerror="this.outerHTML='<span class=\\'jr flex items-center justify-center text-sm\\'>👕</span>'">`
-      : `<span class="jr flex items-center justify-center text-sm">👕</span>`;
+    // 🛡️ ၂။ Team သီးသန့် အရောင် (Logo & Team Name အတွက် သီးသန့်သုံးမည်)
+    const teamMeta = getTeamMeta(p.teamCode || p.team);
+    const teamColor = teamMeta.color;
+    const teamShort = teamMeta.short;
 
-    const displayRank = p.rankTag ? p.rankTag : (i + 1);
+    // 💡 Avatar Pipeline (Local Badge -> Animated SVG)
+    const mediaHtml = buildSmartMediaAvatar(teamMeta);
+
+    // Rank တံဆိပ် (C, V, 3, 4, 5)
+    let displayRank = i + 1;
+    if (mode === "cap") {
+      if (i === 0) displayRank = "C";
+      else if (i === 1) displayRank = "V";
+      else displayRank = i + 1;
+    }
 
     return `
-      <div class="home-row" style="--pc:${posColor}">
+      <div class="home-row" style="--pc:${posColor}; --tc:${teamColor}; --val-col:${activeColor}">
         <span class="rk">${displayRank}</span>
-        ${jerseyImg}
-        <span class="home-plate">
+        ${mediaHtml}
+        <div class="home-plate" style="border-left-color: ${posColor};">
           <b>${esc(p.name)}</b>
-          <i>${esc(tc.toUpperCase().slice(0, 3))}</i>
-        </span>
-        <span class="ps" style="color:${posColor}; font-weight:800;">
+          <!-- 💡 Team Name ကို Logo နှင့် တူညီသော အသင်းအရောင် သီးသန့် ထားရှိခြင်း -->
+          <i style="color: ${teamColor} !important; border-color: color-mix(in srgb, ${teamColor} 40%, transparent);">${esc(teamShort)}</i>
+        </div>
+        <!-- 💡 Position Tag ကို GK/DEF/MID/FWD သီးသန့် အရောင် ထားရှိခြင်း -->
+        <span class="ps" style="color: ${posColor}; font-weight: 800;">
           ${isGk ? "GK" : rawPos.toUpperCase()}
         </span>
-        <span class="vl">
+        <!-- 💡 Tabs နှင့် Point အရောင် ၁၀၀% တူညီစွာ ဖော်ပြခြင်း (activeColor) -->
+        <span class="vl" style="color: ${activeColor} !important; text-shadow: 0 0 10px color-mix(in srgb, ${activeColor} 30%, transparent);">
           ${M.show(p)}
         </span>
       </div>
@@ -287,5 +423,5 @@ onAuthStateChanged(auth, async (user) => {
 
   loadStats();
   loadDeadline();
-  loadScoutHighlights(); // 🚀 scoutHighlights document မှ အသစ်စတင်ခေါ်ယူခြင်း
+  loadScoutHighlights();
 });
