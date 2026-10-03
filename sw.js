@@ -6,7 +6,7 @@
  * - Firebase data / auth call တွေ မစွက်ဖက်
  * VERSION နဲ့ precache list ကို `node tools/build.js` က auto ထည့်ပေးတယ်
  */
-const VERSION = 'fa3cddea';
+const VERSION = 'b0ae7bab';
 const CACHE_NAME = 'twfm-spa-' + VERSION;
 const PRECACHE = /*PRECACHE_START*/
 [
@@ -70,6 +70,25 @@ const PRECACHE = /*PRECACHE_START*/
   "./js/weekfixtures.js",
   "./public/jerseys/gk/ars.png",
   "./public/jerseys/outfield/ars.png",
+  "./public/jerseys/outfield/avl.png",
+  "./public/jerseys/outfield/bha.png",
+  "./public/jerseys/outfield/bou.png",
+  "./public/jerseys/outfield/bre.png",
+  "./public/jerseys/outfield/che.png",
+  "./public/jerseys/outfield/cov.png",
+  "./public/jerseys/outfield/cry.png",
+  "./public/jerseys/outfield/eve.png",
+  "./public/jerseys/outfield/ful.png",
+  "./public/jerseys/outfield/hul.png",
+  "./public/jerseys/outfield/ips.png",
+  "./public/jerseys/outfield/lee.png",
+  "./public/jerseys/outfield/liv.png",
+  "./public/jerseys/outfield/mci.png",
+  "./public/jerseys/outfield/mun.png",
+  "./public/jerseys/outfield/new.png",
+  "./public/jerseys/outfield/nfo.png",
+  "./public/jerseys/outfield/sun.png",
+  "./public/jerseys/outfield/tot.png",
   "./views/dashboard.html",
   "./views/draft.html",
   "./views/fixtures.html",
