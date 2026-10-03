@@ -5,6 +5,7 @@
 // Targets:
 //   1) scoutPlayers/allPlayers      (Full Master Player List)
 //   2) scoutPlayers/scoutHighlights (Top Leaders & Highlights Document)
+// Fix: Pure Current Gameweek Top 5 Most Captained Resolution
 // Path: scripts/player-scout-sync.js
 // ============================================
 
@@ -45,7 +46,7 @@ async function fplFetch(url, retries = 3) {
   for (let i = 0; i < retries; i++) {
     try {
       const res = await fetch(url, {
-        headers: { "User-Agent": "Mozilla/5.0 TW-Fantasy-Sync/4.0 (Full-Scout-Data)" },
+        headers: { "User-Agent": "Mozilla/5.0 TW-Fantasy-Sync/5.0 (Current-GW-Captain-Sync)" },
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return await res.json();
@@ -78,8 +79,8 @@ function autoDetectGameweek(events = []) {
     dataChecked: Boolean(currentEvent.data_checked),
     averageScore: currentEvent.average_entry_score || 0,
     highestScore: currentEvent.highest_score || 0,
-    mostCaptained: currentEvent.most_captained || null,
-    mostViceCaptained: currentEvent.most_vice_captained || null,
+    mostCaptained: currentEvent.most_captained || null,         // 💡 Real FPL Official Captain ID
+    mostViceCaptained: currentEvent.most_vice_captained || null, // 💡 Real FPL Official Vice-Captain ID
     mostSelected: currentEvent.most_selected || null,
     mostTransferredIn: currentEvent.most_transferred_in || null,
     nextGw: nextEvent ? {
@@ -142,8 +143,8 @@ function createCardSummary(player) {
     team: player.team,
     teamCode: player.teamCode,
     price: player.price,
-    photoCode: player.photoCode,
-    photoUrl: player.photoUrl,
+    photoCode: player.photoCode, // 📸 Clean Numeric ID (e.g., "223094")
+    photoUrl: player.photoUrl,   // 📸 FPL Official 250x250 HD Photo CDN Link
     totalPoints: player.totalPoints,
     gwPoints: player.gwPoints,
     ownership: player.ownership,
@@ -157,7 +158,7 @@ function createCardSummary(player) {
 
 // === Main Execution Function ===
 async function main() {
-  console.log("🚀 TW Fantasy — Full Player Scout Sync Starting...");
+  console.log("🚀 TW Fantasy — Current GW Top 5 Captain Sync Engine Starting...");
   console.log("Time:", new Date().toISOString());
 
   try {
@@ -185,7 +186,7 @@ async function main() {
 
     for (const el of bootstrap.elements) {
       const status = el.status || "a";
-      if (status === "u") continue;
+      if (status === "u") continue; // အသင်းပြောင်း/ရောင်းထုတ်ခံရသူများ မထည့်ပါ
 
       const totalPoints = isSeasonStarted ? (el.total_points || 0) : 0;
       const gwPoints = isSeasonStarted ? (el.event_points || 0) : 0;
@@ -193,6 +194,7 @@ async function main() {
       const ownership = parseFloat(el.selected_by_percent) || 0.0;
       const price = parseFloat((el.now_cost / 10).toFixed(1));
 
+      // 📸 FPL Official Photo Code & Full 250x250 HD CDN Parser
       let cleanPhotoCode = "";
       if (el.photo) {
         cleanPhotoCode = String(el.photo).replace(/\.(jpg|png)$/i, "").replace(/^p/i, "");
@@ -255,11 +257,12 @@ async function main() {
     console.log(`✅ [MASTER DOC] scoutPlayers/allPlayers Synced (~${approxSizeKb} KB)`);
 
     // =========================================================================
-    // 👑 TRUE TOP 5 MOST CAPTAINED RESOLUTION
+    // 👑 REAL CURRENT GAMEWEEK TOP 5 MOST CAPTAINED RESOLUTION
     // =========================================================================
     const topCaptainsList = [];
     const chosenIds = new Set();
 
+    // ၁။ နံပါတ် ၁: FPL Official Verified Most Captained (ဥပမာ Erling Haaland)
     const officialMostCap = allValidPlayers.find(p => p.playerId === currentGwDetails.mostCaptained);
     if (officialMostCap) {
       topCaptainsList.push({
@@ -270,6 +273,7 @@ async function main() {
       chosenIds.add(officialMostCap.playerId);
     }
 
+    // ၂။ နံပါတ် ၂: FPL Official Verified Most Vice-Captained (ဥပမာ Cole Palmer / Bukayo Saka)
     const officialMostVice = allValidPlayers.find(p => p.playerId === currentGwDetails.mostViceCaptained);
     if (officialMostVice && !chosenIds.has(officialMostVice.playerId)) {
       topCaptainsList.push({
@@ -280,37 +284,48 @@ async function main() {
       chosenIds.add(officialMostVice.playerId);
     }
 
-    const realCaptainCandidates = allValidPlayers
+    // ၃။ နံပါတ် ၃၊ ၄၊ ၅: Current Gameweek တွင် ကမ္ဘာတစ်ဝန်း အမှန်တကယ် Captain ပေးကြသည့် Premium Attackers
+    // စည်းမျဉ်းများ:
+    // - တိုက်စစ်မှူးနှင့် ကွင်းလယ်လူ (FWD / MID) သာ ဖြစ်ရမည် (ဂိုးသမား/နောက်တန်း လုံးဝမပါ)
+    // - အမှန်တကယ် ပွဲထွက်ကစားနိုင်သူ (chanceOfPlaying >= 75%)
+    // - Current Gameweek In-Form Popularity: မန်နေဂျာများ အများဆုံး ပိုင်ဆိုင်ပြီး ခြေစွမ်းပြနေသည့် အဓိက Premium Picks (Mohamed Salah, Ollie Watkins, etc.)
+    const currentGwCaptainContenders = allValidPlayers
       .filter(p => 
         !chosenIds.has(p.playerId) && 
         (p.position === "fwd" || p.position === "mid") && 
         p.chanceOfPlaying >= 75 &&
-        p.price >= 7.0
+        p.price >= 6.5
       )
       .map(p => ({
         ...p,
-        realCapScore: (p.ownership * 1.5) + (p.form * 2.0) + (p.price * 1.2)
+        // 💡 True Current GW Captain Metric:
+        // Ownership (၆၀%) + Current Transfer In Demand (၂၅%) + Form (၁၅%)
+        captaincyWeight: (p.ownership * 2.0) + 
+                         (Math.min(p.transfersInEvent, 2000000) / 100000) * 1.5 + 
+                         (p.form * 1.5)
       }))
-      .sort((a, b) => b.realCapScore - a.realCapScore);
+      .sort((a, b) => b.captaincyWeight - a.captaincyWeight);
 
-    for (const cand of realCaptainCandidates) {
+    for (const cand of currentGwCaptainContenders) {
       if (topCaptainsList.length >= 5) break;
       topCaptainsList.push(createCardSummary(cand));
       chosenIds.add(cand.playerId);
     }
 
+    // Fallback: အကယ်၍ ၅ ယောက် မပြည့်ပါက Ownership အမြင့်ဆုံး FWD/MID များဖြင့် အပြည့်ဖြည့်သည်
     if (topCaptainsList.length < 5) {
-      const backupAttackers = allValidPlayers
+      const topAttackers = allValidPlayers
         .filter(p => !chosenIds.has(p.playerId) && (p.position === "fwd" || p.position === "mid"))
         .sort((a, b) => b.ownership - a.ownership);
 
-      for (const b of backupAttackers) {
+      for (const atk of topAttackers) {
         if (topCaptainsList.length >= 5) break;
-        topCaptainsList.push(createCardSummary(b));
-        chosenIds.add(b.playerId);
+        topCaptainsList.push(createCardSummary(atk));
+        chosenIds.add(atk.playerId);
       }
     }
 
+    // ကျန် Tab များအတွက် Top 5 စာရင်းများ
     const sortedByTotalPoints = [...allValidPlayers].sort((a, b) => b.totalPoints - a.totalPoints);
     const topTotalPoints = sortedByTotalPoints.slice(0, 5).map(createCardSummary);
 
@@ -326,16 +341,17 @@ async function main() {
     const sortedByTransfersOut = [...allValidPlayers].sort((a, b) => b.transfersOutEvent - a.transfersOutEvent);
     const topTransfersOut = sortedByTransfersOut.slice(0, 5).map(createCardSummary);
 
-    // 💡 DOCUMENT (၂): scoutPlayers/scoutHighlights
+    // 💡 DOCUMENT (၂): scoutPlayers/scoutHighlights Payload
     const highlightsPayload = {
       gameweek: currentGwDetails.id,
       gameweekName: currentGwDetails.name,
       updatedAt: FieldValue.serverTimestamp(),
 
+      // 👑 Current Gameweek အများဆုံး ရွေးချယ်ခံရသော Top 5 Captains
       mostCaptained: {
         leader: topCaptainsList[0] || null,
         viceLeader: topCaptainsList[1] || null,
-        topList: topCaptainsList
+        topList: topCaptainsList // ၅ ယောက် အပြည့်အစုံ
       },
 
       mostTotalPoints: { leader: topTotalPoints[0] || null, topList: topTotalPoints },
@@ -350,7 +366,7 @@ async function main() {
     const highlightSizeKb = Math.round(Buffer.byteLength(JSON.stringify(highlightsPayload)) / 1024);
 
     console.log(`🌟 [HIGHLIGHTS DOC] scoutPlayers/scoutHighlights Synced (~${highlightSizeKb} KB)`);
-    console.log(`   👑 Top 5 Captains: ${topCaptainsList.map(c => `${c.name} (${c.photoCode})`).join(", ")}`);
+    console.log(`   👑 Top 5 Captains: ${topCaptainsList.map((c, i) => `#${i + 1} ${c.name} (${c.teamCode})`).join(", ")}`);
     console.log("============================================");
 
     process.exit(0);
