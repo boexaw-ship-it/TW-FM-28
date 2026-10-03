@@ -1,8 +1,9 @@
-/* ============================================
+/* =========================================================================
    TW Fantasy Official League — Home UI Theme
    Path: css/home.css
    Standards: UI Design Knowledge Pack (8px Grid, Rounded 16-20px, Sports UI)
-   ============================================ */
+   Inspirations: Apple Human Interface, Material Design 3, Samsung One UI
+   ========================================================================= */
 
 * {
   -webkit-tap-highlight-color: transparent;
@@ -10,16 +11,28 @@
 }
 
 :root {
+  /* 🎨 Core Color Palette */
   --bg: #0b0d1a;
+  --bg-deep: #070913;
   --card: #14172b;
   --card2: #1b1f3a;
+  --card-glass: rgba(20, 23, 43, 0.85);
   --line: rgba(255, 255, 255, 0.08);
+  --line-accent: rgba(140, 109, 255, 0.28);
+  --line-gold: rgba(251, 191, 36, 0.35);
+
+  /* 🖋️ Typography & Accents */
   --tx: #ffffff;
+  --tx-sub: #e2e8f0;
   --mu: #94a3b8;
   --ac: #8c6dff;
+  --ac-glow: rgba(140, 109, 255, 0.4);
   --ok: #22c55e;
   --no: #ef4444;
+  --gold: #fbbf24;
+  --cyan: #38bdf8;
 
+  /* ⚽ Sports Position Colors */
   --pos-gk: #2563eb;
   --pos-def: #ef4444;
   --pos-mid: #f59e0b;
@@ -42,19 +55,21 @@
 }
 
 /* =========================================================================
-   🔝 TOP HEADER: REFINED BRAND TYPOGRAPHY & CLEAN ACCENT
+   🔝 1. TOP HEADER: LUXURY BRAND TYPOGRAPHY & GLASSMORPHISM
    ========================================================================= */
-.home-head {
+.home-head,
+.luxury-app-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: max(14px, env(safe-area-inset-top, 0px)) 16px 12px;
+  padding: max(14px, env(safe-area-inset-top, 0px)) 16px 14px;
   flex: 0 0 auto;
-  border-bottom: 1px solid var(--line);
-  background: rgba(11, 13, 26, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line-accent);
+  background: linear-gradient(135deg, rgba(20, 23, 43, 0.92), rgba(11, 13, 26, 0.96));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.08);
   z-index: 10;
 }
 
@@ -65,10 +80,11 @@
 }
 
 /* 🌟 Premium Gradient TW Logo Badge */
-.home-logo {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
+.home-logo,
+.app-logo-badge {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
   display: grid;
   place-items: center;
   background: linear-gradient(135deg, #8c6dff 0%, #3b82f6 100%);
@@ -76,22 +92,22 @@
   font-weight: 900;
   font-size: 15px;
   letter-spacing: -0.02em;
-  box-shadow: 0 4px 16px rgba(140, 109, 255, 0.45);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  flex: 0 0 40px;
+  box-shadow: 0 4px 16px var(--ac-glow), inset 0 1px 1px rgba(255, 255, 255, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  flex: 0 0 42px;
 }
 
 .home-brand-text {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 1px;
+  gap: 2px;
 }
 
 /* 🌟 TW FM Title */
 .brand-title {
   margin: 0;
-  font-size: 20px;
+  font-size: 21px;
   font-weight: 900;
   line-height: 1.1;
   letter-spacing: 0.03em;
@@ -104,12 +120,12 @@
 /* 🌟 TOGETHER WE PLAY Subtitle */
 .brand-subtitle {
   margin: 0;
-  font-size: 8px;
+  font-size: 8.5px;
   font-weight: 800;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: #9da6ca;
-  opacity: 0.9;
+  opacity: 0.95;
 }
 
 .home-who {
@@ -118,17 +134,21 @@
   gap: 8px;
 }
 
-/* 🌟 Status Pill Badge */
-.home-pill {
-  font-size: 9.5px;
+/* 🌟 Status Pill Badge (TW MEMBER) */
+.home-pill,
+.tw-member-badge {
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.08em;
-  padding: 5px 12px;
+  padding: 6px 14px;
   border-radius: 999px;
-  background: rgba(140, 109, 255, 0.16);
-  color: #c9bcff;
+  background: linear-gradient(135deg, rgba(140, 109, 255, 0.18), rgba(99, 102, 241, 0.1));
+  color: #d4cbff;
   border: 1px solid rgba(140, 109, 255, 0.45);
-  box-shadow: 0 0 10px rgba(140, 109, 255, 0.2);
+  box-shadow: 0 0 14px rgba(140, 109, 255, 0.22);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .home-refresh {
@@ -140,7 +160,7 @@
   font-size: 9px;
   font-weight: 800;
   background: rgba(245, 158, 11, 0.14);
-  color: #fbbf24;
+  color: var(--gold);
   border: 1px solid rgba(245, 158, 11, 0.4);
   cursor: pointer;
 }
@@ -149,14 +169,16 @@
   display: none !important;
 }
 
-/* 📜 Main Scrollable Content */
+/* =========================================================================
+   📜 MAIN SCROLLABLE CONTENT (8PX GRID BASE)
+   ========================================================================= */
 .home-scroll {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  padding: 12px 16px 28px;
+  padding: 14px 16px 36px;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -165,28 +187,43 @@
 .home-scroll::-webkit-scrollbar { display: none; }
 .home-scroll { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* 👤 Manager Profile Card (Clean Layout - No Arrow) */
-.home-profile {
+/* =========================================================================
+   👤 2. MANAGER PROFILE CARD (LUXURY SPORTS GLASSMORPHISM)
+   ========================================================================= */
+.home-profile,
+.luxury-manager-card {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
-  padding: 12px 16px;
+  padding: 14px 16px;
   border-radius: 18px;
-  background: var(--card);
-  border: 1px solid var(--line);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  background: linear-gradient(135deg, rgba(26, 31, 58, 0.94), rgba(15, 17, 33, 0.98));
+  border: 1px solid var(--line-accent);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
-.home-avatar {
+.luxury-manager-card:hover {
+  border-color: rgba(140, 109, 255, 0.55);
+}
+
+.home-avatar,
+.ball-icon-wrap {
   width: 44px;
   height: 44px;
   border-radius: 14px;
   display: grid;
   place-items: center;
   font-size: 22px;
-  background: var(--card2);
-  border: 1px solid var(--line);
-  flex: 0 0 auto;
+  background: rgba(11, 13, 26, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+  flex: 0 0 44px;
 }
 
 .home-pf-text {
@@ -194,10 +231,11 @@
   flex: 1;
 }
 
-.home-pf-text h2 {
+.home-pf-text h2,
+#welcome-name {
   margin: 0;
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 900;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -205,40 +243,63 @@
   align-items: center;
   gap: 6px;
   color: #ffffff;
+  letter-spacing: 0.02em;
 }
 
 .crown-ico {
-  font-size: 13px;
+  font-size: 13.5px;
+  filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.7));
 }
 
-.home-pf-text p {
+.home-pf-text p,
+#welcome-manager {
   margin: 2px 0 0;
   font-size: 11px;
-  color: var(--mu);
+  color: var(--tx-sub);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.home-pf-text p span.manager-lbl,
+#welcome-manager span.opacity-70 {
+  opacity: 0.7;
   font-weight: 600;
 }
 
-/* ⏳ Deadline Hero Box (Clickable -> #/fixtures) */
-.home-hero {
-  border-radius: 20px;
-  padding: 16px;
-  background: linear-gradient(135deg, #1c1458, #0e112d);
-  border: 1px solid #32268b;
+.home-pf-text p span.manager-val,
+#welcome-manager span.font-bold {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.manager-sparkle-glow {
+  width: 4px;
+  height: 24px;
+  background: linear-gradient(to bottom, #8c6dff, transparent);
+  border-radius: 4px;
+  opacity: 0.75;
+}
+
+/* =========================================================================
+   ⏳ 3. DEADLINE HERO FRAME & 4-GRID DIGITAL TIMER (PURE SPORTS UI)
+   ========================================================================= */
+.home-hero,
+.luxury-deadline-card {
+  border-radius: 18px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(22, 26, 48, 0.95), rgba(13, 15, 28, 0.98));
+  border: 1px solid var(--line-gold);
   position: relative;
   overflow: hidden;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55), 0 0 16px rgba(251, 191, 36, 0.06);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  cursor: default !important; /* မတော်တဆ ထိမိပါက ခုန်မသွားစေရန် */
 }
 
-.clickable-hero {
-  cursor: pointer;
-  transition: transform 0.2s ease, border-color 0.2s ease;
-}
-
-.clickable-hero:active {
-  transform: scale(0.985);
-  border-color: #8c6dff;
-}
-
+/* Ambient Logo Overlay in Hero */
 .home-tw-anim-bg {
   position: absolute;
   right: -20px;
@@ -248,21 +309,21 @@
   pointer-events: none;
   display: grid;
   place-items: center;
-  opacity: 0.18;
+  opacity: 0.15;
 }
 
 .tw-crest-glow {
   font-size: 44px;
   font-weight: 900;
-  color: #8c6dff;
+  color: var(--ac);
   letter-spacing: -0.05em;
-  text-shadow: 0 0 24px #8c6dff;
+  text-shadow: 0 0 24px var(--ac);
   animation: crestPulse 2.4s infinite ease-in-out;
 }
 
 @keyframes crestPulse {
-  0%, 100% { transform: scale(0.95); opacity: 0.6; }
-  50% { transform: scale(1.05); opacity: 1; }
+  0%, 100% { transform: scale(0.95); opacity: 0.5; }
+  50% { transform: scale(1.05); opacity: 0.9; }
 }
 
 .home-hero-top {
@@ -272,6 +333,7 @@
   gap: 8px;
   position: relative;
   z-index: 2;
+  margin-bottom: 10px;
 }
 
 .home-tag {
@@ -279,96 +341,107 @@
   align-items: center;
   gap: 6px;
   font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  color: #fbbf24;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  color: var(--gold);
+  text-transform: uppercase;
 }
 
+.deadline-pulse-dot,
 .home-tag::before {
   content: "";
-  width: 6px;
-  height: 6px;
+  display: inline-block;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  background: #fbbf24;
-  box-shadow: 0 0 8px #fbbf24;
+  background: var(--gold);
+  box-shadow: 0 0 8px var(--gold);
+  animation: pulseDot 1.8s infinite;
 }
 
-.home-hero-when {
-  font-size: 11px;
-  color: #c9c3ff;
-  font-weight: 600;
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
 }
 
+.home-hero-when,
+#gw-when {
+  font-size: 10.5px;
+  color: #cbd5e1;
+  font-weight: 700;
+}
+
+/* ⏱️ 4-Grid Digital Countdown Box */
 .home-cd {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin-top: 12px;
+  gap: 6px;
   position: relative;
   z-index: 2;
+  text-align: center;
 }
 
-.home-cd > div {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 14px;
-  padding: 8px 0 6px;
-  text-align: center;
+.home-cd > div,
+.timer-digit-box {
+  background: rgba(11, 13, 26, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 6px 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
 }
 
-.home-cd b {
+.home-cd b,
+.timer-num {
   display: block;
-  font-size: 22px;
-  font-weight: 800;
+  font-size: 17px;
+  font-weight: 900;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
   color: #ffffff;
 }
 
-.home-cd small {
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  color: #c9c3ff;
-  opacity: 0.85;
+/* Seconds Box Highlight Color */
+.home-cd > div:last-child b,
+#cd-s {
+  color: var(--cyan);
+}
+
+.home-cd small,
+.timer-label {
+  font-size: 7.5px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #b3a1ff;
+  opacity: 0.9;
   margin-top: 2px;
 }
 
-.hero-tap-hint {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 4px;
-  margin-top: 10px;
-  font-size: 10.5px;
-  color: #a58bff;
-  font-weight: 700;
-  position: relative;
-  z-index: 2;
+.home-cd > div:last-child small {
+  color: var(--cyan);
 }
 
-.hint-arrow {
-  font-size: 14px;
-  line-height: 1;
-}
-
-/* 📊 3-Column Performance Stats Section */
+/* =========================================================================
+   📊 4. 3-COLUMN BALANCED STATS SECTION
+   ========================================================================= */
 .home-stats {
   display: grid;
-  grid-template-columns: 1fr 1.35fr 1fr;
+  grid-template-columns: 1fr 1.3fr 1fr;
   gap: 8px;
   width: 100%;
 }
 
-.home-stat {
+.home-stat,
+.dashboard-stat-card {
   --c: #8c6dff;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--c) 14%, var(--card)), var(--card) 70%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c) 14%, var(--card)), var(--card) 75%);
   border: 1px solid color-mix(in srgb, var(--c) 35%, var(--line));
-  box-shadow: inset 0 2px 0 var(--c), 0 4px 14px rgba(0, 0, 0, 0.2);
+  box-shadow: inset 0 2px 0 var(--c), 0 6px 18px rgba(0, 0, 0, 0.35);
   border-radius: 16px;
   padding: 12px 6px;
   display: flex;
@@ -397,7 +470,7 @@
 }
 
 .home-stat .t {
-  font-size: 9px;
+  font-size: 8.5px;
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -408,8 +481,8 @@
 .home-stat b {
   display: block;
   width: 100%;
-  font-size: 20px;
-  font-weight: 800;
+  font-size: 19px;
+  font-weight: 900;
   margin: 4px 0 2px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -421,7 +494,7 @@
   display: block;
   width: 100%;
   font-style: normal;
-  font-size: 9.5px;
+  font-size: 9px;
   font-weight: 700;
   min-height: 14px;
   text-align: center;
@@ -431,9 +504,10 @@
 }
 
 .home-stat em.up { color: var(--ok); }
+.home-stat em.dn { color: var(--no); }
 
 /* =========================================================================
-   🌟 TOP 5 PLAYERS CARD GRID (Exact match to image_b95fdb.jpg)
+   🌟 5. TOP 5 PLAYERS CARD GRID
    ========================================================================= */
 .home-top-grid-section {
   display: flex;
@@ -453,10 +527,11 @@
   align-items: center;
   gap: 6px;
   margin: 0;
-  font-size: 14.5px;
-  font-weight: 800;
-  letter-spacing: 0.02em;
+  font-size: 13.5px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
   color: #ffffff;
+  text-transform: uppercase;
 }
 
 .section-icon {
@@ -466,43 +541,37 @@
 }
 
 .home-see-all {
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--mu);
   text-decoration: none;
+  transition: color 0.15s ease;
 }
 
-.home-player-cards-grid {
+.home-see-all:hover {
+  color: #ffffff;
+}
+
+.home-player-cards-grid,
+#leader-cards-container {
   display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: calc((100% - 32px) / 3.2);
-  gap: 8px;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  padding-bottom: 4px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  width: 100%;
 }
-
-@media (min-width: 480px) {
-  .home-player-cards-grid {
-    grid-auto-columns: calc((100% - 32px) / 5);
-  }
-}
-
-.home-player-cards-grid::-webkit-scrollbar { display: none; }
 
 .top-player-card {
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 8px 6px;
+  border-radius: 14px;
+  padding: 8px 4px;
   display: flex;
   flex-direction: column;
   align-items: center;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-  transition: transform 0.2s ease;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
 .top-player-card:active {
@@ -511,70 +580,53 @@
 
 .player-card-rank {
   position: absolute;
-  top: 6px;
-  left: 6px;
-  width: 18px;
-  height: 18px;
-  border-radius: 6px;
-  background: #3b82f6;
-  color: #ffffff;
-  font-size: 10px;
+  top: 4px;
+  left: 4px;
+  font-size: 8px;
   font-weight: 900;
-  display: grid;
-  place-items: center;
-  z-index: 3;
-}
-
-.player-card-role {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 18px;
-  height: 18px;
+  color: #94a3b8;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 1px 4px;
   border-radius: 6px;
-  background: #8c6dff;
-  color: #ffffff;
-  font-size: 9px;
-  font-weight: 900;
-  display: grid;
-  place-items: center;
   z-index: 3;
 }
 
 .player-card-photo-wrap {
-  width: 100%;
-  height: 82px;
+  width: 52px;
+  height: 52px;
+  margin: 4px auto 2px;
+  position: relative;
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  position: relative;
-  margin-top: 4px;
 }
 
 .player-card-photo {
-  max-width: 90%;
-  max-height: 100%;
-  object-fit: contain;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.4));
 }
 
 .player-card-club-badge {
   position: absolute;
-  right: 4px;
-  bottom: 0px;
-  width: 18px;
-  height: 18px;
+  bottom: -2px;
+  right: -2px;
+  width: 16px;
+  height: 16px;
   object-fit: contain;
-  background: rgba(11, 13, 26, 0.85);
+  background: #0b0d1a;
   border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
   padding: 1px;
 }
 
 .player-card-name {
-  font-size: 11px;
-  font-weight: 800;
+  font-size: 9.5px;
+  font-weight: 900;
   color: #ffffff;
-  margin-top: 6px;
+  margin-top: 3px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -583,22 +635,23 @@
 }
 
 .player-card-pos {
-  font-size: 8.5px;
+  font-size: 8px;
   font-weight: 800;
   text-transform: uppercase;
   margin-top: 1px;
 }
 
 .player-card-pts {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 900;
   margin-top: 2px;
   font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 .player-card-skel {
-  min-height: 140px;
-  border-radius: 16px;
+  min-height: 120px;
+  border-radius: 14px;
   background: linear-gradient(90deg, var(--card2), #242953, var(--card2));
   background-size: 200% 100%;
   animation: skel 1.2s linear infinite;
@@ -607,7 +660,7 @@
 @keyframes skel { to { background-position: -200% 0; } }
 
 /* =========================================================================
-   ⚡ QUICK STATS TABS (6-BUTTON GRID HUB)
+   ⚡ 6. QUICK STATS TABS (6-BUTTON GRID HUB)
    ========================================================================= */
 .home-quick-stats-section {
   display: flex;
@@ -615,154 +668,79 @@
   gap: 8px;
 }
 
-.home-tabs {
+.home-tabs,
+#leader-tabs {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 6px;
-  background: var(--card);
+  gap: 4px;
+  background: rgba(11, 13, 26, 0.7);
+  border: 1px solid var(--line);
   border-radius: 14px;
-  padding: 5px;
-  overflow-x: auto;
-  scrollbar-width: none;
+  padding: 4px;
 }
 
-.home-tabs button {
+.home-tabs button,
+#leader-tabs button {
   border: 0;
   background: transparent;
   color: var(--mu);
-  padding: 8px 4px;
+  padding: 6px 2px;
   border-radius: 10px;
   font-family: inherit;
-  font-size: 10.5px;
-  font-weight: 700;
+  font-size: 8.5px;
+  font-weight: 800;
+  text-transform: uppercase;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 2px;
   white-space: nowrap;
   transition: all 0.2s ease;
 }
 
-.home-tabs button .tab-ico { font-size: 13px; }
-.home-tabs button .tab-txt { font-size: 9px; font-weight: 700; }
-
-.home-tabs button.on {
+.home-tabs button.on,
+#leader-tabs button.on {
   background: var(--c, #8c6dff);
   color: #ffffff;
   box-shadow: 0 4px 14px color-mix(in srgb, var(--c, #8c6dff) 40%, transparent);
 }
 
 /* =========================================================================
-   🗓️ NEXT FIXTURE CARD COMPONENT
+   🗓️ 7. NEXT FIXTURE CARD
    ========================================================================= */
-.home-next-fixture-card {
-  background: var(--card);
+.home-next-fixture-card,
+#next-fixture-box {
+  background: linear-gradient(135deg, rgba(20, 23, 43, 0.94), rgba(15, 17, 33, 0.98));
   border: 1px solid var(--line);
   border-radius: 18px;
   padding: 12px 14px;
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
   cursor: pointer;
   color: var(--tx);
   transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
-.home-next-fixture-card:active {
+.home-next-fixture-card:active,
+#next-fixture-box:active {
   transform: scale(0.985);
   border-color: rgba(140, 109, 255, 0.5);
-}
-
-.fixture-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.fixture-tag {
-  font-size: 11px;
-  font-weight: 800;
-  color: #ffffff;
-  letter-spacing: 0.02em;
-}
-
-.fixture-time {
-  font-size: 10.5px;
-  font-weight: 600;
-  color: var(--mu);
-}
-
-.fixture-body {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  width: 100%;
 }
 
 .fixture-team {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex: 1 1 0;
+  gap: 8px;
   min-width: 0;
-}
-
-.fixture-team.away-side {
-  justify-content: flex-end;
-  text-align: right;
 }
 
 .fixture-badge {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   object-fit: contain;
-  flex: 0 0 32px;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
-}
-
-.team-meta {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.team-meta b {
-  font-size: 13px;
-  font-weight: 800;
-  line-height: 1.15;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: #ffffff;
-}
-
-.team-meta small {
-  font-size: 10px;
-  color: var(--mu);
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.fixture-vs-pill {
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: var(--card2);
-  border: 1px solid var(--line);
-  font-size: 9.5px;
-  font-weight: 900;
-  color: var(--mu);
-  flex: 0 0 auto;
-}
-
-.fixture-arrow {
-  color: var(--mu);
-  font-size: 18px;
-  margin-left: 2px;
-  flex: 0 0 auto;
 }
