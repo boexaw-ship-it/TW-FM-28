@@ -4,7 +4,7 @@
 // Features:
 //   1. Deadline Countdown Timer Engine & Hero Click -> Fixtures Navigation
 //   2. 3-Column Balanced Stats Alignment (330, 1.8M, 51)
-//   3. Top 5 Real Captains Card Grid (Clean View - C / V Badges Removed)
+//   3. Top 5 Real Captains Card Grid (Connected to js/utils/player-photo.js)
 //   4. Tab Color = Points Color 100% Sync System
 //   5. Live Next Fixture Match Card (Current Gameweek Filter + Code-only Badges)
 // Standards: UI Design Knowledge Pack (Sports UI & 8px Grid)
@@ -13,9 +13,14 @@
 import { db } from "./firebase-config.js";
 import { doc, getDoc } from "./core/fs.js";
 import { loadFixturesMaster } from "./core/data.js";
+// 🌟 အဓိက ချိတ်ဆက်မှု: js/utils/player-photo.js မှ getPlayerPhotoUrl ကို တိုက်ရိုက် Import လုပ်ခြင်း
+import { getPlayerPhotoUrl } from "./utils/player-photo.js";
 
 const $ = (id) => document.getElementById(id);
 const MIN = 60 * 1000;
+
+// 💡 Version 12 Cache Key (Cache အဟောင်းများ ရှင်းလင်းပြီး ဒေတာသစ် တန်းဖတ်စေခြင်း)
+const SCOUT_CACHE_KEY_V12 = "twfm_scout_highlights_v12";
 
 const LS = {
   get(k, ttl) { 
@@ -57,7 +62,7 @@ const POS = {
 };
 
 // ============================================
-// 🛡️ TEAM DETAILS & CODE-ONLY LOCAL BADGE MAP
+// 🛡️ TEAM DETAILS & CODE-ONLY LOCAL BADGE MAP (2026-27 Season)
 // ============================================
 const teamDetailsMap = {
   1:  { name: "Arsenal", short: "ARS", code: "ars", color: "#EF0107" },
@@ -92,7 +97,7 @@ Object.entries(teamDetailsMap).forEach(([id, meta]) => {
 
 function getTeamMeta(teamIdentifier) {
   if (!teamIdentifier) {
-    return { id: 1, name: "Arsenal", short: "ARS", code: "ars", color: "#EF0107", badgePath: "./assets/badges/ars.png" };
+    return { id: 6, name: "Chelsea", short: "CHE", code: "che", color: "#034694", badgePath: "./assets/badges/che.png" };
   }
   const clean = String(teamIdentifier).trim().toLowerCase();
   const matched = TEAM_LOOKUP[clean];
@@ -102,7 +107,7 @@ function getTeamMeta(teamIdentifier) {
       badgePath: `./assets/badges/${matched.code}.png`
     };
   }
-  return { id: 1, name: "Arsenal", short: "ARS", code: "ars", color: "#8C6DFF", badgePath: `./assets/badges/ars.png` };
+  return { id: 6, name: "Chelsea", short: "CHE", code: "che", color: "#034694", badgePath: `./assets/badges/che.png` };
 }
 
 // ============================================
@@ -121,7 +126,7 @@ const MODES = {
 // ⏳ DEADLINE COUNTDOWN ENGINE
 // ============================================
 async function loadDeadline() {
-  let info = LS.get("twfm_deadline_v10", 10 * MIN);
+  let info = LS.get("twfm_deadline_v12", 10 * MIN);
   if (!info || (info.ts && info.ts < Date.now())) {
     try {
       const m = await loadFixturesMaster();
@@ -137,7 +142,7 @@ async function loadDeadline() {
       } else {
         info = { gw: 6, ts: 0, lastDone: null };
       }
-      LS.set("twfm_deadline_v10", info);
+      LS.set("twfm_deadline_v12", info);
     } catch (e) { 
       console.warn("Deadline load note:", e); 
       info = info || { gw: 6, ts: 0, lastDone: null }; 
@@ -241,17 +246,17 @@ async function loadStats() {
 }
 
 // ============================================
-// 🌟 TOP 5 PLAYERS CARD GRID RENDERER (CLEAN NO C/V BADGES)
+// 🌟 TOP 5 PLAYERS CARD GRID RENDERER
 // ============================================
 async function loadScoutHighlights() {
-  scoutHighlightsData = LS.get("twfm_scout_highlights_v10", 15 * MIN);
+  scoutHighlightsData = LS.get(SCOUT_CACHE_KEY_V12, 15 * MIN);
 
   if (!scoutHighlightsData) {
     try {
       const snap = await getDoc(doc(db, "scoutPlayers", "scoutHighlights"));
       if (snap.exists()) {
         scoutHighlightsData = snap.data();
-        LS.set("twfm_scout_highlights_v10", scoutHighlightsData);
+        LS.set(SCOUT_CACHE_KEY_V12, scoutHighlightsData);
       }
     } catch (err) {
       console.warn("scoutHighlights load note:", err);
@@ -313,24 +318,21 @@ function renderPlayerCards() {
     return;
   }
 
-  // 💡 ထိပ်တန်းကစားသမား (၅) ဦး Card Grid Render ပြုလုပ်ခြင်း (Captain / Vice-Captain Badge မပါရှိပါ)
+  // 💡 ထိပ်တန်းကစားသမား (၅) ဦး Card Grid Render ပြုလုပ်ခြင်း
   container.innerHTML = list.slice(0, 5).map((p, i) => {
     const rawPos = String(p.position || "mid").toLowerCase().trim();
     const isGk = rawPos === "gk" || rawPos === "gkp";
     const posColor = POS[rawPos] || "#F59E0B";
 
+    // 🌟 ၂၀၂၆-၂၇ လက်ရှိကလပ် (ဥပမာ João Pedro & Rogers -> CHE) အသင်းတံဆိပ်
     const teamMeta = getTeamMeta(p.teamCode || p.team);
     const teamColor = teamMeta.color;
     const teamShort = teamMeta.short;
     const localBadgeUrl = teamMeta.badgePath;
 
-    // 📸 Official FPL 250x250 HD Headshot URL
-    const photoCode = p.photoCode || p.photo;
-    const pId = p.playerId || p.id;
-    const photoUrl = p.photoUrl || (photoCode 
-      ? `https://resources.premierleague.com/premierleague/photos/players/250x250/p${photoCode}.png`
-      : pId 
-      ? `https://resources.premierleague.com/premierleague/photos/players/250x250/p${pId}.png`
+    // 📸 🌟 player-photo.js မှ တဆင့် Cache-Busted 2026-27 Photo URL ကို တိုက်ရိုက် ရယူခြင်း
+    const freshPhotoUrl = getPlayerPhotoUrl(p) || (p.photoUrl 
+      ? `${p.photoUrl}${p.photoUrl.includes("?") ? "&" : "?"}v=2026_27` 
       : "");
 
     const fallbackSvg = `
@@ -345,11 +347,10 @@ function renderPlayerCards() {
 
     return `
       <div class="top-player-card" style="border-top: 3.5px solid ${posColor};">
-        <!-- 💡 Rank Number Only (1, 2, 3, 4, 5) -->
         <span class="player-card-rank">${i + 1}</span>
 
         <div class="player-card-photo-wrap">
-          <img src="${photoUrl}" 
+          <img src="${freshPhotoUrl}" 
                alt="${esc(p.name)}" 
                loading="lazy" 
                class="player-card-photo"
@@ -362,6 +363,7 @@ function renderPlayerCards() {
                    this.parentElement.innerHTML = \`${fallbackSvg.replace(/\n/g, '').replace(/"/g, "'")}\`;
                  }
                ">
+          <!-- 💡 Chelsea Logo အမှန်တကယ် ပြသရန် Overlay Badge -->
           <img src="${localBadgeUrl}" alt="${esc(teamShort)}" class="player-card-club-badge" onerror="this.style.display='none';">
         </div>
 
@@ -370,7 +372,6 @@ function renderPlayerCards() {
           ${isGk ? "GK" : rawPos.toUpperCase()}
         </div>
         
-        <!-- 💡 Tab Color နှင့် Points Color ၁၀၀% Sync ဖြစ်ခြင်း -->
         <div class="player-card-pts" style="color: ${activeColor} !important; text-shadow: 0 0 10px color-mix(in srgb, ${activeColor} 30%, transparent);">
           ${M.show(p)}
         </div>
