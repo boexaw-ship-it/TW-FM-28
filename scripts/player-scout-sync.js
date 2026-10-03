@@ -3,9 +3,10 @@
 // Player Scout Sync Engine + Scout Highlights Document
 // Season: 2026-2027 Official Premier League Sync
 // Features:
-//   - Official FPL Photo Engine (el.photo -> el.opta_code ONLY)
-//   - Pure Premier League CDN URLs (No ?v= parameter)
-//   - Fixed Team & Fixture Alignment for João Pedro & Morgan Rogers (Chelsea FC)
+//   - Official FPL Photo Engine (el.photo -> el.opta_code ONLY, no el.code/id)
+//   - Pure Premier League CDN URLs (No query parameters)
+//   - True Team & Fixture Alignment for João Pedro & Morgan Rogers (Chelsea FC)
+//   - Full Metrics Sync (PPG, VAL, L5, XGI, ICT) for all 6 Highlight Categories
 // Path: scripts/player-scout-sync.js
 // ============================================
 
@@ -41,6 +42,7 @@ const FPL_BASE = "https://fantasy.premierleague.com/api";
 const BOOTSTRAP_URL = `${FPL_BASE}/bootstrap-static/`;
 const FIXTURES_URL = `${FPL_BASE}/fixtures/`;
 
+// === Helper: Exponential Backoff Fetcher ===
 async function fplFetch(url, retries = 3) {
   for (let i = 0; i < retries; i++) {
     try {
@@ -57,6 +59,7 @@ async function fplFetch(url, retries = 3) {
   }
 }
 
+// 🤖 Auto-Detect Current Gameweek Lifecycle Engine
 function autoDetectGameweek(events = []) {
   const currentEvent = events.find((e) => e.is_current === true) 
     || events.find((e) => e.is_next === true) 
@@ -90,6 +93,7 @@ function autoDetectGameweek(events = []) {
   };
 }
 
+// === Team Code & Name Mappings ===
 function buildTeamMaps(bootstrap) {
   const teamCodeMap = {};
   const teamNameMap = {};
@@ -108,6 +112,7 @@ function buildTeamMaps(bootstrap) {
   return { teamCodeMap, teamNameMap, chelseaTeamId };
 }
 
+// === Next 3 Fixtures Buffer Map ===
 function buildNext3FixturesMap(fixtures, currentGwId, teamNameMap, teamCodeMap) {
   const upcoming = fixtures
     .filter((f) => !f.finished && f.event && f.event >= currentGwId)
@@ -135,6 +140,7 @@ function buildNext3FixturesMap(fixtures, currentGwId, teamNameMap, teamCodeMap) 
   return teamFixturesMap;
 }
 
+// 🌟 Format Helper: Card Summary Object for Dashboard Cards
 function createCardSummary(player) {
   if (!player) return null;
   return {
@@ -146,8 +152,8 @@ function createCardSummary(player) {
     team: player.team,
     teamCode: player.teamCode,
     price: player.price,
-    photoCode: player.photoCode,
-    photoUrl: player.photoUrl,
+    photoCode: player.photoCode, // 📸 Clean Numeric ID
+    photoUrl: player.photoUrl,   // 📸 Pure Premier League CDN URL
     totalPoints: player.totalPoints,
     gwPoints: player.gwPoints,
     ownership: player.ownership,
@@ -164,6 +170,7 @@ function createCardSummary(player) {
   };
 }
 
+// === Main Execution Function ===
 async function main() {
   console.log("🚀 TW Fantasy — Master Sync Starting (Pure el.photo Engine)...");
   console.log("Time:", new Date().toISOString());
@@ -175,7 +182,7 @@ async function main() {
     ]);
 
     const currentGwDetails = autoDetectGameweek(bootstrap.events || []);
-    console.log(`📅 Current Gameweek: ${currentGwDetails.name}`);
+    console.log(`📅 Current Gameweek: ${currentGwDetails.name} (Live: ${currentGwDetails.isCurrent})`);
 
     const isSeasonStarted = bootstrap.events.some((e) => e.is_current || e.finished);
     const { teamCodeMap, teamNameMap, chelseaTeamId } = buildTeamMaps(bootstrap);
@@ -235,7 +242,7 @@ async function main() {
           .trim();
       }
 
-      // 3️⃣ Build official Premier League CDN URL (No ?v= parameter)
+      // 3️⃣ Build official Premier League CDN URL (Pure, No ?v= query)
       const photoUrl = cleanPhotoCode
         ? `https://resources.premierleague.com/premierleague/photos/players/250x250/p${cleanPhotoCode}.png`
         : "";
@@ -324,7 +331,9 @@ async function main() {
 
         status: status,
         chanceOfPlaying: chanceOfPlaying,
-        chanceOfPlayingThisRound: el.chanceOfPlayingThisRound !== null ? Number(el.chanceOfPlayingThisRound) : null,
+        chanceOfPlayingThisRound: el.chance_of_playing_this_round !== null && el.chance_of_playing_this_round !== undefined 
+          ? Number(el.chance_of_playing_this_round) 
+          : null,
         isAvailable: status === "a" && chanceOfPlaying === 100,
         isDoubtful: status === "d" || (chanceOfPlaying > 0 && chanceOfPlaying < 100),
         isSuspended: status === "s",
@@ -334,7 +343,7 @@ async function main() {
       });
     }
 
-    // Master scout payload
+    // 💡 1-DOCUMENT MASTER PAYLOAD (scoutPlayers/allPlayers)
     const masterScoutPayload = {
       currentGameweek: currentGwDetails,
       isSeasonStarted: isSeasonStarted,
@@ -349,7 +358,9 @@ async function main() {
     const approxSizeKb = Math.round(Buffer.byteLength(JSON.stringify(masterScoutPayload)) / 1024);
     console.log(`✅ [MASTER DOC] scoutPlayers/allPlayers Synced (~${approxSizeKb} KB)`);
 
-    // Top 5 Captains & Highlights Document
+    // =========================================================================
+    // 👑 TRUE CURRENT GAMEWEEK TOP 5 MOST CAPTAINED RESOLUTION
+    // =========================================================================
     const topCaptainsList = [];
     const chosenIds = new Set();
 
@@ -398,6 +409,7 @@ async function main() {
       }
     }
 
+    // 💡 ကဏ္ဍ ၆ ခုစလုံးအတွက် Top 5 စာရင်းများ
     const sortedByTotalPoints = [...allValidPlayers].sort((a, b) => b.totalPoints - a.totalPoints);
     const topTotalPoints = sortedByTotalPoints.slice(0, 5).map(createCardSummary);
 
@@ -413,21 +425,32 @@ async function main() {
     const sortedByTransfersOut = [...allValidPlayers].sort((a, b) => b.transfersOutEvent - a.transfersOutEvent);
     const topTransfersOut = sortedByTransfersOut.slice(0, 5).map(createCardSummary);
 
+    // 💡 DOCUMENT (၂): scoutPlayers/scoutHighlights (Dashboard သီးသန့် အသေးစား Document)
     const highlightsPayload = {
       gameweek: currentGwDetails.id,
       gameweekName: currentGwDetails.name,
       updatedAt: FieldValue.serverTimestamp(),
 
+      // ၁။ Most Captained (၅ ယောက်)
       mostCaptained: {
         leader: topCaptainsList[0] || null,
         viceLeader: topCaptainsList[1] || null,
         topList: topCaptainsList
       },
 
+      // ၂။ Total Points (၅ ယောက်)
       mostTotalPoints: { leader: topTotalPoints[0] || null, topList: topTotalPoints },
+
+      // ၃။ Week Points (၅ ယောက်)
       mostGwPoints: { leader: topGwPoints[0] || null, topList: topGwPoints },
+
+      // ၄။ Ownership (၅ ယောက်)
       mostOwned: { leader: topOwnership[0] || null, topList: topOwnership },
+
+      // ၅။ Transfers In (၅ ယောက်)
       mostTransferredIn: { leader: topTransfersIn[0] || null, topList: topTransfersIn },
+
+      // ၆။ Transfers Out (၅ ယောက်)
       mostTransferredOut: { leader: topTransfersOut[0] || null, topList: topTransfersOut }
     };
 
