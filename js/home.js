@@ -2,25 +2,24 @@
 // TW Fantasy Official League — Home UI Controller
 // Path: js/home.js
 // Features:
-//   1. Deadline Countdown Timer Engine & Hero Click -> Fixtures Navigation
-//   2. 3-Column Balanced Stats Alignment (330, 1.8M, 51)
-//   3. Top 5 Real Captains Card Grid (Connected to js/utils/player-photo.js)
-//   4. Tab Color = Points Color 100% Sync System
+//   1. Polished Manager & Team Card (Luxury Glassmorphism & Soft Glow)
+//   2. Dedicated Deadline Countdown Frame (Fixed 4-Grid Digital Timer Box, No Unwanted Route Jumps)
+//   3. 3-Column Balanced Stats Alignment (330, 1.8M, 51)
+//   4. Top 5 Real Captains Card Grid (Firestore photoUrl Priority & Clean UI)
 //   5. Live Next Fixture Match Card (Current Gameweek Filter + Code-only Badges)
-// Standards: UI Design Knowledge Pack (Sports UI & 8px Grid)
+// Standards: UI Design Knowledge Pack (Sports UI, 8px Grid, Rounded 16-20px)
 // ============================================
 
 import { db } from "./firebase-config.js";
 import { doc, getDoc } from "./core/fs.js";
 import { loadFixturesMaster } from "./core/data.js";
-// 🌟 အဓိက ချိတ်ဆက်မှု: js/utils/player-photo.js မှ getPlayerPhotoUrl ကို တိုက်ရိုက် Import လုပ်ခြင်း
 import { getPlayerPhotoUrl } from "./utils/player-photo.js";
 
 const $ = (id) => document.getElementById(id);
 const MIN = 60 * 1000;
 
-// 💡 Version 12 Cache Key (Cache အဟောင်းများ ရှင်းလင်းပြီး ဒေတာသစ် တန်းဖတ်စေခြင်း)
-const SCOUT_CACHE_KEY_V12 = "twfm_scout_highlights_v12";
+// 💡 Version 15 Cache Key
+const SCOUT_CACHE_KEY_V15 = "twfm_scout_highlights_v15";
 
 const LS = {
   get(k, ttl) { 
@@ -123,10 +122,40 @@ const MODES = {
 };
 
 // ============================================
-// ⏳ DEADLINE COUNTDOWN ENGINE
+// 👑 MANAGER & TEAM HEADER FRAME STYLER
+// ============================================
+function decorateManagerFrame(profile) {
+  const teamNameEl = $("welcome-name") \vert{}\vert{} $("team-title-text");
+  const managerNameEl = $("welcome-manager") \vert{}\vert{} $("manager-title-text");
+  const managerCardEl = $("manager-profile-card") \vert{}\vert{} $("header-profile-box");
+
+  const teamName = profile?.teamName || "SEAROKER Tw";
+  const managerName = profile?.managerName || profile?.displayName || "zaw moe";
+
+  if (teamNameEl) {
+    teamNameEl.innerHTML = `<span style="font-weight:900; letter-spacing:0.02em;">${esc(teamName)}</span> <span style="filter: drop-shadow(0 0 8px rgba(251,191,36,0.6));">👑</span>`;
+  }
+  if (managerNameEl) {
+    managerNameEl.innerHTML = `<span style="opacity:0.75; font-size:11px;">Manager:</span> <span style="color:#e2e8f0; font-weight:700;">${esc(managerName)}</span>`;
+  }
+
+  if (managerCardEl) {
+    managerCardEl.style.cssText = `
+      background: linear-gradient(135deg, rgba(20, 23, 43, 0.95), rgba(15, 17, 33, 0.98));
+      border: 1px solid rgba(140, 109, 255, 0.35);
+      border-radius: 18px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(12px);
+      padding: 14px 16px;
+    `;
+  }
+}
+
+// ============================================
+// ⏳ DEADLINE COUNTDOWN FRAME ENGINE (FIXED & POLISHED)
 // ============================================
 async function loadDeadline() {
-  let info = LS.get("twfm_deadline_v12", 10 * MIN);
+  let info = LS.get("twfm_deadline_v15", 10 * MIN);
   if (!info || (info.ts && info.ts < Date.now())) {
     try {
       const m = await loadFixturesMaster();
@@ -142,7 +171,7 @@ async function loadDeadline() {
       } else {
         info = { gw: 6, ts: 0, lastDone: null };
       }
-      LS.set("twfm_deadline_v12", info);
+      LS.set("twfm_deadline_v15", info);
     } catch (e) { 
       console.warn("Deadline load note:", e); 
       info = info || { gw: 6, ts: 0, lastDone: null }; 
@@ -153,21 +182,64 @@ async function loadDeadline() {
   currentGwNumber = info.gw || 6;
   lastDone = info.lastDone ?? null;
 
-  if ($("gw-label")) $("gw-label").textContent = `GW${currentGwNumber} DEADLINE`;
-  if ($("gw-when") && info.ts) {
-    $("gw-when").textContent = new Date(info.ts).toLocaleString("en-GB", { 
-      timeZone: "Asia/Yangon", 
-      weekday: "short", 
-      day: "numeric", 
-      month: "short", 
-      year: "numeric", 
-      hour: "2-digit", 
-      minute: "2-digit", 
-      hour12: false 
-    }) + " MMT";
-  }
+  renderDeadlineFrame(info);
   tick();
   paintStats();
+}
+
+function renderDeadlineFrame(info) {
+  const container = $("hero-deadline-card") \vert{}\vert{} $("deadline-timer-container");
+  if (!container) return;
+
+  // 💡 Fixtures သို့ မလိုလားအပ်ဘဲ ခုန်မသွားစေရန် Click Handler ကို ဖျက်သိမ်းသည်
+  container.onclick = null;
+  container.style.cursor = "default";
+
+  const whenStr = info.ts ? new Date(info.ts).toLocaleString("en-GB", { 
+    timeZone: "Asia/Yangon", 
+    weekday: "short", 
+    day: "numeric", 
+    month: "short", 
+    year: "numeric", 
+    hour: "2-digit", 
+    minute: "2-digit", 
+    hour12: false 
+  }) + " MMT" : "Sat, 10 Oct 2026, 16:30 MMT";
+
+  container.innerHTML = `
+    <div style="background: linear-gradient(135deg, rgba(26, 31, 58, 0.9), rgba(15, 17, 33, 0.95)); border: 1.2px solid rgba(140, 109, 255, 0.4); border-radius: 18px; padding: 12px 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); position: relative; overflow: hidden;">
+      
+      <!-- Top Title & Date Row -->
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span style="display:inline-block; width:7px; height:7px; border-radius:50%; background:#fbbf24; box-shadow:0 0 10px #fbbf24;"></span>
+          <span id="gw-label" style="font-size: 11px; font-weight: 900; letter-spacing: 0.06em; color: #fbbf24; text-transform: uppercase;">GW${currentGwNumber} DEADLINE</span>
+        </div>
+        <span id="gw-when" style="font-size: 10.5px; font-weight: 700; color: #94a3b8;">${whenStr}</span>
+      </div>
+
+      <!-- 4-Grid Digital Countdown Box (Sports UI Standards) -->
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; text-align: center;">
+        <div style="background: rgba(11, 13, 26, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 6px 0;">
+          <div id="cd-d" style="font-size: 16px; font-weight: 900; color: #ffffff; font-family: monospace;">00</div>
+          <div style="font-size: 7.5px; font-weight: 800; color: #8c6dff; text-transform: uppercase;">DAYS</div>
+        </div>
+        <div style="background: rgba(11, 13, 26, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 6px 0;">
+          <div id="cd-h" style="font-size: 16px; font-weight: 900; color: #ffffff; font-family: monospace;">00</div>
+          <div style="font-size: 7.5px; font-weight: 800; color: #8c6dff; text-transform: uppercase;">HOURS</div>
+        </div>
+        <div style="background: rgba(11, 13, 26, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 6px 0;">
+          <div id="cd-m" style="font-size: 16px; font-weight: 900; color: #ffffff; font-family: monospace;">00</div>
+          <div style="font-size: 7.5px; font-weight: 800; color: #8c6dff; text-transform: uppercase;">MINS</div>
+        </div>
+        <div style="background: rgba(11, 13, 26, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 6px 0;">
+          <div id="cd-s" style="font-size: 16px; font-weight: 900; color: #38bdf8; font-family: monospace;">00</div>
+          <div style="font-size: 7.5px; font-weight: 800; color: #38bdf8; text-transform: uppercase;">SECS</div>
+        </div>
+      </div>
+
+    </div>
+  `;
 }
 
 function tick() {
@@ -249,14 +321,14 @@ async function loadStats() {
 // 🌟 TOP 5 PLAYERS CARD GRID RENDERER
 // ============================================
 async function loadScoutHighlights() {
-  scoutHighlightsData = LS.get(SCOUT_CACHE_KEY_V12, 15 * MIN);
+  scoutHighlightsData = LS.get(SCOUT_CACHE_KEY_V15, 15 * MIN);
 
   if (!scoutHighlightsData) {
     try {
       const snap = await getDoc(doc(db, "scoutPlayers", "scoutHighlights"));
       if (snap.exists()) {
         scoutHighlightsData = snap.data();
-        LS.set(SCOUT_CACHE_KEY_V12, scoutHighlightsData);
+        LS.set(SCOUT_CACHE_KEY_V15, scoutHighlightsData);
       }
     } catch (err) {
       console.warn("scoutHighlights load note:", err);
@@ -324,16 +396,15 @@ function renderPlayerCards() {
     const isGk = rawPos === "gk" || rawPos === "gkp";
     const posColor = POS[rawPos] || "#F59E0B";
 
-    // 🌟 ၂၀၂၆-၂၇ လက်ရှိကလပ် (ဥပမာ João Pedro & Rogers -> CHE) အသင်းတံဆိပ်
     const teamMeta = getTeamMeta(p.teamCode || p.team);
     const teamColor = teamMeta.color;
     const teamShort = teamMeta.short;
     const localBadgeUrl = teamMeta.badgePath;
 
-    // 📸 🌟 player-photo.js မှ တဆင့် Cache-Busted 2026-27 Photo URL ကို တိုက်ရိုက် ရယူခြင်း
+    // 📸 Official FPL 250x250 HD Headshot URL
     const freshPhotoUrl = getPlayerPhotoUrl(p) || (p.photoUrl 
-      ? `${p.photoUrl}${p.photoUrl.includes("?") ? "&" : "?"}v=2026_27` 
-      : "");
+      ? p.photoUrl 
+      : (p.photoCode ? `https://resources.premierleague.com/premierleague/photos/players/250x250/p${p.photoCode}.png` : ""));
 
     const fallbackSvg = `
       <div class="home-animated-badge-wrap" style="--tc:${teamColor}; width:68px; height:68px; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center;">
@@ -350,7 +421,7 @@ function renderPlayerCards() {
         <span class="player-card-rank">${i + 1}</span>
 
         <div class="player-card-photo-wrap">
-          <img src="${freshPhotoUrl}" 
+          <img src="${freshPhotoUrl || localBadgeUrl}" 
                alt="${esc(p.name)}" 
                loading="lazy" 
                class="player-card-photo"
@@ -363,7 +434,7 @@ function renderPlayerCards() {
                    this.parentElement.innerHTML = \`${fallbackSvg.replace(/\n/g, '').replace(/"/g, "'")}\`;
                  }
                ">
-          <!-- 💡 Chelsea Logo အမှန်တကယ် ပြသရန် Overlay Badge -->
+          <!-- 💡 Chelsea FC Overlay Badge -->
           <img src="${localBadgeUrl}" alt="${esc(teamShort)}" class="player-card-club-badge" onerror="this.style.display='none';">
         </div>
 
@@ -456,7 +527,13 @@ export async function initHomeTab(user, profile) {
     fplId = String(profile.fplTeamId);
   }
 
+  // 👑 Manager Frame အလှဆင်ခြင်း
+  decorateManagerFrame(profile);
+
+  // ⏳ Deadline Countdown Frame တည်ဆောက်ခြင်း
   await loadDeadline();
+
+  // 📊 Stats & Cards
   loadStats();
   loadScoutHighlights();
   await loadNextFixture();
@@ -464,17 +541,7 @@ export async function initHomeTab(user, profile) {
   if (timerInterval) clearInterval(timerInterval);
   timerInterval = setInterval(tick, 1000);
 
-  const heroCard = $("hero-deadline-card");
-  if (heroCard) {
-    heroCard.onclick = () => {
-      if (typeof window.go === "function") {
-        window.go("fixtures");
-      } else {
-        window.location.hash = "#/fixtures";
-      }
-    };
-  }
-
+  // Tab Switching
   $("leader-tabs")?.addEventListener("click", (e) => {
     const b = e.target.closest("button[data-k]");
     if (!b) return;
