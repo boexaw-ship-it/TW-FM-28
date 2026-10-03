@@ -1,3 +1,10 @@
+// ============================================
+// TW Fantasy Official League — Fixture & Squad Matrix Engine
+// Path: js/draft.js
+// Standards: UI Design Knowledge Pack (Sports UI & 8px Grid)
+// Assets: ./assets/badges/{code}.png (ars.png, lee.png, etc.)
+// ============================================
+
 import { auth, db } from "../js/firebase-config.js";
 import { loadFixturesMaster, getScoutSnap } from "./core/data.js";
 import { onAuthStateChanged } from "./core/auth.js";
@@ -14,11 +21,11 @@ let currentFplTeamId = null;
 let currentGw = parseInt(localStorage.getItem("twf_current_gw") || "5", 10);
 let activeTeamFilter = "all";
 
-const FIXTURES_CACHE_KEY = "twf_fixtures_cache_v3"; // schema အသစ် (1-doc) → key အသစ်၊ TTL 10 မိနစ်
+const FIXTURES_CACHE_KEY = "twf_fixtures_cache_v3";
 const FIXTURES_TTL = 10 * 60 * 1000;
 let fixturesLoadError = "";
 let fixturesGw = 0;
-const SCOUT_CACHE_KEY = "twf_scout_players_cache_v4"; // TTL 30 မိနစ်
+const SCOUT_CACHE_KEY = "twf_scout_players_cache_v4";
 const SCOUT_TTL = 30 * 60 * 1000;
 const SQUAD_TIME_KEY = "twf_shared_players_quota_time_v2";
 
@@ -41,7 +48,6 @@ const TEAM_ID_MAP = {
   16: "MUN", 17: "NEW", 18: "NFO", 19: "TOT", 20: "SUN"
 };
 
-// fixtures ထဲက team_h_code / team_a_code ကနေ id <-> code map ကို dynamic တည်ဆောက် (season ပြောင်းလည်း မှန်)
 let dynTeamCodeById = {};
 function rebuildTeamMaps() {
   const m = {};
@@ -78,9 +84,8 @@ const TEAM_DIFFICULTY_TIER = {
 };
 
 // =========================================================================
-// 🌟 CURRENT GAMEWEEK ENGINE (ချက်ချင်း ဖတ်ယူပြသမှု စနစ်)
+// 🌟 CURRENT GAMEWEEK ENGINE
 // =========================================================================
-
 function updateDraftGwBadge() {
   const gwLabel = document.getElementById("gw-header-label");
   currentGw = parseInt(localStorage.getItem("twf_current_gw") || localStorage.getItem("twf_transfers_gw") || "5", 10);
@@ -90,7 +95,7 @@ function updateDraftGwBadge() {
 }
 
 if (document.readyState === "loading") {
-  queueMicrotask( () => updateDraftGwBadge());
+  queueMicrotask(() => updateDraftGwBadge());
 } else {
   updateDraftGwBadge();
 }
@@ -98,7 +103,6 @@ if (document.readyState === "loading") {
 // =========================================================================
 // ⏰ IN-FILE SCHEDULE QUOTA CONTROLLER (0 Read Guard)
 // =========================================================================
-
 function getMyanmarDate(dateObj = new Date()) {
   const utc = dateObj.getTime() + (dateObj.getTimezoneOffset() * 60000);
   return new Date(utc + (6.5 * 3600000));
@@ -117,7 +121,6 @@ function checkDraftSlotStatus() {
 
   const isMatchDayPeriod = (day === 0 || day === 6 || day === 1);
 
-  // ၁။ Sat, Sun, Mon (၄ နာရီခြားစနစ် - 00, 04, 08, 12, 16, 20)
   if (isMatchDayPeriod) {
     const matchDaySlots = [0, 4, 8, 12, 16, 20];
     let baseH = 0;
@@ -157,7 +160,6 @@ function checkDraftSlotStatus() {
     };
   }
 
-  // ၂။ Tue, Wed, Thu, Fri (၁၂ နာရီခြားစနစ် - 00:00, 12:00)
   const baseH = currentH >= 12 ? 12 : 0;
   const currentWindowStartDate = new Date(mmNow);
   currentWindowStartDate.setHours(baseH, 0, 0, 0);
@@ -220,13 +222,11 @@ function triggerInitialFakeRefreshUI() {
 // =========================================================================
 // 🔄 RESET / REFRESH BUTTON (Early-Return & 0 Read Guard)
 // =========================================================================
-
 window.resetDraftToFPLRealtime = async function() {
   const btn = document.querySelector("button[onclick*='resetDraftToFPLRealtime']") || document.getElementById("btn-reset-matrix");
 
   const slotStatus = checkDraftSlotStatus();
 
-  // 🛡️ Early Return: အချိန်မစေ့သေးပါက Firebase ဆီ လုံးဝမသွားပါ (Read = 0)
   if (!slotStatus.isExpired) {
     showDraftToast(slotStatus.alertText, false);
     return;
@@ -286,10 +286,11 @@ function formatTeamShortName(rawName) {
   return TEAM_SHORT_CODES[clean] || (rawName.length > 4 ? rawName.slice(0, 3).toUpperCase() : rawName.toUpperCase());
 }
 
+// 💡 အဓိက FIX: ဖိုင်လမ်းကြောင်းကို assets/badges/{code}.png (ars.png, lee.png) အတိအကျ သတ်မှတ်ခြင်း[span_10](start_span)[span_10](end_span)
 function getTeamBadgeUrl(teamCode) {
-  const clean = String(teamCode).trim().toUpperCase();
-  const teamId = idOfTeamCode(clean) || "1";
-  return `./assets/badges/${teamId}.${clean.toLowerCase()}.png`;
+  if (!teamCode) return "./assets/badges/ars.png";
+  const clean = String(teamCode).trim().toLowerCase();
+  return `./assets/badges/${clean}.png`;
 }
 
 function calculateDynamicFdr(opponentCode, isHome) {
@@ -329,7 +330,6 @@ function getFirebaseMatchesForTeam(teamCode, targetGw) {
   const out = [];
   firebaseFixturesCache.forEach((f) => {
     if (Number(f.event) !== Number(targetGw)) return;
-    // team_*_code ရှိရင် code နဲ့၊ မရှိမှ id နဲ့ ကိုက်
     const isH = f.team_h_code ? up(f.team_h_code) === cleanCode : (tIdNum && Number(f.team_h) === tIdNum);
     const isA = f.team_a_code ? up(f.team_a_code) === cleanCode : (tIdNum && Number(f.team_a) === tIdNum);
     if (!isH && !isA) return;
@@ -397,7 +397,7 @@ function applyFixturesGw(gw) {
 }
 
 async function loadFixturesCache(forceFresh = false) {
-  try { localStorage.removeItem("twf_fixtures_cache"); } catch (_) {} // schema အဟောင်း cache ရှင်း
+  try { localStorage.removeItem("twf_fixtures_cache"); } catch (_) {}
 
   if (!forceFresh) {
     try {
@@ -412,8 +412,7 @@ async function loadFixturesCache(forceFresh = false) {
   }
 
   try {
-    const m = await loadFixturesMaster(forceFresh); // fixturesMeta/allFixtures (doc 1 ခု)
-    // match stats က ကြီးတာမို့ draft မှာ မလိုလို့ ဖယ်ပြီးသိမ်း
+    const m = await loadFixturesMaster(forceFresh);
     const list = (m.fixtures || []).map(({ stats, ...f }) => f);
     const gw = m.currentGameweek && m.currentGameweek.id;
     if (list.length > 0) {
@@ -424,12 +423,12 @@ async function loadFixturesCache(forceFresh = false) {
       try { localStorage.setItem(FIXTURES_CACHE_KEY, JSON.stringify({ t: Date.now(), gw, list })); } catch (_) {}
       return true;
     }
-    fixturesLoadError = "fixturesMeta/allFixtures ထဲမှာ fixtures မရှိသေးပါ (fixtures-sync ကို run ပါ)";
+    fixturesLoadError = "fixturesMeta/allFixtures ထဲမှာ fixtures မရှိသေးပါ";
     return false;
   } catch (e) {
     console.error("Draft fixtures load failed:", e);
     fixturesLoadError = e && e.code === "permission-denied"
-      ? "Firestore Rules က ဖတ်ခွင့် မပေးသေးပါ (permission-denied)"
+      ? "Firestore Rules က ဖတ်ခွင့် မပေးသေးပါ"
       : (e && e.message) || "Firestore ချိတ်မရပါ";
     if (forceFresh) throw e;
     return Boolean(firebaseFixturesCache && firebaseFixturesCache.length > 0);
@@ -650,6 +649,7 @@ function render20TeamsMatrix() {
       }
     }
 
+    // 💡 အသင်း Code သီးသန့် badge url (assets/badges/ars.png, lee.png)
     const badgeUrl = getTeamBadgeUrl(code);
 
     rowsHtml += `
