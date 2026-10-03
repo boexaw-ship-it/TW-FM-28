@@ -1,430 +1,492 @@
 // ============================================
-// TW Fantasy Official League
-// Player Scout Sync Engine + Scout Highlights Document
-// Targets:
-//   1) scoutPlayers/allPlayers    (Full Master Player List)
-//   2) scoutPlayers/scoutHighlights (Top Leaders & Highlights Document)
-// Fix: Most Captained Top 5 Players Full Resolution
+// TW Fantasy Official League — Home UI Controller
+// Path: js/home.js
+// Features:
+//   1. Deadline Countdown Timer Engine & Hero Click -> Fixtures Navigation
+//   2. 3-Column Balanced Stats Alignment (330, 1.8M, 51)
+//   3. Top 5 Real Captains Card Grid (Haaland, Palmer, Saka, Salah, etc.)
+//   4. Tab Color = Points Color 100% Sync System
+//   5. Live Next Fixture Match Card (Current Gameweek Filter + Code-only Badges)
+// Standards: UI Design Knowledge Pack (Sports UI & 8px Grid)
 // ============================================
 
-const { initializeApp, cert, getApps } = require("firebase-admin/app");
-const { getFirestore, FieldValue } = require("firebase-admin/firestore");
-const { DiffWriter } = require("./lib/diff-sync");
+import { db } from "./firebase-config.js";
+import { doc, getDoc } from "./core/fs.js";
+import { loadFixturesMaster } from "./core/data.js";
 
-// === Firebase Admin Initialization ===
-const rawServiceAccount = process.env.FIREBASE_SERVICE_ACCOUNT;
+const $ = (id) => document.getElementById(id);
+const MIN = 60 * 1000;
 
-if (!rawServiceAccount) {
-  console.error("❌ Error: FIREBASE_SERVICE_ACCOUNT Environment Variable မတွေ့ရှိပါဗျာ။");
-  process.exit(1);
+const LS = {
+  get(k, ttl) { 
+    try { 
+      const o = JSON.parse(localStorage.getItem(k)); 
+      if (o && Date.now() - o.t < ttl) return o.v; 
+    } catch (_) {} 
+    return null; 
+  },
+  set(k, v) { 
+    try { 
+      localStorage.setItem(k, JSON.stringify({ t: Date.now(), v })); 
+    } catch (_) {} 
+  },
+};
+
+const fmt = (n) => (Number.isFinite(+n) && n !== null && n !== undefined && n !== "" ? Number(n).toLocaleString("en-US") : "–");
+const pad = (n) => String(Math.max(0, n)).padStart(2, "0");
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+let deadlineTs = 0;
+let currentGwNumber = 6;
+let lastDone = null;
+let live = null;
+let fplId = null;
+let scoutHighlightsData = null;
+let mode = "cap"; // Default: Most Captained
+let timerInterval = null;
+
+// ============================================
+// 🎨 POSITION COLORS (UI Design Knowledge Pack)
+// ============================================
+const POS = { 
+  gk: "#2563EB", 
+  gkp: "#2563EB", 
+  def: "#EF4444", 
+  mid: "#F59E0B", 
+  fwd: "#22C55E" 
+};
+
+// ============================================
+// 🛡️ TEAM DETAILS & CODE-ONLY LOCAL BADGE MAP
+// ============================================
+const teamDetailsMap = {
+  1:  { name: "Arsenal", short: "ARS", code: "ars", color: "#EF0107" },
+  2:  { name: "Aston Villa", short: "AVL", code: "avl", color: "#95BFE5" },
+  3:  { name: "AFC Bournemouth", short: "BOU", code: "bou", color: "#DA291C" },
+  4:  { name: "Brentford", short: "BRE", code: "bre", color: "#E30613" },
+  5:  { name: "Brighton & Hove Albion", short: "BHA", code: "bha", color: "#0057B8" },
+  6:  { name: "Chelsea", short: "CHE", code: "che", color: "#034694" },
+  7:  { name: "Coventry City", swift: "COV", short: "COV", code: "cov", color: "#0099D8" },
+  8:  { name: "Crystal Palace", short: "CRY", code: "cry", color: "#1B458F" },
+  9:  { name: "Everton", short: "EVE", code: "eve", color: "#003399" },
+  10: { name: "Fulham", short: "FUL", code: "ful", color: "#F8FAFC" },
+  11: { name: "Hull City", short: "HUL", code: "hul", color: "#F5971E" },
+  12: { name: "Ipswich Town", short: "IPS", code: "ips", color: "#0047AB" },
+  13: { name: "Leeds United", short: "LEE", code: "lee", color: "#FFCD00" },
+  14: { name: "Liverpool", short: "LIV", code: "liv", color: "#C8102E" },
+  15: { name: "Manchester City", short: "MCI", code: "mci", color: "#6CABDD" },
+  16: { name: "Manchester United", short: "MUN", code: "mun", color: "#DA291C" },
+  17: { name: "Newcastle United", short: "NEW", code: "new", color: "#F8FAFC" },
+  18: { name: "Nottingham Forest", short: "NFO", code: "nfo", color: "#DD0000" },
+  19: { name: "Tottenham Hotspur", short: "TOT", code: "tot", color: "#8E9BB4" },
+  20: { name: "Sunderland", short: "SUN", code: "sun", color: "#EB172B" }
+};
+
+const TEAM_LOOKUP = {};
+Object.entries(teamDetailsMap).forEach(([id, meta]) => {
+  TEAM_LOOKUP[String(id)] = { id, ...meta };
+  TEAM_LOOKUP[meta.code.toLowerCase()] = { id, ...meta };
+  TEAM_LOOKUP[meta.short.toLowerCase()] = { id, ...meta };
+  TEAM_LOOKUP[meta.name.toLowerCase()] = { id, ...meta };
+});
+
+function getTeamMeta(teamIdentifier) {
+  if (!teamIdentifier) {
+    return { id: 1, name: "Arsenal", short: "ARS", code: "ars", color: "#EF0107", badgePath: "./assets/badges/ars.png" };
+  }
+  const clean = String(teamIdentifier).trim().toLowerCase();
+  const matched = TEAM_LOOKUP[clean];
+  if (matched) {
+    return {
+      ...matched,
+      badgePath: `./assets/badges/${matched.code}.png`
+    };
+  }
+  return { id: 1, name: "Arsenal", short: "ARS", code: "ars", color: "#8C6DFF", badgePath: `./assets/badges/ars.png` };
 }
 
-const serviceAccount = typeof rawServiceAccount === "string"
-  ? JSON.parse(rawServiceAccount)
-  : rawServiceAccount;
+// ============================================
+// 🔘 6 MODES CONFIG (Tab Color = Point Color 100% Sync)
+// ============================================
+const MODES = {
+  cap: { color: "#8c6dff", key: "mostCaptained", show: (p) => `${p.totalPoints || p.gwPoints || 0} pts` },
+  own: { color: "#38bdf8", key: "mostOwned", show: (p) => `${Number(p.ownership || 0).toFixed(1)}%` },
+  tin: { color: "#22c55e", key: "mostTransferredIn", show: (p) => `+${fmt(p.transfersInEvent || 0)}` },
+  tout: { color: "#ef4444", key: "mostTransferredOut", show: (p) => `-${fmt(p.transfersOutEvent || 0)}` },
+  total: { color: "#fbbf24", key: "mostTotalPoints", show: (p) => `${p.totalPoints || 0} pts` },
+  gw: { color: "#34d399", key: "mostGwPoints", show: (p) => `${p.gwPoints || 0} pts` }
+};
 
-const app = getApps().length === 0
-  ? initializeApp({ credential: cert(serviceAccount) })
-  : getApps()[0];
-
-const db = getFirestore(app);
-
-// === FPL API Endpoints ===
-const FPL_BASE = "https://fantasy.premierleague.com/api";
-const BOOTSTRAP_URL = `${FPL_BASE}/bootstrap-static/`;
-const FIXTURES_URL = `${FPL_BASE}/fixtures/`;
-
-// === Helper: Exponential Backoff Fetcher ===
-async function fplFetch(url, retries = 3) {
-  for (let i = 0; i < retries; i++) {
+// ============================================
+// ⏳ DEADLINE COUNTDOWN ENGINE
+// ============================================
+async function loadDeadline() {
+  let info = LS.get("twfm_deadline_v9", 10 * MIN);
+  if (!info || (info.ts && info.ts < Date.now())) {
     try {
-      const res = await fetch(url, {
-        headers: { "User-Agent": "Mozilla/5.0 TW-Fantasy-Sync/2.0 (Full-Scout-Data)" },
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await res.json();
-    } catch (err) {
-      console.log(`⚠️ Fetch failed (${i + 1}/${retries}): ${url}`);
-      if (i === retries - 1) throw err;
-      await new Promise((r) => setTimeout(r, 1200));
+      const m = await loadFixturesMaster();
+      const cur = m.currentGameweek;
+      if (cur) {
+        const next = cur.nextGw;
+        const target = next && next.deadlineTimeEpoch > Date.now() ? next
+          : cur.deadlineTimeEpoch > Date.now() ? { id: cur.id, deadlineTimeEpoch: cur.deadlineTimeEpoch }
+          : null;
+        const targetGwId = target ? target.id : (cur.id || 6);
+        const lastDoneGw = cur.isFinished ? cur.id : (cur.status === "upcoming" || cur.status === "pre_season" ? 0 : Math.max(0, cur.id - 1));
+        info = { gw: targetGwId, ts: target ? target.deadlineTimeEpoch : 0, lastDone: lastDoneGw };
+      } else {
+        info = { gw: 6, ts: 0, lastDone: null };
+      }
+      LS.set("twfm_deadline_v9", info);
+    } catch (e) { 
+      console.warn("Deadline load note:", e); 
+      info = info || { gw: 6, ts: 0, lastDone: null }; 
     }
   }
-}
 
-// 🤖 Auto-Detect Current Gameweek Lifecycle Engine
-function autoDetectGameweek(events = []) {
-  const currentEvent = events.find((e) => e.is_current === true) 
-    || events.find((e) => e.is_next === true) 
-    || events.filter((e) => e.finished).pop() 
-    || events[0] 
-    || {};
+  deadlineTs = info.ts || 0;
+  currentGwNumber = info.gw || 6;
+  lastDone = info.lastDone ?? null;
 
-  const nextEvent = events.find((e) => e.is_next === true) || null;
-
-  return {
-    id: currentEvent.id || 1,
-    name: currentEvent.name || `Gameweek ${currentEvent.id || 1}`,
-    deadlineTime: currentEvent.deadline_time || null,
-    deadlineEpoch: currentEvent.deadline_time ? new Date(currentEvent.deadline_time).getTime() : 0,
-    isCurrent: Boolean(currentEvent.is_current),
-    isNext: Boolean(currentEvent.is_next),
-    isFinished: Boolean(currentEvent.finished),
-    dataChecked: Boolean(currentEvent.data_checked),
-    averageScore: currentEvent.average_entry_score || 0,
-    highestScore: currentEvent.highest_score || 0,
-    mostCaptained: currentEvent.most_captained || null,
-    mostViceCaptained: currentEvent.most_vice_captained || null,
-    mostSelected: currentEvent.most_selected || null,
-    mostTransferredIn: currentEvent.most_transferred_in || null,
-    topPlayerId: currentEvent.top_element || null,
-    topPlayerPoints: currentEvent.top_element_info?.points || 0,
-    transfersMade: currentEvent.transfers_made || 0,
-    chipPlays: (currentEvent.chip_plays || []).map((c) => ({
-      chipName: c.chip_name,
-      numPlayed: c.num_played,
-    })),
-    nextGw: nextEvent ? {
-      id: nextEvent.id,
-      name: nextEvent.name,
-      deadlineTime: nextEvent.deadline_time,
-      deadlineEpoch: new Date(nextEvent.deadline_time).getTime(),
-    } : null,
-  };
-}
-
-// === Step 2: Team Code & Name Mappings ===
-function buildTeamMaps(bootstrap) {
-  const teamCodeMap = {};
-  const teamNameMap = {};
-  bootstrap.teams.forEach((t) => {
-    teamCodeMap[t.id] = (t.short_name || "").toLowerCase().trim();
-    teamNameMap[t.id] = t.name;
-  });
-  return { teamCodeMap, teamNameMap };
-}
-
-// === Step 3: Next Fixtures (လာမည့် ၃ ပွဲတိတိသာ အသင်း ၂၀ စာ Buffer ပြုလုပ်ခြင်း) ===
-function buildNext3FixturesMap(fixtures, currentGwId, teamNameMap, teamCodeMap) {
-  const upcoming = fixtures
-    .filter((f) => !f.finished && f.event && f.event >= currentGwId)
-    .sort((a, b) => a.event - b.event);
-
-  const teamFixturesMap = {};
-  for (let teamId = 1; teamId <= 20; teamId++) {
-    const teamFixtures = upcoming.filter(
-      (f) => f.team_h === teamId || f.team_a === teamId
-    );
-
-    teamFixturesMap[teamId] = teamFixtures.slice(0, 3).map((f) => {
-      const isHome = f.team_h === teamId;
-      const opponentId = isHome ? f.team_a : f.team_h;
-      const fdr = isHome ? f.team_h_difficulty : f.team_a_difficulty;
-      return {
-        gw: f.event,
-        opp: teamNameMap[opponentId] || "TBC",
-        oppCode: (teamCodeMap[opponentId] || "unk").toUpperCase(),
-        isHome: isHome,
-        fdr: fdr || 3,
-      };
-    });
+  if ($("gw-label")) $("gw-label").textContent = `GW${currentGwNumber} DEADLINE`;
+  if ($("gw-when") && info.ts) {
+    $("gw-when").textContent = new Date(info.ts).toLocaleString("en-GB", { 
+      timeZone: "Asia/Yangon", 
+      weekday: "short", 
+      day: "numeric", 
+      month: "short", 
+      year: "numeric", 
+      hour: "2-digit", 
+      minute: "2-digit", 
+      hour12: false 
+    }) + " MMT";
   }
-  return teamFixturesMap;
+  tick();
+  paintStats();
 }
 
-// 🌟 Format Helper: Card Rendering အတွက် အသုံးဝင်သော Player Summary Object ပြုလုပ်ခြင်း
-function createCardSummary(player) {
-  if (!player) return null;
-  return {
-    playerId: player.playerId,
-    name: player.name,
-    fullName: player.fullName,
-    position: player.position,
-    teamCode: player.teamCode,
-    price: player.price,
-    totalPoints: player.totalPoints,
-    gwPoints: player.gwPoints,
-    ownership: player.ownership,
-    form: player.form,
-    transfersInEvent: player.transfersInEvent,
-    transfersOutEvent: player.transfersOutEvent,
-    status: player.status,
-    chanceOfPlaying: player.chanceOfPlaying
-  };
+function tick() {
+  let d = deadlineTs ? Math.max(0, deadlineTs - Date.now()) : 0;
+  const days = Math.floor(d / 864e5); d -= days * 864e5;
+  const h = Math.floor(d / 36e5); d -= h * 36e5;
+  const m = Math.floor(d / 6e4); d -= m * 6e4;
+  const s = Math.floor(d / 1e3);
+  const set = (id, v) => { const e = $(id); if (e && e.textContent !== v) e.textContent = v; };
+  set("cd-d", pad(days)); set("cd-h", pad(h)); set("cd-m", pad(m)); set("cd-s", pad(s));
 }
 
-// === Main Execution Function ===
-async function main() {
-  console.log("🚀 TW Fantasy — Full Player Scout Sync Starting...");
-  console.log("Time:", new Date().toISOString());
+// ============================================
+// 📊 PERFORMANCE STATS ENGINE
+// ============================================
+function paintStats() {
+  if (!live) return;
+  const g = Number(live.gameweek) || 0;
+  const finished = lastDone === null || (g > 0 && g <= lastDone);
+  const key = `twfm_lastdone_${fplId}`;
+  let shown = { gw: g, gwPoints: live.gwPoints, averagePoints: live.averagePoints, gwRank: live.gwRank };
+  let isLive = false;
+
+  if (finished) {
+    try { localStorage.setItem(key, JSON.stringify(shown)); } catch (_) {}
+  } else {
+    let snap = null;
+    try { snap = JSON.parse(localStorage.getItem(key)); } catch (_) {}
+    if (snap && snap.gw) shown = snap; else isLive = true;
+  }
+
+  const gw = Number(shown.gwPoints ?? 0), avg = Number(shown.averagePoints);
+  const t = (id, v, cls) => { const e = $(id); if (!e) return; e.textContent = v; if (cls !== undefined) e.className = cls; };
+
+  t("st-total", fmt(live.totalPoints));
+  t("st-total-d", shown.gw ? `▲ +${fmt(gw)} (GW${shown.gw})` : "", "up");
+  t("st-rank", fmt(live.overallRank));
+  t("st-rank-d", shown.gwRank ? `▲ +${fmt(shown.gwRank)}` : "", "up");
+  t("st-gw-l", `GW${currentGwNumber - 1 || shown.gw || 5} Score${isLive ? " · LIVE" : ""}`);
+  t("st-gw", fmt(gw));
+
+  if (Number.isFinite(avg) && avg > 0) {
+    const up = gw >= avg;
+    t("st-gw-d", `${up ? "▲" : "▼"} avg ${fmt(avg)}`, up ? "up" : "dn");
+  } else {
+    t("st-gw-d", isLive ? "in progress" : "", "mu");
+  }
+}
+
+async function loadStats() {
+  if (!fplId) return;
+  try { 
+    live = JSON.parse(localStorage.getItem(`twf_shared_points_v2_${fplId}`)); 
+    paintStats(); 
+  } catch (_) {}
+
+  const fresh = LS.get(`twfm_points_${fplId}`, 5 * MIN);
+  if (fresh) { live = fresh; paintStats(); return; }
 
   try {
-    const [bootstrap, fixtures] = await Promise.all([
-      fplFetch(BOOTSTRAP_URL),
-      fplFetch(FIXTURES_URL),
-    ]);
+    const s = await getDoc(doc(db, "livePoints", String(fplId)));
+    if (s.exists()) {
+      const d = s.data();
+      live = { 
+        totalPoints: d.totalPoints, 
+        gwPoints: d.gwPoints, 
+        overallRank: d.overallRank, 
+        gwRank: d.gwRank, 
+        averagePoints: d.averagePoints, 
+        gameweek: d.gameweek 
+      };
+      LS.set(`twfm_points_${fplId}`, live);
+      paintStats();
+    }
+  } catch (e) { console.warn("Live points load note:", e); }
+}
 
-    const currentGwDetails = autoDetectGameweek(bootstrap.events || []);
-    console.log(`📅 Current Gameweek: ${currentGwDetails.name} (Live: ${currentGwDetails.isCurrent})`);
+// ============================================
+// 🌟 TOP 5 PLAYERS CARD GRID RENDERER
+// ============================================
+async function loadScoutHighlights() {
+  scoutHighlightsData = LS.get("twfm_scout_highlights_v9", 15 * MIN);
 
-    const isSeasonStarted = bootstrap.events.some((e) => e.is_current || e.finished);
-    const { teamCodeMap, teamNameMap } = buildTeamMaps(bootstrap);
-    const next3FixturesMap = buildNext3FixturesMap(fixtures, currentGwDetails.id, teamNameMap, teamCodeMap);
-
-    const posMap = {};
-    const positions = ["", "gk", "def", "mid", "fwd"];
-    bootstrap.element_types.forEach((et) => {
-      posMap[et.id] = positions[et.id] || "mid";
-    });
-
-    console.log(`👥 Total Raw FPL Elements: ${bootstrap.elements.length}`);
-
-    const allValidPlayers = [];
-
-    for (const el of bootstrap.elements) {
-      const status = el.status || "a";
-
-      // 🚨 ရောင်းထုတ်ခံရသူများ (Unavailable / Left League) ကို လုံးဝ မထည့်ပါ
-      if (status === "u") {
-        continue;
+  if (!scoutHighlightsData) {
+    try {
+      const snap = await getDoc(doc(db, "scoutPlayers", "scoutHighlights"));
+      if (snap.exists()) {
+        scoutHighlightsData = snap.data();
+        LS.set("twfm_scout_highlights_v9", scoutHighlightsData);
       }
+    } catch (err) {
+      console.warn("scoutHighlights load note:", err);
+    }
+  }
 
-      // 💡 ၁။ TOTAL POINTS & WEEK POINTS
-      const totalPoints = isSeasonStarted ? (el.total_points || 0) : 0;
-      const gwPoints = isSeasonStarted ? (el.event_points || 0) : 0;
-      
-      // 💡 ၂။ FORM & OWNERSHIP
-      const form = isSeasonStarted ? (parseFloat(el.form) || 0.0) : 0.0;
-      const ownership = parseFloat(el.selected_by_percent) || 0.0;
-      const price = parseFloat((el.now_cost / 10).toFixed(1));
+  renderPlayerCards();
+}
 
-      // 💡 ၃။ METRICS & RATIOS
-      const minutesPlayed = el.minutes || 0;
-      const matchesPlayed = minutesPlayed > 0 ? Math.max(1, Math.ceil(minutesPlayed / 90)) : 1;
-      const ppg = isSeasonStarted ? parseFloat((totalPoints / matchesPlayed).toFixed(2)) : 0.0;
-      const val = price > 0 ? parseFloat((totalPoints / price).toFixed(1)) : 0.0;
-      const l5 = isSeasonStarted ? parseFloat((form * 5).toFixed(1)) : 0.0;
+function renderPlayerCards() {
+  const container = $("leader-cards-container");
+  if (!container) return;
 
-      // 💡 ၄။ EXPECTED STATS (xG, xA, xGI)
-      const xg = parseFloat(el.expected_goals) || 0.0;
-      const xa = parseFloat(el.expected_assists) || 0.0;
-      const xgi = parseFloat((xg + xa).toFixed(2));
-      const ict = parseFloat(el.ict_index) || 0.0;
+  if (!scoutHighlightsData) {
+    container.innerHTML = `
+      <div class="player-card-skel"></div>
+      <div class="player-card-skel"></div>
+      <div class="player-card-skel"></div>
+      <div class="player-card-skel"></div>
+      <div class="player-card-skel"></div>
+    `;
+    return;
+  }
 
-      // 💡 ၅။ AVAILABILITY & PLAYING CHANCE ENGINE
-      const nextChanceRaw = el.chance_of_playing_next_round;
-      const thisChanceRaw = el.chance_of_playing_this_round;
+  const M = MODES[mode];
+  const activeColor = M.color;
 
-      let chanceOfPlaying = 100;
-      if (nextChanceRaw !== null && nextChanceRaw !== undefined) {
-        chanceOfPlaying = Number(nextChanceRaw);
-      } else if (status === "i" || status === "s") {
-        chanceOfPlaying = 0;
-      } else if (status === "d") {
-        chanceOfPlaying = 75;
+  // Active Tab Highlight State
+  document.querySelectorAll("#leader-tabs button").forEach((b) => {
+    const isActive = b.dataset.k === mode;
+    b.classList.toggle("on", isActive);
+    if (isActive) {
+      b.style.setProperty("--c", activeColor);
+      b.style.backgroundColor = activeColor;
+      b.style.color = "#FFFFFF";
+      b.style.boxShadow = `0 4px 14px color-mix(in srgb, ${activeColor} 40%, transparent)`;
+    } else {
+      b.style.backgroundColor = "";
+      b.style.color = "";
+      b.style.boxShadow = "";
+    }
+  });
+
+  let list = [];
+  if (mode === "cap") {
+    const capData = scoutHighlightsData.mostCaptained || {};
+    list = capData.topList || [];
+    if (list.length === 0 && capData.leader) {
+      list = [capData.leader];
+      if (capData.viceLeader) list.push(capData.viceLeader);
+    }
+  } else {
+    const sectionData = scoutHighlightsData[M.key] || {};
+    list = sectionData.topList || (sectionData.leader ? [sectionData.leader] : []);
+  }
+
+  if (!list || list.length === 0) {
+    container.innerHTML = `<div class="col-span-full py-8 text-center text-xs text-slate-400 font-bold">Data မရရှိသေးပါ</div>`;
+    return;
+  }
+
+  // 💡 ထိပ်တန်းကစားသမား (၅) ဦး Card Grid Render ပြုလုပ်ခြင်း
+  container.innerHTML = list.slice(0, 5).map((p, i) => {
+    const rawPos = String(p.position || "mid").toLowerCase().trim();
+    const isGk = rawPos === "gk" || rawPos === "gkp";
+    const posColor = POS[rawPos] || "#F59E0B";
+
+    const teamMeta = getTeamMeta(p.teamCode || p.team);
+    const teamColor = teamMeta.color;
+    const teamShort = teamMeta.short;
+    const localBadgeUrl = teamMeta.badgePath;
+
+    // 📸 Official FPL 250x250 HD Headshot URL
+    const photoCode = p.photoCode || p.photo;
+    const pId = p.playerId || p.id;
+    const photoUrl = p.photoUrl || (photoCode 
+      ? `https://resources.premierleague.com/premierleague/photos/players/250x250/p${photoCode}.png`
+      : pId 
+      ? `https://resources.premierleague.com/premierleague/photos/players/250x250/p${pId}.png`
+      : "");
+
+    // Captain / Vice-Captain Badge Tag
+    let roleBadgeHtml = "";
+    if (mode === "cap") {
+      if (i === 0) {
+        roleBadgeHtml = `<span class="player-card-role" style="background:#8c6dff;">👑 C</span>`;
+      } else if (i === 1) {
+        roleBadgeHtml = `<span class="player-card-role" style="background:#475569;">V</span>`;
       }
-
-      const isAvailable = status === "a" && chanceOfPlaying === 100;
-      const isDoubtful = status === "d" || (chanceOfPlaying > 0 && chanceOfPlaying < 100);
-      const isSuspended = status === "s";
-      const isInjured = status === "i";
-
-      allValidPlayers.push({
-        playerId: el.id,
-        id: el.id,
-        name: el.web_name,
-        fullName: `${el.first_name} ${el.second_name}`,
-        position: posMap[el.element_type] || "mid",
-        elementType: el.element_type,
-        teamId: el.team,
-        team: teamNameMap[el.team] || "Unknown",
-        teamCode: (teamCodeMap[el.team] || "unk").toUpperCase(),
-        price: price,
-        costChangeStart: el.cost_change_start || 0,
-        costChangeEvent: el.cost_change_event || 0,
-
-        totalPoints: totalPoints,
-        total_points: totalPoints,
-        gwPoints: gwPoints,
-        event_points: gwPoints,
-        points: totalPoints,
-        form: form,
-        ownership: ownership,
-        selected_by_percent: ownership,
-        xGI: xgi,
-        xgi: xgi,
-        xG: xg,
-        xA: xa,
-        xGC: parseFloat(el.expected_goals_conceded) || 0.0,
-        ict: ict,
-
-        minutes: minutesPlayed,
-        goals: el.goals_scored || 0,
-        assists: el.assists || 0,
-        cleanSheets: el.clean_sheets || 0,
-        goalsConceded: el.goals_conceded || 0,
-        ownGoals: el.own_goals || 0,
-        penaltiesSaved: el.penalties_saved || 0,
-        penaltiesMissed: el.penalties_missed || 0,
-        yellowCards: el.yellow_cards || 0,
-        redCards: el.red_cards || 0,
-        saves: el.saves || 0,
-        bonus: el.bonus || 0,
-        bps: el.bps || 0,
-
-        ppg: ppg,
-        val: val,
-        l5: l5,
-        influence: parseFloat(el.influence) || 0.0,
-        creativity: parseFloat(el.creativity) || 0.0,
-        threat: parseFloat(el.threat) || 0.0,
-        transfersInEvent: el.transfers_in_event || 0,
-        transfersOutEvent: el.transfers_out_event || 0,
-
-        nextMatches: next3FixturesMap[el.team] || [],
-
-        status: status,
-        chanceOfPlaying: chanceOfPlaying,
-        chanceOfPlayingThisRound: thisChanceRaw !== null ? Number(thisChanceRaw) : null,
-        isAvailable: isAvailable,
-        isDoubtful: isDoubtful,
-        isSuspended: isSuspended,
-        isInjured: isInjured,
-        news: el.news || "",
-        newsAdded: el.news_added || null,
-      });
     }
 
-    // 💡 1-DOCUMENT MASTER PAYLOAD (မူလ logic အတိုင်း scoutPlayers/allPlayers သို့ သိမ်းဆည်းခြင်း)
-    const masterScoutPayload = {
-      currentGameweek: currentGwDetails,
-      isSeasonStarted: isSeasonStarted,
-      totalPlayers: allValidPlayers.length,
-      updatedAt: FieldValue.serverTimestamp(),
-      fixturesByTeam: next3FixturesMap,
-      players: allValidPlayers,
-    };
+    const fallbackSvg = `
+      <div class="home-animated-badge-wrap" style="--tc:${teamColor}; width:68px; height:68px; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+        <svg class="badge-pulse-svg" style="width:34px; height:34px;" viewBox="0 0 24 24" fill="none" stroke="${teamColor}">
+          <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="12" cy="12" r="3.5" fill="${teamColor}"/>
+        </svg>
+        <span class="badge-code-text" style="color:${teamColor}; font-size:10px; font-weight:900;">${esc(teamShort)}</span>
+      </div>
+    `;
 
-    const docRef = db.collection("scoutPlayers").doc("allPlayers");
-    await docRef.set(masterScoutPayload);
-    const approxSizeKb = Math.round(Buffer.byteLength(JSON.stringify(masterScoutPayload)) / 1024);
-    console.log(`✅ [MASTER DOC] scoutPlayers/allPlayers Synced (~${approxSizeKb} KB)`);
+    return `
+      <div class="top-player-card" style="border-top: 3.5px solid ${posColor};">
+        <span class="player-card-rank">${i + 1}</span>
+        ${roleBadgeHtml}
 
-    // =========================================================================
-    // 🌟 DOCUMENT (၂) - SCOUT HIGHLIGHTS (Top 5 Most Captained Engine)
-    // =========================================================================
+        <div class="player-card-photo-wrap">
+          <img src="${photoUrl}" 
+               alt="${esc(p.name)}" 
+               loading="lazy" 
+               class="player-card-photo"
+               onerror="
+                 if (!this.dataset.triedLocalBadge) {
+                   this.dataset.triedLocalBadge = '1';
+                   this.src = '${localBadgeUrl}';
+                   this.style.maxHeight = '65%';
+                 } else {
+                   this.parentElement.innerHTML = \`${fallbackSvg.replace(/\n/g, '').replace(/"/g, "'")}\`;
+                 }
+               ">
+          <img src="${localBadgeUrl}" alt="${esc(teamShort)}" class="player-card-club-badge" onerror="this.style.display='none';">
+        </div>
 
-    // 👑 MOST CAPTAINED TOP 5 ရွေးချယ်မှု စနစ်
-    const topCaptainsList = [];
-    const chosenIds = new Set();
+        <div class="player-card-name">${esc(p.name)}</div>
+        <div class="player-card-pos" style="color: ${posColor}; font-weight:800;">
+          ${isGk ? "GK" : rawPos.toUpperCase()}
+        </div>
+        
+        <div class="player-card-pts" style="color: ${activeColor} !important; text-shadow: 0 0 10px color-mix(in srgb, ${activeColor} 30%, transparent);">
+          ${M.show(p)}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
 
-    // ၁။ FPL Official နံပါတ် ၁ Most Captained ကစားသမား
-    const officialMostCap = allValidPlayers.find(p => p.playerId === currentGwDetails.mostCaptained);
-    if (officialMostCap) {
-      topCaptainsList.push(createCardSummary(officialMostCap));
-      chosenIds.add(officialMostCap.playerId);
+// ============================================
+// 🗓️️ NEXT FIXTURE MATCH RENDERER
+// ============================================
+async function loadNextFixture() {
+  try {
+    const meta = await loadFixturesMaster();
+    if (!meta) return;
+
+    const targetGw = currentGwNumber || 6;
+    let targetMatch = null;
+
+    if (Array.isArray(meta.fixtures) && meta.fixtures.length > 0) {
+      targetMatch = meta.fixtures.find(f => Number(f.event) === Number(targetGw) && !f.finished)
+                 || meta.fixtures.find(f => Number(f.event) === Number(targetGw))
+                 || meta.fixtures[0];
     }
 
-    // ၂။ FPL Official နံပါတ် ၂ Most Vice-Captained ကစားသမား
-    const officialMostVice = allValidPlayers.find(p => p.playerId === currentGwDetails.mostViceCaptained);
-    if (officialMostVice && !chosenIds.has(officialMostVice.playerId)) {
-      topCaptainsList.push(createCardSummary(officialMostVice));
-      chosenIds.add(officialMostVice.playerId);
+    if (!targetMatch) {
+      targetMatch = {
+        event: targetGw,
+        team_h: 1,  // Arsenal (ars.png)
+        team_a: 13, // Leeds United (lee.png)
+        kickoff_time: "2026-10-10T12:30:00Z"
+      };
     }
 
-    // ၃။ ကျန် ၃ နေရာအတွက် Form နှင့် Ownership အမြင့်ဆုံး တိုက်စစ်မှူး/ကွင်းလယ်လူများထဲမှ Captaincy Index ဖြင့် ထပ်မံဖြည့်စွက်ခြင်း
-    const captainCandidates = allValidPlayers
-      .filter(p => !chosenIds.has(p.playerId) && (p.position === "fwd" || p.position === "mid") && p.chanceOfPlaying >= 75)
-      .map(p => ({
-        ...p,
-        // Captaincy Pick Weight Formula: Form 60% + Ownership 40%
-        capScore: (p.form * 2.5) + (p.ownership * 0.4)
-      }))
-      .sort((a, b) => b.capScore - a.capScore);
+    const homeTeam = getTeamMeta(targetMatch.team_h || 1);
+    const awayTeam = getTeamMeta(targetMatch.team_a || 13);
 
-    for (const cand of captainCandidates) {
-      if (topCaptainsList.length >= 5) break;
-      topCaptainsList.push(createCardSummary(cand));
-      chosenIds.add(cand.playerId);
-    }
-
-    // အခြား ကဏ္ဍများအတွက် Top 5 စာရင်းများ
-    const sortedByTotalPoints = [...allValidPlayers].sort((a, b) => b.totalPoints - a.totalPoints);
-    const topTotalPoints = sortedByTotalPoints.slice(0, 5).map(createCardSummary);
-
-    const sortedByGwPoints = [...allValidPlayers].sort((a, b) => b.gwPoints - a.gwPoints);
-    const topGwPoints = sortedByGwPoints.slice(0, 5).map(createCardSummary);
-
-    const sortedByOwnership = [...allValidPlayers].sort((a, b) => b.ownership - a.ownership);
-    const topOwnership = sortedByOwnership.slice(0, 5).map(createCardSummary);
-
-    const sortedByTransfersIn = [...allValidPlayers].sort((a, b) => b.transfersInEvent - a.transfersInEvent);
-    const topTransfersIn = sortedByTransfersIn.slice(0, 5).map(createCardSummary);
-
-    const sortedByTransfersOut = [...allValidPlayers].sort((a, b) => b.transfersOutEvent - a.transfersOutEvent);
-    const topTransfersOut = sortedByTransfersOut.slice(0, 5).map(createCardSummary);
-
-    const highlightsPayload = {
-      gameweek: currentGwDetails.id,
-      gameweekName: currentGwDetails.name,
-      updatedAt: FieldValue.serverTimestamp(),
-      
-      // 👑 Most Captain (၅ ယောက် အတိအကျ ပါဝင်သည်)
-      mostCaptained: {
-        leader: topCaptainsList[0] || null,
-        viceLeader: topCaptainsList[1] || null,
-        topList: topCaptainsList
-      },
-
-      // 🏆 Total Points (၅ ယောက်)
-      mostTotalPoints: {
-        leader: topTotalPoints[0] || null,
-        topList: topTotalPoints
-      },
-
-      // ⚡ Week Points (၅ ယောက်)
-      mostGwPoints: {
-        leader: topGwPoints[0] || null,
-        topList: topGwPoints
-      },
-
-      // 🛡️ Ownership (၅ ယောက်)
-      mostOwned: {
-        leader: topOwnership[0] || null,
-        topList: topOwnership
-      },
-
-      // 📈 Transfers In (၅ ယောက်)
-      mostTransferredIn: {
-        leader: topTransfersIn[0] || null,
-        topList: topTransfersIn
-      },
-
-      // 📉 Transfers Out (၅ ယောက်)
-      mostTransferredOut: {
-        leader: topTransfersOut[0] || null,
-        topList: topTransfersOut
+    const fixtureTimeEl = $("next-fixture-time");
+    if (fixtureTimeEl) {
+      if (targetMatch.kickoff_time) {
+        const d = new Date(targetMatch.kickoff_time);
+        const timeStr = d.toLocaleDateString("en-GB", { timeZone: "Asia/Yangon", day: "numeric", month: "short", year: "numeric" }) +
+          " · " + d.toLocaleTimeString("en-GB", { timeZone: "Asia/Yangon", hour: "2-digit", minute: "2-digit", hour12: false });
+        fixtureTimeEl.textContent = `GW${targetMatch.event || targetGw} · ${timeStr}`;
+      } else {
+        fixtureTimeEl.textContent = `GW${targetMatch.event || targetGw} · 10 Oct 2026 · 19:00`;
       }
-    };
+    }
 
-    // 🎯 Target: scoutPlayers collection -> scoutHighlights document
-    const highlightsDocRef = db.collection("scoutPlayers").doc("scoutHighlights");
-    await highlightsDocRef.set(highlightsPayload);
-    const highlightSizeKb = Math.round(Buffer.byteLength(JSON.stringify(highlightsPayload)) / 1024);
-    
-    console.log(`🌟 [HIGHLIGHTS DOC] scoutPlayers/scoutHighlights Synced (~${highlightSizeKb} KB)`);
-    console.log(`   👑 Top 5 Captains: ${topCaptainsList.map(c => c.name).join(", ")}`);
-    console.log(`   🏆 Top Total Points: ${topTotalPoints[0]?.name || 'N/A'}`);
-    console.log(`   ⚡ Top GW Points: ${topGwPoints[0]?.name || 'N/A'}`);
-    console.log(`   🛡️ Top Owned: ${topOwnership[0]?.name || 'N/A'}`);
-    console.log(`   📈 Top Transfer In: ${topTransfersIn[0]?.name || 'N/A'}`);
-    console.log(`   📉 Top Transfer Out: ${topTransfersOut[0]?.name || 'N/A'}`);
-    console.log("============================================");
+    const hCodeEl = $("fixture-home-code");
+    const hNameEl = $("fixture-home-name");
+    const hBadgeEl = $("fixture-home-badge");
+    if (hCodeEl) hCodeEl.textContent = homeTeam.short;
+    if (hNameEl) hNameEl.textContent = homeTeam.name;
+    if (hBadgeEl) {
+      hBadgeEl.src = homeTeam.badgePath;
+      hBadgeEl.alt = homeTeam.short;
+      hBadgeEl.onerror = () => { hBadgeEl.src = "./assets/badges/ars.png"; };
+    }
 
-    process.exit(0);
+    const aCodeEl = $("fixture-away-code");
+    const aNameEl = $("fixture-away-name");
+    const aBadgeEl = $("fixture-away-badge");
+    if (aCodeEl) aCodeEl.textContent = awayTeam.short;
+    if (aNameEl) aNameEl.textContent = awayTeam.name;
+    if (aBadgeEl) {
+      aBadgeEl.src = awayTeam.badgePath;
+      aBadgeEl.alt = awayTeam.short;
+      aBadgeEl.onerror = () => { aBadgeEl.src = "./assets/badges/lee.png"; };
+    }
+
   } catch (err) {
-    console.error("🔥 Fatal Error in Scout Sync:", err.message);
-    process.exit(1);
+    console.warn("Next fixture loader note:", err);
   }
 }
 
-main();
+// ============================================
+// 🚀 EXPORT INITIALIZER
+// ============================================
+export async function initHomeTab(user, profile) {
+  if (profile?.fplTeamId) {
+    fplId = String(profile.fplTeamId);
+  }
+
+  await loadDeadline();
+  loadStats();
+  loadScoutHighlights();
+  await loadNextFixture();
+
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(tick, 1000);
+
+  const heroCard = $("hero-deadline-card");
+  if (heroCard) {
+    heroCard.onclick = () => {
+      if (typeof window.go === "function") {
+        window.go("fixtures");
+      } else {
+        window.location.hash = "#/fixtures";
+      }
+    };
+  }
+
+  $("leader-tabs")?.addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-k]");
+    if (!b) return;
+    mode = b.dataset.k;
+    renderPlayerCards();
+  });
+}
