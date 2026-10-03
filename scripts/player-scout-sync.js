@@ -5,7 +5,7 @@
 // Targets:
 //   1) scoutPlayers/allPlayers      (Full Master Player List)
 //   2) scoutPlayers/scoutHighlights (Top Leaders & Highlights Document)
-// Fix: Pure Current Gameweek Top 5 Most Captained Resolution
+// Fix: Complete Real Data Sync for PPG, VAL, L5, XGI, ICT across ALL Players
 // Path: scripts/player-scout-sync.js
 // ============================================
 
@@ -46,7 +46,7 @@ async function fplFetch(url, retries = 3) {
   for (let i = 0; i < retries; i++) {
     try {
       const res = await fetch(url, {
-        headers: { "User-Agent": "Mozilla/5.0 TW-Fantasy-Sync/5.0 (Current-GW-Captain-Sync)" },
+        headers: { "User-Agent": "Mozilla/5.0 TW-Fantasy-Sync/6.0 (Full-Scout-Metrics)" },
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return await res.json();
@@ -79,8 +79,8 @@ function autoDetectGameweek(events = []) {
     dataChecked: Boolean(currentEvent.data_checked),
     averageScore: currentEvent.average_entry_score || 0,
     highestScore: currentEvent.highest_score || 0,
-    mostCaptained: currentEvent.most_captained || null,         // 💡 Real FPL Official Captain ID
-    mostViceCaptained: currentEvent.most_vice_captained || null, // 💡 Real FPL Official Vice-Captain ID
+    mostCaptained: currentEvent.most_captained || null,
+    mostViceCaptained: currentEvent.most_vice_captained || null,
     mostSelected: currentEvent.most_selected || null,
     mostTransferredIn: currentEvent.most_transferred_in || null,
     nextGw: nextEvent ? {
@@ -131,7 +131,7 @@ function buildNext3FixturesMap(fixtures, currentGwId, teamNameMap, teamCodeMap) 
   return teamFixturesMap;
 }
 
-// 🌟 Format Helper: Card Rendering Summary Object
+// 🌟 Format Helper: Card Rendering Summary Object (PPG, VAL, L5, XGI, ICT အပြည့်အစုံ ပါဝင်သည်)
 function createCardSummary(player) {
   if (!player) return null;
   return {
@@ -143,12 +143,17 @@ function createCardSummary(player) {
     team: player.team,
     teamCode: player.teamCode,
     price: player.price,
-    photoCode: player.photoCode, // 📸 Clean Numeric ID (e.g., "223094")
-    photoUrl: player.photoUrl,   // 📸 FPL Official 250x250 HD Photo CDN Link
+    photoCode: player.photoCode,
+    photoUrl: player.photoUrl,
     totalPoints: player.totalPoints,
     gwPoints: player.gwPoints,
     ownership: player.ownership,
     form: player.form,
+    ppg: player.ppg,             // 💡 Points Per Game
+    val: player.val,             // 💡 Value
+    l5: player.l5,               // 💡 Last 5 Form (Form x 5)
+    xgi: player.xgi,             // 💡 Expected Goal Involvement
+    ict: player.ict,             // 💡 ICT Index
     transfersInEvent: player.transfersInEvent,
     transfersOutEvent: player.transfersOutEvent,
     status: player.status,
@@ -158,7 +163,7 @@ function createCardSummary(player) {
 
 // === Main Execution Function ===
 async function main() {
-  console.log("🚀 TW Fantasy — Current GW Top 5 Captain Sync Engine Starting...");
+  console.log("🚀 TW Fantasy — Full Player Scout Sync (with PPG, VAL, L5, XGI, ICT) Starting...");
   console.log("Time:", new Date().toISOString());
 
   try {
@@ -188,13 +193,33 @@ async function main() {
       const status = el.status || "a";
       if (status === "u") continue; // အသင်းပြောင်း/ရောင်းထုတ်ခံရသူများ မထည့်ပါ
 
-      const totalPoints = isSeasonStarted ? (el.total_points || 0) : 0;
-      const gwPoints = isSeasonStarted ? (el.event_points || 0) : 0;
-      const form = isSeasonStarted ? (parseFloat(el.form) || 0.0) : 0.0;
+      // 💡 ၁။ ရမှတ်များနှင့် စျေးနှုန်း
+      const totalPoints = Number(el.total_points ?? 0);
+      const gwPoints = Number(el.event_points ?? 0);
       const ownership = parseFloat(el.selected_by_percent) || 0.0;
-      const price = parseFloat((el.now_cost / 10).toFixed(1));
+      const price = parseFloat(((el.now_cost || 0) / 10).toFixed(1));
+      const form = parseFloat(el.form) || 0.0;
 
-      // 📸 FPL Official Photo Code & Full 250x250 HD CDN Parser
+      // 💡 ၂။ PPG, VAL, L5, XGI, ICT တိကျစွာ ရယူတွက်ချက်ခြင်း (Real Official Metrics)
+      // PPG: Points Per Game (FPL Official points_per_game)
+      const ppg = parseFloat(parseFloat(el.points_per_game || (totalPoints > 0 ? (totalPoints / Math.max(1, Math.ceil((el.minutes || 0) / 90))) : 0)).toFixed(1));
+      
+      // VAL: Value Season (FPL Official value_season သို့မဟုတ် totalPoints / price)
+      const val = parseFloat(parseFloat(el.value_season || (price > 0 ? (totalPoints / price) : 0)).toFixed(1));
+      
+      // L5: Last 5 Form Score (FPL Form ကို အခြေခံပြီး ၅ ပွဲစာ သတ်မှတ်ချက်)
+      const l5 = parseFloat((form * 5).toFixed(1));
+      
+      // xG, xA, xGI: Expected Goal Involvement
+      const xg = parseFloat(el.expected_goals) || 0.0;
+      const xa = parseFloat(el.expected_assists) || 0.0;
+      const xgiRaw = parseFloat(el.expected_goal_involvements);
+      const xgi = parseFloat((!isNaN(xgiRaw) && xgiRaw > 0 ? xgiRaw : (xg + xa)).toFixed(2));
+      
+      // ICT: ICT Index (Influence, Creativity, Threat combined score)
+      const ict = parseFloat(parseFloat(el.ict_index || 0.0).toFixed(1));
+
+      // 📸 FPL Official Photo Code & Full 250x250 HD CDN Link
       let cleanPhotoCode = "";
       if (el.photo) {
         cleanPhotoCode = String(el.photo).replace(/\.(jpg|png)$/i, "").replace(/^p/i, "");
@@ -206,6 +231,7 @@ async function main() {
 
       const photoUrl = `https://resources.premierleague.com/premierleague/photos/players/250x250/p${cleanPhotoCode}.png`;
 
+      // ကစားနိုင်ခြေ စစ်ဆေးမှု
       const nextChanceRaw = el.chance_of_playing_next_round;
       let chanceOfPlaying = 100;
       if (nextChanceRaw !== null && nextChanceRaw !== undefined) {
@@ -215,6 +241,11 @@ async function main() {
       } else if (status === "d") {
         chanceOfPlaying = 75;
       }
+
+      const isAvailable = status === "a" && chanceOfPlaying === 100;
+      const isDoubtful = status === "d" || (chanceOfPlaying > 0 && chanceOfPlaying < 100);
+      const isSuspended = status === "s";
+      const isInjured = status === "i";
 
       allValidPlayers.push({
         playerId: el.id,
@@ -229,19 +260,61 @@ async function main() {
         price: price,
         photoCode: cleanPhotoCode,
         photoUrl: photoUrl,
+        
+        // 🌟 အဓိက METRICS များအားလုံး အပြည့်အစုံ (ကိန်းဂဏန်း 0 မဖြစ်စေရန်)
+        ppg: ppg,
+        val: val,
+        l5: l5,
+        xgi: xgi,
+        ict: ict,
+
         totalPoints: totalPoints,
+        total_points: totalPoints,
         gwPoints: gwPoints,
+        event_points: gwPoints,
+        points: totalPoints,
         form: form,
         ownership: ownership,
+        selected_by_percent: ownership,
+        xG: xg,
+        xA: xa,
+        xGC: parseFloat(el.expected_goals_conceded) || 0.0,
+
+        minutes: el.minutes || 0,
+        goals: el.goals_scored || 0,
+        assists: el.assists || 0,
+        cleanSheets: el.clean_sheets || 0,
+        goalsConceded: el.goals_conceded || 0,
+        ownGoals: el.own_goals || 0,
+        penaltiesSaved: el.penalties_saved || 0,
+        penaltiesMissed: el.penalties_missed || 0,
+        yellowCards: el.yellow_cards || 0,
+        redCards: el.red_cards || 0,
+        saves: el.saves || 0,
+        bonus: el.bonus || 0,
+        bps: el.bps || 0,
+
+        influence: parseFloat(el.influence) || 0.0,
+        creativity: parseFloat(el.creativity) || 0.0,
+        threat: parseFloat(el.threat) || 0.0,
         transfersInEvent: el.transfers_in_event || 0,
         transfersOutEvent: el.transfers_out_event || 0,
+
         nextMatches: next3FixturesMap[el.team] || [],
+
         status: status,
-        chanceOfPlaying: chanceOfPlaying
+        chanceOfPlaying: chanceOfPlaying,
+        chanceOfPlayingThisRound: el.chance_of_playing_this_round !== null ? Number(el.chance_of_playing_this_round) : null,
+        isAvailable: isAvailable,
+        isDoubtful: isDoubtful,
+        isSuspended: isSuspended,
+        isInjured: isInjured,
+        news: el.news || "",
+        newsAdded: el.news_added || null,
       });
     }
 
-    // 💡 1-DOCUMENT MASTER PAYLOAD (scoutPlayers/allPlayers)
+    // 💡 1-DOCUMENT MASTER PAYLOAD (scoutPlayers/allPlayers သို့ သိမ်းဆည်းခြင်း)
     const masterScoutPayload = {
       currentGameweek: currentGwDetails,
       isSeasonStarted: isSeasonStarted,
@@ -254,10 +327,10 @@ async function main() {
     const docRef = db.collection("scoutPlayers").doc("allPlayers");
     await docRef.set(masterScoutPayload);
     const approxSizeKb = Math.round(Buffer.byteLength(JSON.stringify(masterScoutPayload)) / 1024);
-    console.log(`✅ [MASTER DOC] scoutPlayers/allPlayers Synced (~${approxSizeKb} KB)`);
+    console.log(`✅ [MASTER DOC] scoutPlayers/allPlayers Synced (~${approxSizeKb} KB) with PPG, VAL, L5, XGI, ICT`);
 
     // =========================================================================
-    // 👑 REAL CURRENT GAMEWEEK TOP 5 MOST CAPTAINED RESOLUTION
+    // 👑 TRUE CURRENT GAMEWEEK TOP 5 MOST CAPTAINED RESOLUTION
     // =========================================================================
     const topCaptainsList = [];
     const chosenIds = new Set();
@@ -284,11 +357,7 @@ async function main() {
       chosenIds.add(officialMostVice.playerId);
     }
 
-    // ၃။ နံပါတ် ၃၊ ၄၊ ၅: Current Gameweek တွင် ကမ္ဘာတစ်ဝန်း အမှန်တကယ် Captain ပေးကြသည့် Premium Attackers
-    // စည်းမျဉ်းများ:
-    // - တိုက်စစ်မှူးနှင့် ကွင်းလယ်လူ (FWD / MID) သာ ဖြစ်ရမည် (ဂိုးသမား/နောက်တန်း လုံးဝမပါ)
-    // - အမှန်တကယ် ပွဲထွက်ကစားနိုင်သူ (chanceOfPlaying >= 75%)
-    // - Current Gameweek In-Form Popularity: မန်နေဂျာများ အများဆုံး ပိုင်ဆိုင်ပြီး ခြေစွမ်းပြနေသည့် အဓိက Premium Picks (Mohamed Salah, Ollie Watkins, etc.)
+    // ၃။ နံပါတ် ၃၊ ၄၊ ၅: Current Gameweek အများဆုံး ရွေးချယ်ခံရသည့် Attackers
     const currentGwCaptainContenders = allValidPlayers
       .filter(p => 
         !chosenIds.has(p.playerId) && 
@@ -298,8 +367,6 @@ async function main() {
       )
       .map(p => ({
         ...p,
-        // 💡 True Current GW Captain Metric:
-        // Ownership (၆၀%) + Current Transfer In Demand (၂၅%) + Form (၁၅%)
         captaincyWeight: (p.ownership * 2.0) + 
                          (Math.min(p.transfersInEvent, 2000000) / 100000) * 1.5 + 
                          (p.form * 1.5)
@@ -312,7 +379,7 @@ async function main() {
       chosenIds.add(cand.playerId);
     }
 
-    // Fallback: အကယ်၍ ၅ ယောက် မပြည့်ပါက Ownership အမြင့်ဆုံး FWD/MID များဖြင့် အပြည့်ဖြည့်သည်
+    // Fallback: ၅ ယောက် မပြည့်ပါက အစားထိုးဖြည့်သည်
     if (topCaptainsList.length < 5) {
       const topAttackers = allValidPlayers
         .filter(p => !chosenIds.has(p.playerId) && (p.position === "fwd" || p.position === "mid"))
@@ -341,17 +408,16 @@ async function main() {
     const sortedByTransfersOut = [...allValidPlayers].sort((a, b) => b.transfersOutEvent - a.transfersOutEvent);
     const topTransfersOut = sortedByTransfersOut.slice(0, 5).map(createCardSummary);
 
-    // 💡 DOCUMENT (၂): scoutPlayers/scoutHighlights Payload
+    // 💡 DOCUMENT (၂): scoutPlayers/scoutHighlights
     const highlightsPayload = {
       gameweek: currentGwDetails.id,
       gameweekName: currentGwDetails.name,
       updatedAt: FieldValue.serverTimestamp(),
 
-      // 👑 Current Gameweek အများဆုံး ရွေးချယ်ခံရသော Top 5 Captains
       mostCaptained: {
         leader: topCaptainsList[0] || null,
         viceLeader: topCaptainsList[1] || null,
-        topList: topCaptainsList // ၅ ယောက် အပြည့်အစုံ
+        topList: topCaptainsList
       },
 
       mostTotalPoints: { leader: topTotalPoints[0] || null, topList: topTotalPoints },
@@ -367,6 +433,7 @@ async function main() {
 
     console.log(`🌟 [HIGHLIGHTS DOC] scoutPlayers/scoutHighlights Synced (~${highlightSizeKb} KB)`);
     console.log(`   👑 Top 5 Captains: ${topCaptainsList.map((c, i) => `#${i + 1} ${c.name} (${c.teamCode})`).join(", ")}`);
+    console.log(`   📊 Sample Player Metrics: ${allValidPlayers[0]?.name} -> PPG: ${allValidPlayers[0]?.ppg}, VAL: ${allValidPlayers[0]?.val}, L5: ${allValidPlayers[0]?.l5}, XGI: ${allValidPlayers[0]?.xgi}, ICT: ${allValidPlayers[0]?.ict}`);
     console.log("============================================");
 
     process.exit(0);
