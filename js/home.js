@@ -2,24 +2,23 @@
 // TW Fantasy Official League — Home UI Controller
 // Path: js/home.js
 // Features:
-//   1. Polished Manager & Team Card (Luxury Glassmorphism & Soft Glow)
-//   2. Dedicated Deadline Countdown Frame (Fixed 4-Grid Digital Timer Box, No Unwanted Route Jumps)
-//   3. 3-Column Balanced Stats Alignment (330, 1.8M, 51)
-//   4. Top 5 Real Captains Card Grid (Firestore photoUrl Priority & Clean UI)
-//   5. Live Next Fixture Match Card (Current Gameweek Filter + Code-only Badges)
+//   1. 100% Bulletproof Self-Contained Engine (Zero External Import Crash)
+//   2. Polished Manager & Team Card (Luxury Glassmorphism)
+//   3. Fixed Deadline Countdown Frame (No Unwanted Route Jumps)
+//   4. 3-Column Balanced Stats Alignment (330, 1.8M, 51)
+//   5. Top 5 Real Captains Card Grid (Official 250x250 HD Cutout Photos on Dashboard)
 // Standards: UI Design Knowledge Pack (Sports UI, 8px Grid, Rounded 16-20px)
 // ============================================
 
 import { db } from "./firebase-config.js";
 import { doc, getDoc } from "./core/fs.js";
 import { loadFixturesMaster } from "./core/data.js";
-import { getPlayerPhotoUrl } from "./utils/player-photo.js";
 
 const $ = (id) => document.getElementById(id);
 const MIN = 60 * 1000;
 
-// 💡 Version 15 Cache Key
-const SCOUT_CACHE_KEY_V15 = "twfm_scout_highlights_v15";
+// 💡 Version 16 Cache Key (ဒေတာအသစ် တန်းဖတ်စေရန်)
+const SCOUT_CACHE_KEY = "twfm_scout_highlights_v16";
 
 const LS = {
   get(k, ttl) { 
@@ -110,6 +109,23 @@ function getTeamMeta(teamIdentifier) {
 }
 
 // ============================================
+// 📸 SELF-CONTAINED OFFICIAL FPL PHOTO RESOLVER
+// ============================================
+function resolvePlayerPhotoUrl(p) {
+  if (!p) return "";
+  if (p.photoUrl && typeof p.photoUrl === "string" && p.photoUrl.startsWith("http")) {
+    return p.photoUrl;
+  }
+  const rawCode = p.photoCode || p.photo || p.opta_code;
+  if (!rawCode) return "";
+  const clean = String(rawCode)
+    .replace(/\.(jpg|jpeg|png)$/i, "")
+    .replace(/^p/i, "")
+    .trim();
+  return clean ? `https://resources.premierleague.com/premierleague/photos/players/250x250/p${clean}.png` : "";
+}
+
+// ============================================
 // 🔘 6 MODES CONFIG (Tab Color = Point Color 100% Sync)
 // ============================================
 const MODES = {
@@ -122,7 +138,7 @@ const MODES = {
 };
 
 // ============================================
-// 👑 MANAGER & TEAM HEADER FRAME STYLER
+// 👑 MANAGER & TEAM HEADER FRAME
 // ============================================
 function decorateManagerFrame(profile) {
   const teamNameEl = $("welcome-name") \vert{}\vert{} $("team-title-text");
@@ -152,10 +168,10 @@ function decorateManagerFrame(profile) {
 }
 
 // ============================================
-// ⏳ DEADLINE COUNTDOWN FRAME ENGINE (FIXED & POLISHED)
+// ⏳ DEADLINE COUNTDOWN FRAME ENGINE
 // ============================================
 async function loadDeadline() {
-  let info = LS.get("twfm_deadline_v15", 10 * MIN);
+  let info = LS.get("twfm_deadline_v16", 10 * MIN);
   if (!info || (info.ts && info.ts < Date.now())) {
     try {
       const m = await loadFixturesMaster();
@@ -171,7 +187,7 @@ async function loadDeadline() {
       } else {
         info = { gw: 6, ts: 0, lastDone: null };
       }
-      LS.set("twfm_deadline_v15", info);
+      LS.set("twfm_deadline_v16", info);
     } catch (e) { 
       console.warn("Deadline load note:", e); 
       info = info || { gw: 6, ts: 0, lastDone: null }; 
@@ -191,7 +207,6 @@ function renderDeadlineFrame(info) {
   const container = $("hero-deadline-card") \vert{}\vert{} $("deadline-timer-container");
   if (!container) return;
 
-  // 💡 Fixtures သို့ မလိုလားအပ်ဘဲ ခုန်မသွားစေရန် Click Handler ကို ဖျက်သိမ်းသည်
   container.onclick = null;
   container.style.cursor = "default";
 
@@ -209,7 +224,6 @@ function renderDeadlineFrame(info) {
   container.innerHTML = `
     <div style="background: linear-gradient(135deg, rgba(26, 31, 58, 0.9), rgba(15, 17, 33, 0.95)); border: 1.2px solid rgba(140, 109, 255, 0.4); border-radius: 18px; padding: 12px 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); position: relative; overflow: hidden;">
       
-      <!-- Top Title & Date Row -->
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
         <div style="display: flex; align-items: center; gap: 6px;">
           <span style="display:inline-block; width:7px; height:7px; border-radius:50%; background:#fbbf24; box-shadow:0 0 10px #fbbf24;"></span>
@@ -218,7 +232,6 @@ function renderDeadlineFrame(info) {
         <span id="gw-when" style="font-size: 10.5px; font-weight: 700; color: #94a3b8;">${whenStr}</span>
       </div>
 
-      <!-- 4-Grid Digital Countdown Box (Sports UI Standards) -->
       <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; text-align: center;">
         <div style="background: rgba(11, 13, 26, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 6px 0;">
           <div id="cd-d" style="font-size: 16px; font-weight: 900; color: #ffffff; font-family: monospace;">00</div>
@@ -321,14 +334,14 @@ async function loadStats() {
 // 🌟 TOP 5 PLAYERS CARD GRID RENDERER
 // ============================================
 async function loadScoutHighlights() {
-  scoutHighlightsData = LS.get(SCOUT_CACHE_KEY_V15, 15 * MIN);
+  scoutHighlightsData = LS.get(SCOUT_CACHE_KEY, 15 * MIN);
 
   if (!scoutHighlightsData) {
     try {
       const snap = await getDoc(doc(db, "scoutPlayers", "scoutHighlights"));
       if (snap.exists()) {
         scoutHighlightsData = snap.data();
-        LS.set(SCOUT_CACHE_KEY_V15, scoutHighlightsData);
+        LS.set(SCOUT_CACHE_KEY, scoutHighlightsData);
       }
     } catch (err) {
       console.warn("scoutHighlights load note:", err);
@@ -401,10 +414,8 @@ function renderPlayerCards() {
     const teamShort = teamMeta.short;
     const localBadgeUrl = teamMeta.badgePath;
 
-    // 📸 Official FPL 250x250 HD Headshot URL
-    const freshPhotoUrl = getPlayerPhotoUrl(p) || (p.photoUrl 
-      ? p.photoUrl 
-      : (p.photoCode ? `https://resources.premierleague.com/premierleague/photos/players/250x250/p${p.photoCode}.png` : ""));
+    // 📸 Safe & Pure Photo URL Resolver (Zero Import Crash)
+    const directPhotoUrl = resolvePlayerPhotoUrl(p);
 
     const fallbackSvg = `
       <div class="home-animated-badge-wrap" style="--tc:${teamColor}; width:68px; height:68px; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center;">
@@ -421,7 +432,7 @@ function renderPlayerCards() {
         <span class="player-card-rank">${i + 1}</span>
 
         <div class="player-card-photo-wrap">
-          <img src="${freshPhotoUrl || localBadgeUrl}" 
+          <img src="${directPhotoUrl || localBadgeUrl}" 
                alt="${esc(p.name)}" 
                loading="lazy" 
                class="player-card-photo"
