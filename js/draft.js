@@ -3,10 +3,11 @@
 // Path: js/draft.js
 // Standards: UI Design Knowledge Pack (Sports UI & 8px Grid)
 // Assets: ./assets/badges/{code}.png (ars.png, lee.png, etc.)
+// Fix: Correct 1-Doc Array Schema Parsing for PPG, VAL, L5, XGI, ICT
 // ============================================
 
 import { auth, db } from "../js/firebase-config.js";
-import { loadFixturesMaster, getScoutSnap } from "./core/data.js";
+import { loadFixturesMaster } from "./core/data.js";
 import { onAuthStateChanged } from "./core/auth.js";
 import { 
   collection, doc, getDoc, getDocs, 
@@ -25,7 +26,7 @@ const FIXTURES_CACHE_KEY = "twf_fixtures_cache_v3";
 const FIXTURES_TTL = 10 * 60 * 1000;
 let fixturesLoadError = "";
 let fixturesGw = 0;
-const SCOUT_CACHE_KEY = "twf_scout_players_cache_v4";
+const SCOUT_CACHE_KEY = "twf_scout_players_cache_v5"; // Schema အသစ်အတွက် Cache Key အသစ်
 const SCOUT_TTL = 30 * 60 * 1000;
 const SQUAD_TIME_KEY = "twf_shared_players_quota_time_v2";
 
@@ -286,7 +287,6 @@ function formatTeamShortName(rawName) {
   return TEAM_SHORT_CODES[clean] || (rawName.length > 4 ? rawName.slice(0, 3).toUpperCase() : rawName.toUpperCase());
 }
 
-// 💡 အဓိက FIX: ဖိုင်လမ်းကြောင်းကို assets/badges/{code}.png (ars.png, lee.png) အတိအကျ သတ်မှတ်ခြင်း[span_10](start_span)[span_10](end_span)
 function getTeamBadgeUrl(teamCode) {
   if (!teamCode) return "./assets/badges/ars.png";
   const clean = String(teamCode).trim().toLowerCase();
@@ -435,8 +435,11 @@ async function loadFixturesCache(forceFresh = false) {
   }
 }
 
+// =========================================================================
+// 🌟 ALL PLAYERS CACHE LOADER (1-Doc `scoutPlayers/allPlayers` Array Parser)
+// =========================================================================
 async function loadScoutCache(forceFresh = false) {
-  try { localStorage.removeItem("twf_scout_players_cache_v3"); } catch (_) {}
+  try { localStorage.removeItem("twf_scout_players_cache_v4"); } catch (_) {}
 
   if (!forceFresh) {
     try {
@@ -451,31 +454,44 @@ async function loadScoutCache(forceFresh = false) {
   }
 
   try {
+    // 💡 1-Document Array Payload မှ တိုက်ရိုက်ဖတ်ယူခြင်း (scoutPlayers/allPlayers)
+    const scoutDocRef = doc(db, "scoutPlayers", "allPlayers");
     const snap = forceFresh
-      ? await getScoutSnap(true)
-      : await getScoutSnap();
+      ? await getDocFromServer(scoutDocRef)
+      : await getDoc(scoutDocRef);
 
-    const freshScout = [];
-    snap.forEach(d => {
-      const data = d.data();
-      freshScout.push({
-        id: String(d.id),
-        playerId: String(data.playerId !== undefined ? data.playerId : d.id),
-        ...data,
-        price: parseFloat(data.price || 0),
-        ownership: parseFloat(String(data.ownership).replace(/[^\d.-]/g, '')) || 0,
-        totalPoints: parseInt(data.totalPoints) || 0,
-        gwPoints: parseInt(data.gwPoints) || 0,
-        form: parseFloat(data.form || 0),
-        ppg: parseFloat(data.ppg || 0),
-        val: parseFloat(data.val || 0),
-        l5: parseFloat(data.l5 || 0),
-        xgi: parseFloat(data.xgi || 0),
-        ict: parseFloat(data.ict || 0),
-        position: String(data.position || "DEF").toUpperCase().trim(),
-        team: data.team || "—"
-      });
-    });
+    let rawPlayers = [];
+    if (snap.exists()) {
+      const d = snap.data();
+      rawPlayers = Array.isArray(d.players) ? d.players : [];
+    }
+
+    const freshScout = rawPlayers.map(p => ({
+      id: String(p.playerId || p.id),
+      playerId: String(p.playerId || p.id),
+      name: p.name || p.web_name || "Player",
+      fullName: p.fullName || "",
+      position: String(p.position || "DEF").toUpperCase().trim(),
+      team: p.team || "—",
+      teamCode: (p.teamCode || "UNK").toUpperCase(),
+      price: parseFloat(p.price || 0),
+      ownership: parseFloat(String(p.ownership || p.selected_by_percent || 0).replace(/[^\d.-]/g, '')) || 0,
+      totalPoints: parseInt(p.totalPoints || p.total_points || 0),
+      gwPoints: parseInt(p.gwPoints || p.event_points || 0),
+      form: parseFloat(p.form || 0),
+      
+      // 🌟 အဓိက METRICS များ တိကျစွာ ရယူခြင်း (PPG, VAL, L5, XGI, ICT)
+      ppg: parseFloat(p.ppg || 0),
+      val: parseFloat(p.val || 0),
+      l5: parseFloat(p.l5 || 0),
+      xgi: parseFloat(p.xgi || p.xGI || 0),
+      ict: parseFloat(p.ict || 0),
+
+      status: p.status || "a",
+      chanceOfPlaying: p.chanceOfPlaying !== undefined ? Number(p.chanceOfPlaying) : 100,
+      isSuspended: p.status === "s",
+      isInjured: p.status === "i"
+    }));
 
     if (freshScout.length > 0) {
       allPlayersCache = freshScout;
@@ -531,22 +547,26 @@ function parseSquadData(teamData) {
   const rawSquadArray = teamData.picks || teamData.players || [];
   currentLiveSquadState = rawSquadArray.map(p => {
     const pIdStr = String(p.playerId || p.element || p.id || "");
-    const m = allPlayersCache.find(x => String(x.playerId) === pIdStr);
+    const m = allPlayersCache.find(x => String(x.playerId) === pIdStr || String(x.id) === pIdStr);
+    
     return {
       ...p,
       playerId: pIdStr,
       name: p.name || m?.name || "Player",
       position: String(p.position || m?.position || "DEF").toUpperCase().trim(),
       team: p.team || m?.team || "—",
-      ownership: m ? (m.ownership || 0) : (p.ownership || 0),
-      form: m ? (m.form || 0) : (p.form || 0),
-      totalPoints: m ? (m.totalPoints || 0) : (p.totalPoints || 0),
-      gwPoints: m ? (m.gwPoints || 0) : (p.gwPoints || 0),
-      ppg: m ? (m.ppg || 0) : (p.ppg || 0),
-      val: m ? (m.val || 0) : (p.val || 0),
-      l5: m ? (m.l5 || 0) : (p.l5 || 0),
-      xgi: m ? (m.xgi || 0) : (p.xgi || 0),
-      ict: m ? (m.ict || 0) : (p.ict || 0),
+      ownership: m ? (m.ownership || 0) : (parseFloat(p.ownership) || 0),
+      form: m ? (m.form || 0) : (parseFloat(p.form) || 0),
+      totalPoints: m ? (m.totalPoints || 0) : (parseInt(p.totalPoints) || 0),
+      gwPoints: m ? (m.gwPoints || 0) : (parseInt(p.gwPoints) || 0),
+
+      // 🌟 PPG, VAL, L5, XGI, ICT တန်ဖိုးများကို `m` မှ တိုက်ရိုက်ရယူခြင်း (0 မဖြစ်စေရန်)
+      ppg: m ? (m.ppg ?? 0) : (parseFloat(p.ppg) || 0),
+      val: m ? (m.val ?? 0) : (parseFloat(p.val) || 0),
+      l5: m ? (m.l5 ?? 0) : (parseFloat(p.l5) || 0),
+      xgi: m ? (m.xgi ?? 0) : (parseFloat(p.xgi) || 0),
+      ict: m ? (m.ict ?? 0) : (parseFloat(p.ict) || 0),
+
       status: p.status || m?.status || "a",
       chanceOfPlaying: p.chanceOfPlaying ?? m?.chanceOfPlaying ?? 100,
       isSuspended: p.isSuspended || m?.isSuspended || false,
@@ -649,7 +669,6 @@ function render20TeamsMatrix() {
       }
     }
 
-    // 💡 အသင်း Code သီးသန့် badge url (assets/badges/ars.png, lee.png)
     const badgeUrl = getTeamBadgeUrl(code);
 
     rowsHtml += `
@@ -668,7 +687,7 @@ function render20TeamsMatrix() {
   tbody.innerHTML = rowsHtml;
 }
 
-// 🌟 MY SQUAD MATRIX ENGINE
+// 🌟 MY SQUAD MATRIX ENGINE (PPG, VAL, L5, XGI, ICT Rendering)
 window.renderMySquadMatrix = function() {
   const tbody = document.getElementById("squad-matrix-body");
   if (!tbody || currentLiveSquadState.length === 0) return;
@@ -754,11 +773,14 @@ window.renderMySquadMatrix = function() {
         <td class="p-1 border-r border-b border-[#3a3f7a]/30 text-center align-middle text-[#38BDF8] font-black text-[11px]">${p.form ?? 0}</td>
         <td class="p-1 border-r border-b border-[#3a3f7a]/30 text-center align-middle text-[#FBBF24] font-black text-[11px]">${p.totalPoints ?? 0}</td>
         <td class="p-1 border-r border-b border-[#3a3f7a]/30 text-center align-middle text-[#FDE047] font-black text-[11px]">${p.gwPoints ?? 0}</td>
+        
+        <!-- 🌟 PPG, VAL, L5, XGI, ICT တန်ဖိုးများ မှန်ကန်စွာ ဖော်ပြခြင်း -->
         <td class="p-1 border-r border-b border-[#3a3f7a]/30 text-center align-middle text-[#34D399] font-black text-[11px]">${p.ppg ?? 0}</td>
         <td class="p-1 border-r border-b border-[#3a3f7a]/30 text-center align-middle text-[#F472B6] font-black text-[11px]">${p.val ?? 0}</td>
         <td class="p-1 border-r border-b border-[#3a3f7a]/30 text-center align-middle text-[#FACC15] font-black text-[11px]">${p.l5 ?? 0}</td>
         <td class="p-1 border-r border-b border-[#3a3f7a]/30 text-center align-middle text-[#C084FC] font-black text-[11px]">${p.xgi ?? 0}</td>
         <td class="p-1 border-r border-b border-[#3a3f7a]/30 text-center align-middle text-[#F43F5E] font-black text-[11px]">${p.ict ?? 0}</td>
+        
         <td class="p-1 border-b border-[#3a3f7a]/30 text-center align-middle text-white font-black text-[10px]">${p.ownership ?? 0}%</td>
       </tr>
     `;
