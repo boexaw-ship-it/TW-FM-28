@@ -3,12 +3,6 @@
 // Path: js/home.js
 // Standards: UI Design Knowledge Pack (Sports UI & 8px Grid)
 // Architecture: Bulletproof Defensive DOM Engine (Zero Script Crash)
-// Targets:
-//   - Safe Manager & Team Header Styling
-//   - Safe Deadline Frame (No DOM Overwrite, No Route Jump)
-//   - 3-Column Stats Sync (330, 1.8M, 51)
-//   - Top 5 Leaders Grid (Reads Directly from scoutPlayers/scoutHighlights)
-//   - 6 Quick Stats Tabs Working Smoothly
 // ============================================
 
 import { db } from "./firebase-config.js";
@@ -18,8 +12,8 @@ import { loadFixturesMaster } from "./core/data.js";
 const $ = (id) => document.getElementById(id);
 const MIN = 60 * 1000;
 
-// 💡 Version 17 Cache Key (Cache အဟောင်းများကို အလိုအလျောက် သန့်စင်စေခြင်း)
-const SCOUT_CACHE_KEY_V17 = "twfm_scout_highlights_v17";
+// 💡 Version 18 Cache Key
+const SCOUT_CACHE_KEY_V18 = "twfm_scout_highlights_v18";
 
 const LS = {
   get(k, ttl) { 
@@ -46,7 +40,7 @@ let lastDone = null;
 let live = null;
 let fplId = null;
 let scoutHighlightsData = null;
-let mode = "cap"; // Default: Most Captained
+let mode = "cap";
 let timerInterval = null;
 
 // ============================================
@@ -77,7 +71,7 @@ const teamDetailsMap = {
   11: { name: "Hull City", short: "HUL", code: "hul", color: "#F5971E" },
   12: { name: "Ipswich Town", short: "IPS", code: "ips", color: "#0047AB" },
   13: { name: "Leeds United", short: "LEE", code: "lee", color: "#FFCD00" },
-  14: { name: "Liverpool", short: "LIV", code: "liv", color: "#C8102E" },
+  14: { name: "Liverpool", short: "LIV", color: "#C8102E" },
   15: { name: "Manchester City", short: "MCI", code: "mci", color: "#6CABDD" },
   16: { name: "Manchester United", short: "MUN", code: "mun", color: "#DA291C" },
   17: { name: "Newcastle United", short: "NEW", code: "new", color: "#F8FAFC" },
@@ -101,17 +95,12 @@ function getTeamMeta(teamIdentifier) {
   const clean = String(teamIdentifier).trim().toLowerCase();
   const matched = TEAM_LOOKUP[clean];
   if (matched) {
-    return {
-      ...matched,
-      badgePath: `./assets/badges/${matched.code}.png`
-    };
+    return { ...matched, badgePath: `./assets/badges/${matched.code}.png` };
   }
   return { id: 6, name: "Chelsea", short: "CHE", code: "che", color: "#034694", badgePath: `./assets/badges/che.png` };
 }
 
-// ============================================
-// 📸 SELF-CONTAINED OFFICIAL FPL PHOTO RESOLVER
-// ============================================
+// 📸 Safe Photo Resolver
 function resolvePlayerPhotoUrl(p) {
   if (!p) return "";
   if (p.photoUrl && typeof p.photoUrl === "string" && p.photoUrl.startsWith("http")) {
@@ -126,9 +115,7 @@ function resolvePlayerPhotoUrl(p) {
   return clean ? `https://resources.premierleague.com/premierleague/photos/players/250x250/p${clean}.png` : "";
 }
 
-// ============================================
-// 🔘 6 MODES CONFIG (Tab Color = Point Color 100% Sync)
-// ============================================
+// 🔘 Modes Config
 const MODES = {
   cap: { color: "#8c6dff", key: "mostCaptained", show: (p) => `${p.totalPoints || p.gwPoints || 0} pts` },
   own: { color: "#38bdf8", key: "mostOwned", show: (p) => `${Number(p.ownership || 0).toFixed(1)}%` },
@@ -138,41 +125,34 @@ const MODES = {
   gw: { color: "#34d399", key: "mostGwPoints", show: (p) => `${p.gwPoints || 0} pts` }
 };
 
-// ============================================
-// 👑 MANAGER & TEAM HEADER FRAME (SAFE DOM UPDATE)
-// ============================================
+// 👑 Manager Frame
 function decorateManagerFrame(profile) {
   try {
     const teamNameEl = $("welcome-name") \vert{}\vert{} $("team-title-text");
     const managerNameEl = $("welcome-manager") \vert{}\vert{} $("manager-title-text");
-    const managerCardEl = $("manager-profile-card") \vert{}\vert{} $("header-profile-box") || teamNameEl?.closest("div.rounded-2xl");
+    const managerCardEl = $("manager-profile-card") \vert{}\vert{} $("header-profile-box") || teamNameEl?.closest("div");
 
     const teamName = profile?.teamName || "SEAROKER Tw";
     const managerName = profile?.managerName || profile?.displayName || "zaw moe";
 
     if (teamNameEl) {
-      teamNameEl.innerHTML = `<span style="font-weight:900; letter-spacing:0.02em;">${esc(teamName)}</span> <span style="filter: drop-shadow(0 0 8px rgba(251,191,36,0.6));">👑</span>`;
+      teamNameEl.innerHTML = `<span style="font-weight:900; letter-spacing:0.02em;">${esc(teamName)}</span> <span>👑</span>`;
     }
     if (managerNameEl) {
       managerNameEl.innerHTML = `<span style="opacity:0.75; font-size:11px;">Manager:</span> <span style="color:#e2e8f0; font-weight:700;">${esc(managerName)}</span>`;
     }
-
     if (managerCardEl) {
-      managerCardEl.style.background = "linear-gradient(135deg, rgba(20, 23, 43, 0.95), rgba(15, 17, 33, 0.98))";
-      managerCardEl.style.border = "1px solid rgba(140, 109, 255, 0.35)";
       managerCardEl.style.borderRadius = "18px";
-      managerCardEl.style.boxShadow = "0 10px 25px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.1)";
+      managerCardEl.style.border = "1px solid rgba(140, 109, 255, 0.35)";
     }
   } catch (err) {
     console.warn("Manager frame decorate note:", err);
   }
 }
 
-// ============================================
-// ⏳ DEADLINE COUNTDOWN FRAME ENGINE (SAFE TICK)
-// ============================================
+// ⏳ Deadline Engine (Non-Destructive DOM Safe)
 async function loadDeadline() {
-  let info = LS.get("twfm_deadline_v17", 10 * MIN);
+  let info = LS.get("twfm_deadline_v18", 10 * MIN);
   if (!info || (info.ts && info.ts < Date.now())) {
     try {
       const m = await loadFixturesMaster();
@@ -188,9 +168,8 @@ async function loadDeadline() {
       } else {
         info = { gw: 6, ts: 0, lastDone: null };
       }
-      LS.set("twfm_deadline_v17", info);
+      LS.set("twfm_deadline_v18", info);
     } catch (e) { 
-      console.warn("Deadline load note:", e); 
       info = info || { gw: 6, ts: 0, lastDone: null }; 
     }
   }
@@ -199,7 +178,6 @@ async function loadDeadline() {
   currentGwNumber = info.gw || 6;
   lastDone = info.lastDone ?? null;
 
-  // Safe update for Deadline labels without destroying existing HTML
   if ($("gw-label")) $("gw-label").textContent = `GW${currentGwNumber} DEADLINE`;
   if ($("gw-when") && info.ts) {
     $("gw-when").textContent = new Date(info.ts).toLocaleString("en-GB", { 
@@ -214,7 +192,6 @@ async function loadDeadline() {
     }) + " MMT";
   }
 
-  // 💡 Hero card ပေါ်တွင် fixtures သို့ အလိုအလျောက် ခုန်မသွားစေရန် Click ဖယ်ရှားခြင်း
   const heroCard = $("hero-deadline-card");
   if (heroCard) {
     heroCard.onclick = null;
@@ -232,7 +209,6 @@ function tick() {
   const m = Math.floor(d / 6e4); d -= m * 6e4;
   const s = Math.floor(d / 1e3);
 
-  // Safe setter (element ရှိမှသာ update လုပ်မည် - crash မဖြစ်စေပါ)
   const set = (id, v) => { 
     const e = $(id); 
     if (e && e.textContent !== v) e.textContent = v; 
@@ -243,9 +219,7 @@ function tick() {
   set("cd-s", pad(s));
 }
 
-// ============================================
-// 📊 PERFORMANCE STATS ENGINE (SAFE DOM)
-// ============================================
+// 📊 Stats Engine
 function paintStats() {
   if (!live) return;
   const g = Number(live.gameweek) || 0;
@@ -315,18 +289,16 @@ async function loadStats() {
   }
 }
 
-// ============================================
-// 🌟 TOP 5 PLAYERS CARD GRID RENDERER (FIRESTORE HIGHLIGHTS)
-// ============================================
+// 🌟 Top 5 Cards
 async function loadScoutHighlights() {
-  scoutHighlightsData = LS.get(SCOUT_CACHE_KEY_V17, 15 * MIN);
+  scoutHighlightsData = LS.get(SCOUT_CACHE_KEY_V18, 15 * MIN);
 
   if (!scoutHighlightsData) {
     try {
       const snap = await getDoc(doc(db, "scoutPlayers", "scoutHighlights"));
       if (snap.exists()) {
         scoutHighlightsData = snap.data();
-        LS.set(SCOUT_CACHE_KEY_V17, scoutHighlightsData);
+        LS.set(SCOUT_CACHE_KEY_V18, scoutHighlightsData);
       }
     } catch (err) {
       console.warn("scoutHighlights load note:", err);
@@ -354,7 +326,6 @@ function renderPlayerCards() {
   const M = MODES[mode];
   const activeColor = M.color;
 
-  // Active Tab Highlight State
   document.querySelectorAll("#leader-tabs button").forEach((b) => {
     const isActive = b.dataset.k === mode;
     b.classList.toggle("on", isActive);
@@ -388,7 +359,6 @@ function renderPlayerCards() {
     return;
   }
 
-  // 💡 ထိပ်တန်းကစားသမား (၅) ဦး Card Grid Render ပြုလုပ်ခြင်း
   container.innerHTML = list.slice(0, 5).map((p, i) => {
     const rawPos = String(p.position || "mid").toLowerCase().trim();
     const isGk = rawPos === "gk" || rawPos === "gkp";
@@ -399,7 +369,6 @@ function renderPlayerCards() {
     const teamShort = teamMeta.short;
     const localBadgeUrl = teamMeta.badgePath;
 
-    // 📸 Safe Photo URL (Firestore photoUrl မှ တိုက်ရိုက်ယူသည်)
     const directPhotoUrl = resolvePlayerPhotoUrl(p);
 
     const fallbackSvg = `
@@ -430,7 +399,6 @@ function renderPlayerCards() {
                    this.parentElement.innerHTML = \`${fallbackSvg.replace(/\n/g, '').replace(/"/g, "'")}\`;
                  }
                ">
-          <!-- 💡 Chelsea FC Overlay Badge -->
           <img src="${localBadgeUrl}" alt="${esc(teamShort)}" class="player-card-club-badge" onerror="this.style.display='none';">
         </div>
 
@@ -447,9 +415,7 @@ function renderPlayerCards() {
   }).join("");
 }
 
-// ============================================
-// 🗓 NEXT FIXTURE MATCH RENDERER
-// ============================================
+// 🗓 Next Fixture
 async function loadNextFixture() {
   try {
     const meta = await loadFixturesMaster();
@@ -467,8 +433,8 @@ async function loadNextFixture() {
     if (!targetMatch) {
       targetMatch = {
         event: targetGw,
-        team_h: 1,  // Arsenal (ars.png)
-        team_a: 13, // Leeds United (lee.png)
+        team_h: 1,
+        team_a: 13,
         kickoff_time: "2026-10-10T12:30:00Z"
       };
     }
@@ -495,7 +461,6 @@ async function loadNextFixture() {
     if (hNameEl) hNameEl.textContent = homeTeam.name;
     if (hBadgeEl) {
       hBadgeEl.src = homeTeam.badgePath;
-      hBadgeEl.alt = homeTeam.short;
       hBadgeEl.onerror = () => { hBadgeEl.src = "./assets/badges/ars.png"; };
     }
 
@@ -506,7 +471,6 @@ async function loadNextFixture() {
     if (aNameEl) aNameEl.textContent = awayTeam.name;
     if (aBadgeEl) {
       aBadgeEl.src = awayTeam.badgePath;
-      aBadgeEl.alt = awayTeam.short;
       aBadgeEl.onerror = () => { aBadgeEl.src = "./assets/badges/lee.png"; };
     }
 
@@ -515,37 +479,23 @@ async function loadNextFixture() {
   }
 }
 
-// ============================================
-// 🚀 EXPORT INITIALIZER (GUARDED PIPELINE)
-// ============================================
+// 🚀 Export Initializer
 export async function initHomeTab(user, profile) {
   if (profile?.fplTeamId) {
     fplId = String(profile.fplTeamId);
   }
 
-  // ၁။ Manager Frame
   decorateManagerFrame(profile);
-
-  // ၂။ Deadline Frame
   await loadDeadline();
-
-  // ၃။ Stats Loading (330, 1.8M, 51)
   loadStats();
-
-  // ၄။ Top 5 Player Cards (Most Captained etc.)
   await loadScoutHighlights();
-
-  // ၅။ Next Fixture Card
   await loadNextFixture();
 
-  // ၆။ Timer Interval
   if (timerInterval) clearInterval(timerInterval);
   timerInterval = setInterval(tick, 1000);
 
-  // ၇။ Tab Switching Listener (Most Captain, Ownership, Transfers In/Out, Total/GW Points)
   const tabsContainer = $("leader-tabs");
   if (tabsContainer) {
-    // Event listener အဟောင်းများ ထပ်မနေစေရန် cloneNode မသုံးဘဲ clean delegate လုပ်ခြင်း
     tabsContainer.onclick = (e) => {
       const b = e.target.closest("button[data-k]");
       if (!b) return;
