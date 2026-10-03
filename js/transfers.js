@@ -2,14 +2,15 @@
 // TW FM — Transfers & Squad Planner Controller
 // Production Ready: Dynamic Gameweek & Multi-User Support
 // Formation Fix: Resolves 0-11-0 Bug to Accurate Pitch Layout
-// Bug Fix: Solved xG & ICT "undefined" and "0" binding issue across all modals
+// Bug Fix: 100% Fixed xG / xGI & ICT zero/undefined issue across Market and Modals
 // Standards: UI Design Knowledge Pack (Sports UI & 8px Grid)
 // ============================================
 
 import { auth, db } from "../js/firebase-config.js";
 import { onAuthStateChanged } from "./core/auth.js";
 import { doc, getDoc, getDocs, collection, getDocFromServer } from "./core/fs.js";
-import { calculateSellingPrice, getCachedFixturesAndScout, togglePriceMode, priceDisplayMode } from "../js/transfer-pricing.js";
+import { calculateSellingPrice, togglePriceMode, priceDisplayMode } from "../js/transfer-pricing.js";
+import { loadFixturesMaster } from "./core/data.js";
 
 // Global Transfers State
 let allPlayersCache = [];
@@ -28,6 +29,8 @@ let currentPriceMode = 'current';
 let isTwMemberUser = false;
 
 const TRANSFERS_TIME_KEY = "twf_transfers_quota_time_v2";
+const SCOUT_CACHE_KEY = "twf_scout_players_cache_v5";
+const SCOUT_TTL = 30 * 60 * 1000;
 
 // Modal & Interaction States
 let selectedSlotIndex = null;
@@ -62,10 +65,10 @@ const TEAM_DIFFICULTY_TIER = {
   "IPS": 2, "LEE": 2, "SUN": 2, "HUL": 2, "COV": 2
 };
 
-// 🌟 xG & ICT Helper: Firestore နှင့် API Property Name ကွဲလွဲမှုအားလုံးကို Safe Resolve ပြုလုပ်ခြင်း
+// 🌟 xG & ICT Helper: Firestore Property Name Mappings ကို တိကျစွာ ရယူခြင်း
 function extractPlayerXg(p) {
   if (!p) return 0;
-  const raw = p.xG ?? p.xg ?? p.expected_goals ?? p.xgi ?? 0;
+  const raw = p.xgi ?? p.xGI ?? p.xG ?? p.xg ?? p.expected_goals ?? p.expected_goal_involvements ?? 0;
   const val = parseFloat(raw);
   return isNaN(val) ? 0 : parseFloat(val.toFixed(2));
 }
@@ -308,17 +311,7 @@ window.forceRefreshTransfersData = async function() {
   try {
     showInAppToast("🔄 ဒေတာအသစ် ရယူနေပါသည်...", false);
 
-    const freshCache = await getCachedFixturesAndScout(db, collection, getDocs, formatTeamShort);
-    if (freshCache.scoutPlayers && freshCache.scoutPlayers.length > 0) {
-      allPlayersCache = freshCache.scoutPlayers.map(p => ({
-        ...p,
-        xg: extractPlayerXg(p),
-        xG: extractPlayerXg(p),
-        ict: extractPlayerIct(p)
-      }));
-      firebaseFixturesCache = freshCache.fixtures || [];
-    }
-
+    await loadMasterAllPlayers(true);
     const isSuccess = await loadUserLiveSquad(true);
 
     if (isSuccess) {
@@ -330,7 +323,7 @@ window.forceRefreshTransfersData = async function() {
 
   } catch (err) {
     console.error("Transfers Quota Load Error:", err);
-    showInAppToast("⚠️️ SERVER Maintain လုပ်နေပါသည်ခင်ဗျာ!", true);
+    showInAppToast("⚠ SERVER Maintain လုပ်နေပါသည်ခင်ဗျာ!", true);
   } finally {
     if (icon) icon.classList.remove("animate-spin");
     if (btn) {
@@ -401,7 +394,7 @@ function renderJerseyHtml(player, customSize = "jersey-box") {
   `;
 }
 
-window.showTwToast = function(title, msg, icon = "⚠️️") {
+window.showTwToast = function(title, msg, icon = "⚠") {
   const modal = document.getElementById("tw-toast-modal");
   if (!modal) { alert(`${title}: ${msg}`); return; }
   document.getElementById("tw-toast-title").textContent = title;
@@ -417,6 +410,67 @@ window.closeTwToast = function() {
   modal.classList.add("hidden");
   modal.classList.remove("flex");
 };
+
+// =========================================================================
+// 🚀 ALL PLAYERS 1-DOC MASTER LOADER (အဓိက FIX: Doc မှ တိုက်ရိုက်ဖတ်ယူခြင်း)
+// =========================================================================
+async function loadMasterAllPlayers(forceFresh = false) {
+  if (!forceFresh) {
+    try {
+      const c = JSON.parse(localStorage.getItem(SCOUT_CACHE_KEY) || "null");
+      if (c && Array.isArray(c.list) && c.list.length > 0 && Date.now() - c.t < SCOUT_TTL) {
+        allPlayersCache = c.list;
+        return allPlayersCache;
+      }
+    } catch (_) {}
+  }
+
+  try {
+    const scoutDocRef = doc(db, "scoutPlayers", "allPlayers");
+    const snap = forceFresh 
+      ? await getDocFromServer(scoutDocRef) 
+      : await getDoc(scoutDocRef);
+
+    let rawPlayers = [];
+    if (snap.exists()) {
+      const d = snap.data();
+      rawPlayers = Array.isArray(d.players) ? d.players : [];
+    }
+
+    allPlayersCache = rawPlayers.map(p => {
+      const resolvedXg = extractPlayerXg(p);
+      const resolvedIct = extractPlayerIct(p);
+      return {
+        ...p,
+        id: String(p.playerId || p.id),
+        playerId: String(p.playerId || p.id),
+        name: p.name || p.web_name || "Player",
+        position: String(p.position || "DEF").toUpperCase().trim(),
+        team: p.team || "—",
+        currentPrice: parseFloat(p.price || p.currentPrice || 0),
+        price: parseFloat(p.price || p.currentPrice || 0),
+        ownership: parseFloat(p.ownership || p.selected_by_percent || 0),
+        totalPoints: parseInt(p.totalPoints || p.total_points || 0),
+        gwPoints: parseInt(p.gwPoints || p.event_points || 0),
+        form: parseFloat(p.form || 0),
+        xg: resolvedXg,
+        xG: resolvedXg,
+        xgi: resolvedXg,
+        ict: resolvedIct
+      };
+    });
+
+    if (allPlayersCache.length > 0) {
+      try {
+        localStorage.setItem(SCOUT_CACHE_KEY, JSON.stringify({ t: Date.now(), list: allPlayersCache }));
+      } catch (_) {}
+    }
+    return allPlayersCache;
+  } catch (err) {
+    console.warn("Direct allPlayers master load note:", err);
+    return allPlayersCache;
+  }
+}
 
 // =========================================================================
 // 🚀 AUTH & ENTRY GATE
@@ -465,17 +519,13 @@ async function setupTransfersGate(user) {
 
     triggerInitialFakeRefreshUI();
 
-    const cacheData = await getCachedFixturesAndScout(db, collection, getDocs, formatTeamShort);
-    firebaseFixturesCache = cacheData.fixtures || [];
-    
-    // 💡 allPlayersCache ထဲသို့ xG နှင့် ICT များကို sanitize ပြုလုပ်ပြီး ထည့်သွင်းခြင်း
-    allPlayersCache = (cacheData.scoutPlayers || []).map(p => ({
-      ...p,
-      xg: extractPlayerXg(p),
-      xG: extractPlayerXg(p),
-      ict: extractPlayerIct(p)
-    }));
+    // 💡 Master Fixtures နှင့် All Players များကို အပြည့်အဝ Load လုပ်ခြင်း
+    try {
+      const fixMeta = await loadFixturesMaster(false);
+      firebaseFixturesCache = fixMeta?.fixtures || [];
+    } catch (_) {}
 
+    await loadMasterAllPlayers(false);
     await loadUserLiveSquad(false);
     setupToggleListener();
   } catch (err) {
@@ -550,11 +600,14 @@ async function loadUserLiveSquad(forceFresh = false) {
       if (Array.isArray(parsedSquad) && parsedSquad.length === 15 && starDefs.length >= 3) {
         currentSquad = parsedSquad.map(p => {
           const master = allPlayersCache.find(x => String(x.playerId || x.id) === String(p.playerId || p.id));
+          const resolvedXg = extractPlayerXg(p) || extractPlayerXg(master);
+          const resolvedIct = extractPlayerIct(p) || extractPlayerIct(master);
           return {
             ...p,
-            xg: extractPlayerXg(p) || extractPlayerXg(master),
-            xG: extractPlayerXg(p) || extractPlayerXg(master),
-            ict: extractPlayerIct(p) || extractPlayerIct(master)
+            xg: resolvedXg,
+            xG: resolvedXg,
+            xgi: resolvedXg,
+            ict: resolvedIct
           };
         });
         officialTeamBank = parseFloat(savedBank);
@@ -609,7 +662,6 @@ async function loadUserLiveSquad(forceFresh = false) {
   return false;
 }
 
-// 🛡️ Data Normalizer: xG နှင့် ICT တန်ဖိုးများကို တိကျစွာ ထည့်သွင်းခြင်း
 function parseRawDataToSquad(data, pointsData = {}) {
   const origKey = `twf_transfers_orig_${currentFplTeamId}`;
   const origBankKey = `twf_transfers_orig_bank_${currentFplTeamId}`;
@@ -659,7 +711,7 @@ function parseRawDataToSquad(data, pointsData = {}) {
       effectiveMultiplier = Number(p.multiplier);
     }
 
-    // 🌟 xG နှင့် ICT ကို master player ထံမှ တိကျစွာ bind ပြုလုပ်သည်
+    // 🌟 master ထံမှ xG / xGI နှင့် ICT ကို သေချာစွာ ယူသည်
     const resolvedXg = extractPlayerXg(p) || extractPlayerXg(master);
     const resolvedIct = extractPlayerIct(p) || extractPlayerIct(master);
 
@@ -680,9 +732,9 @@ function parseRawDataToSquad(data, pointsData = {}) {
       totalPoints: master?.totalPoints || 0,
       gwPoints: master?.gwPoints || p.livePoints || 0,
       
-      // 🌟 FIXED: xg & ict properties
       xg: resolvedXg,
       xG: resolvedXg,
+      xgi: resolvedXg,
       ict: resolvedIct,
 
       status: p.status || master?.status || "a",
@@ -855,6 +907,7 @@ function executeBlank442Squad() {
         gwPoints: 0,
         xg: 0,
         xG: 0,
+        xgi: 0,
         ict: 0,
         status: "a",
         multiplier: cfg.starter ? 1 : 0,
@@ -1127,13 +1180,13 @@ window.handleSlotInteraction = function(index) {
   window.openPlayerAction(index);
 };
 
-// 🌟 Player Action Modal (Fixed: Real xG & ICT Display)
+// 🌟 Player Action Modal (Fixed: 100% Real xG / xGI & ICT from Master allPlayers)
 window.openPlayerAction = function(index) {
   selectedSlotIndex = index;
   const p = currentSquad[index];
   const master = allPlayersCache.find(x => String(x.playerId || x.id) === String(p.playerId || p.id));
 
-  // 💡 Safe xG & ICT Extraction
+  // 💡 Safe resolve from player itself, then fallback to master
   const realXg = extractPlayerXg(p) || extractPlayerXg(master);
   const realIct = extractPlayerIct(p) || extractPlayerIct(master);
 
@@ -1151,7 +1204,7 @@ window.openPlayerAction = function(index) {
   document.getElementById("pa-own").textContent = `${p.ownership || master?.ownership || 0}%`;
   document.getElementById("pa-form").textContent = p.form || master?.form || 0;
 
-  // 🌟 FIXED: xG / ICT string
+  // 🌟 FIXED: Display Real xG / xGI and ICT
   document.getElementById("pa-xg-ict").textContent = `${realXg} / ${realIct}`;
 
   const nextGw = (currentGw || 1) + 1;
@@ -1349,7 +1402,7 @@ window.setMarketSort = function(sortKey) {
   renderMarketList();
 };
 
-// 🌟 Market List Rendering (Fixed: xG & ICT Undefined Bug)
+// 🌟 Market List Rendering (Fixed: 100% Real xG / xGI & ICT from Master allPlayers)
 function renderMarketList() {
   const slot = currentSquad[targetSwapIndex];
   if (!slot) return;
@@ -1397,7 +1450,7 @@ function renderMarketList() {
     const canAfford = buyCost <= (officialTeamBank + 0.001);
     const isTeamMaxed = (teamCounts[pTeamCode] || 0) >= 3;
 
-    // 🌟 SAFE RESOLVE: xG & ICT
+    // 🌟 Master Player Cache မှ တိုက်ရိုက် resolve လုပ်ထားသော Real Metrics
     const pXg = extractPlayerXg(p);
     const pIct = extractPlayerIct(p);
 
@@ -1459,7 +1512,7 @@ function renderMarketList() {
   }).join("");
 }
 
-// 🌟 Market Detail Modal (Fixed: Real xG & ICT Display)
+// 🌟 Market Detail Modal
 window.openMarketDetailModal = function(playerId) {
   const p = allPlayersCache.find(x => String(x.playerId) === String(playerId));
   if (!p) return;
@@ -1477,7 +1530,6 @@ window.openMarketDetailModal = function(playerId) {
   document.getElementById("md-own").textContent = `${p.ownership || 0}%`;
   document.getElementById("md-form").textContent = p.form || 0;
 
-  // 🌟 FIXED: xG / ICT string
   document.getElementById("md-xg-ict").textContent = `${realXg} / ${realIct}`;
 
   const nextGw = (currentGw || 1) + 1;
@@ -1574,6 +1626,7 @@ window.confirmBuyPlayer = function(playerId) {
     price: buyCost,
     xg: extractPlayerXg(newP),
     xG: extractPlayerXg(newP),
+    xgi: extractPlayerXg(newP),
     ict: extractPlayerIct(newP),
     multiplier: oldSlot.multiplier,
     isCaptain: oldSlot.isCaptain,
