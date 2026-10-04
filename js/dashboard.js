@@ -1,7 +1,7 @@
 // ============================================
 // TW Fantasy Official League — Dashboard Entry Controller
 // Path: js/dashboard.js
-// Responsibilities: Auth Lifecycle, Profile Binding, Stable UI Boot
+// Responsibilities: Auth Lifecycle, Profile Binding, Safe Card Rendering
 // Standards: UI Design Knowledge Pack (Predictable State & Quota Safety)
 // ============================================
 
@@ -15,12 +15,10 @@ const $ = (id) => document.getElementById(id);
 let currentAuthUser = null;
 let currentProfile = null;
 
-// 💡 User Manager Profile ကို LocalStorage Cache မှ ဦးစွာယူပြီး ချက်ချင်း အလုပ်လုပ်စေခြင်း
 async function loadManagerProfile(user) {
   if (!user) return null;
   const cacheKey = `twf_user_profile_${user.uid}`;
   
-  // 1️⃣ LocalStorage cache မှ ဦးစွာဖတ်သည်
   try {
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
@@ -29,7 +27,6 @@ async function loadManagerProfile(user) {
     }
   } catch (_) {}
 
-  // 2️⃣ Firestore မှ fresh profile ရယူသည်
   try {
     const userDocSnap = await getDoc(doc(db, "users", user.uid));
     if (userDocSnap.exists()) {
@@ -53,8 +50,7 @@ function renderProfileUI(profile) {
   const refreshBtn = $("pending-refresh-btn");
 
   if (welcomeNameEl) {
-    const teamTitle = profile.teamName || "SEAROKER Tw";
-    welcomeNameEl.innerHTML = `${escapeHtml(teamTitle)} <span class="crown-ico">👑</span>`;
+    welcomeNameEl.textContent = profile.teamName || "SEAROKER Tw";
   }
 
   if (welcomeManagerEl) {
@@ -63,7 +59,6 @@ function renderProfileUI(profile) {
     welcomeManagerEl.textContent = cleanManager;
   }
 
-  // Verification Status Pill
   if (pillEl) {
     const isApproved = profile.status === "approved";
     pillEl.textContent = isApproved ? "TW MEMBER" : "PENDING";
@@ -81,7 +76,6 @@ function renderProfileUI(profile) {
   }
 }
 
-// 🔄 Approval Status Refresh Action
 window.handleCheckApprovalStatus = async function() {
   if (!currentAuthUser) return;
   const btn = $("pending-refresh-btn");
@@ -107,13 +101,6 @@ window.handleCheckApprovalStatus = async function() {
   }
 };
 
-function escapeHtml(str) {
-  return String(str || "").replace(/[&<>"']/g, (c) => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-  }[c]));
-}
-
-// 🚀 Boot Controller (Guaranteed Profile & Stats Initialization)
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
     if (typeof window.go === "function") {
@@ -123,10 +110,6 @@ onAuthStateChanged(auth, async (user) => {
   }
 
   currentAuthUser = user;
-
-  // 🌟 အရေးကြီးဆုံး: Profile ကို ဦးစွာ load လုပ်ပြီးမှ initHomeTab သို့ ပေးပို့သည်
   const loadedProfile = await loadManagerProfile(user);
-  
-  // Home Tab Engine (Stats, Countdown, Top 5 Cards) ကို အပြည့်အဝ စတင်လည်ပတ်စေသည်
   initHomeTab(user, loadedProfile || currentProfile);
 });
