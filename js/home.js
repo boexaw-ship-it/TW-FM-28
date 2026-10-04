@@ -3,10 +3,12 @@
 // Path: js/home.js
 // Standards: UI Design Knowledge Pack (Sports UI & 8px Grid)
 // Architecture: Instant Non-Blocking Parallel Engine
-// Fixes:
-//   1. Clean Single "Manager: zaw moe" Display (No Duplication)
-//   2. Clean Rank Display on Top 5 Cards (No C/V badges)
-//   3. Responsive Tab Switching with Point Color Sync
+// Fixes Applied:
+//   1. Clean Single "Manager: zaw moe" Display (Zero Duplication)
+//   2. Guaranteed Permanent Digital Countdown Timer (DAYS, HRS, MIN, SEC)
+//   3. Clean Rank Display on Top 5 Cards (C / V Badges Permanently Removed)
+//   4. Tab Color = Points Color 100% Sync System
+//   5. Live Next Fixture Match Card with Code-Only Local Badges
 // ============================================
 
 import { db } from "./firebase-config.js";
@@ -16,8 +18,8 @@ import { loadFixturesMaster } from "./core/data.js";
 const $ = (id) => document.getElementById(id);
 const MIN = 60 * 1000;
 
-// 💡 Version 30 Cache Key
-const SCOUT_CACHE_KEY_V30 = "twfm_scout_highlights_v30";
+// 💡 Version 40 Cache Key (Cache သန့်စင်ပြီး ဒေတာသစ် တန်းဖတ်စေခြင်း)
+const SCOUT_CACHE_KEY_V40 = "twfm_scout_highlights_v40";
 
 const LS = {
   get(k, ttl) { 
@@ -38,9 +40,10 @@ const fmt = (n) => (Number.isFinite(+n) && n !== null && n !== undefined && n !=
 const pad = (n) => String(Math.max(0, n)).padStart(2, "0");
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-let deadlineTs = 0;
+// 💡 Default Fallback Epoch for GW6 Deadline: 10 Oct 2026, 16:30 MMT (10:00:00 UTC)
+let deadlineTs = new Date("2026-10-10T10:00:00Z").getTime();
 let currentGwNumber = 6;
-let lastDone = null;
+let lastDone = 5;
 let live = null;
 let fplId = null;
 let scoutHighlightsData = null;
@@ -104,7 +107,7 @@ function getTeamMeta(teamIdentifier) {
   return { id: 6, name: "Chelsea", short: "CHE", code: "che", color: "#034694", badgePath: `./assets/badges/che.png` };
 }
 
-// 📸 Official Clean Photo Resolver (Direct from Firestore photoUrl)
+// 📸 Official Clean Photo Resolver (Priority: photoUrl -> cleanCode)
 function resolvePlayerPhotoUrl(p) {
   if (!p) return "";
   if (p.photoUrl && typeof p.photoUrl === "string" && p.photoUrl.startsWith("http")) {
@@ -140,7 +143,7 @@ function decorateManagerFrame(profile) {
     const teamName = profile?.teamName || "SEAROKER Tw";
     let rawManager = profile?.managerName || profile?.displayName || "zaw moe";
 
-    // 💡 "Manager:" စာသား အရှေ့မှ ပါလာပါက အမြစ်ပြတ် ဖယ်ရှားခြင်း
+    // 💡 "Manager:" စာသား အရှေ့မှ ပါလာပါက ဖြတ်ထုတ်သန့်စင်ခြင်း
     const cleanManager = String(rawManager)
       .replace(/^manager:\s*/i, "")
       .replace(/^manager\s*/i, "")
@@ -150,8 +153,7 @@ function decorateManagerFrame(profile) {
       teamNameEl.innerHTML = `${esc(teamName)} <span class="crown-ico">👑</span>`;
     }
     if (managerNameEl) {
-      // HTML <p id="welcome-sub"> ထဲတွင် "Manager:" စာသား ပါရှိပြီးသား ဖြစ်သဖြင့်
-      // ဤနေရာတွင် မန်နေဂျာအမည် သီးသန့်သာ ထည့်သွင်းပေးပါသည်
+      // HTML <p id="welcome-sub"> ထဲတွင် "Manager:" စာသား ပါရှိပြီးသား ဖြစ်သဖြင့် အမည်သီးသန့်သာ ထည့်သည်
       managerNameEl.textContent = cleanManager || "zaw moe";
     }
   } catch (err) {
@@ -160,138 +162,91 @@ function decorateManagerFrame(profile) {
 }
 
 // ============================================
-// 🌟 TOP 5 PLAYERS CARD GRID RENDERER (CLEAN VIEW - NO C/V BADGES)
+// ⏳ INSTANT DEADLINE COUNTDOWN ENGINE (NEVER COLLAPSE)
 // ============================================
-async function loadScoutHighlights() {
-  scoutHighlightsData = LS.get(SCOUT_CACHE_KEY_V30, 10 * MIN);
+function initDeadlineTimer() {
+  let info = LS.get("twfm_deadline_v40", 10 * MIN);
 
-  if (!scoutHighlightsData) {
-    try {
-      const snap = await getDoc(doc(db, "scoutPlayers", "scoutHighlights"));
-      if (snap.exists()) {
-        scoutHighlightsData = snap.data();
-        LS.set(SCOUT_CACHE_KEY_V30, scoutHighlightsData);
-      }
-    } catch (err) {
-      console.warn("scoutHighlights load note:", err);
-    }
+  if (info && info.ts) {
+    deadlineTs = info.ts;
+    currentGwNumber = info.gw || 6;
+    lastDone = info.lastDone ?? 5;
   }
 
-  renderPlayerCards();
+  if ($("gw-label")) $("gw-label").textContent = `GW${currentGwNumber} DEADLINE`;
+  if ($("gw-when")) {
+    $("gw-when").textContent = new Date(deadlineTs).toLocaleString("en-GB", { 
+      timeZone: "Asia/Yangon", 
+      weekday: "short", 
+      day: "numeric", 
+      month: "short", 
+      year: "numeric", 
+      hour: "2-digit", 
+      minute: "2-digit", 
+      hour12: false 
+    }) + " MMT";
+  }
+
+  // 💡 စတင်သည်နှင့် DAYS, HRS, MIN, SEC box များ ချက်ချင်း ဂဏန်းပြသစေသည်
+  tick();
+  paintStats();
+
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(tick, 1000);
+
+  // Background Async Fetch (Fixtures API အသစ်ရောက်လာပါက အချိန်ကိုက် ညှိယူသည်)
+  loadFixturesMaster().then(m => {
+    if (!m) return;
+    const cur = m.currentGameweek;
+    if (cur) {
+      const next = cur.nextGw;
+      const target = next && next.deadlineTimeEpoch > Date.now() ? next
+        : cur.deadlineTimeEpoch > Date.now() ? { id: cur.id, deadlineTimeEpoch: cur.deadlineTimeEpoch }
+        : null;
+      const targetGwId = target ? target.id : (cur.id || 6);
+      const lastDoneGw = cur.isFinished ? cur.id : (cur.status === "upcoming" || cur.status === "pre_season" ? 0 : Math.max(0, cur.id - 1));
+      
+      const newInfo = { gw: targetGwId, ts: target ? target.deadlineTimeEpoch : deadlineTs, lastDone: lastDoneGw };
+      LS.set("twfm_deadline_v40", newInfo);
+
+      deadlineTs = newInfo.ts;
+      currentGwNumber = newInfo.gw;
+      lastDone = newInfo.lastDone;
+
+      if ($("gw-label")) $("gw-label").textContent = `GW${currentGwNumber} DEADLINE`;
+      if ($("gw-when")) {
+        $("gw-when").textContent = new Date(deadlineTs).toLocaleString("en-GB", { 
+          timeZone: "Asia/Yangon", 
+          weekday: "short", 
+          day: "numeric", 
+          month: "short", 
+          year: "numeric", 
+          hour: "2-digit", 
+          minute: "2-digit", 
+          hour12: false 
+        }) + " MMT";
+      }
+      tick();
+      paintStats();
+    }
+  }).catch(e => console.warn("Background deadline note:", e));
 }
 
-function renderPlayerCards() {
-  const container = $("leader-cards-container");
-  if (!container) return;
+function tick() {
+  let d = deadlineTs ? Math.max(0, deadlineTs - Date.now()) : 0;
+  const days = Math.floor(d / 864e5); d -= days * 864e5;
+  const h = Math.floor(d / 36e5); d -= h * 36e5;
+  const m = Math.floor(d / 6e4); d -= m * 6e4;
+  const s = Math.floor(d / 1e3);
 
-  if (!scoutHighlightsData) {
-    container.innerHTML = `
-      <div class="player-card-skel"></div>
-      <div class="player-card-skel"></div>
-      <div class="player-card-skel"></div>
-      <div class="player-card-skel"></div>
-      <div class="player-card-skel"></div>
-    `;
-    return;
-  }
-
-  const M = MODES[mode] || MODES.cap;
-  const activeColor = M.color;
-
-  // 🌟 Active Tab Single-State Highlight
-  document.querySelectorAll("#leader-tabs button, .home-tabs button").forEach((b) => {
-    const isCurrent = b.dataset.k === mode;
-    b.classList.toggle("on", isCurrent);
-
-    if (isCurrent) {
-      b.style.setProperty("--c", activeColor);
-      b.style.setProperty("background", activeColor, "important");
-      b.style.setProperty("color", "#FFFFFF", "important");
-      b.style.setProperty("box-shadow", `0 4px 14px color-mix(in srgb, ${activeColor} 40%, transparent)`, "important");
-    } else {
-      b.style.removeProperty("background");
-      b.style.removeProperty("color");
-      b.style.removeProperty("box-shadow");
-      b.style.background = "transparent";
-      b.style.color = "var(--mu)";
-    }
-  });
-
-  let list = [];
-  if (mode === "cap") {
-    const capData = scoutHighlightsData.mostCaptained || {};
-    list = capData.topList || [];
-    if (list.length === 0 && capData.leader) {
-      list = [capData.leader];
-      if (capData.viceLeader) list.push(capData.viceLeader);
-    }
-  } else {
-    const sectionData = scoutHighlightsData[M.key] || {};
-    list = sectionData.topList || (sectionData.leader ? [sectionData.leader] : []);
-  }
-
-  if (!list || list.length === 0) {
-    container.innerHTML = `<div class="col-span-full py-8 text-center text-xs text-slate-400 font-bold">Data မရရှိသေးပါ</div>`;
-    return;
-  }
-
-  // 💡 ထိပ်တန်းကစားသမား (၅) ဦး Card Grid Render ပြုလုပ်ခြင်း
-  // 🌟 Rank နံပါတ်စဉ် (1, 2, 3, 4, 5) သာ ပြသပြီး C / V badge များ မပါဝင်ပါ
-  container.innerHTML = list.slice(0, 5).map((p, i) => {
-    const rawPos = String(p.position || "mid").toLowerCase().trim();
-    const isGk = rawPos === "gk" || rawPos === "gkp";
-    const posColor = POS[rawPos] || "#F59E0B";
-
-    const teamMeta = getTeamMeta(p.teamCode || p.team);
-    const teamColor = teamMeta.color;
-    const teamShort = teamMeta.short;
-    const localBadgeUrl = teamMeta.badgePath;
-
-    const photoUrl = resolvePlayerPhotoUrl(p);
-
-    const fallbackSvg = `
-      <div class="home-animated-badge-wrap" style="--tc:${teamColor}; width:52px; height:52px; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-        <svg style="width:28px; height:28px;" viewBox="0 0 24 24" fill="none" stroke="${teamColor}">
-          <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <circle cx="12" cy="12" r="3.5" fill="${teamColor}"/>
-        </svg>
-        <span style="color:${teamColor}; font-size:9px; font-weight:900;">${esc(teamShort)}</span>
-      </div>
-    `;
-
-    return `
-      <div class="top-player-card" style="border-top: 3.5px solid ${posColor};">
-        <!-- 💡 Rank Number Only (1, 2, 3, 4, 5) -->
-        <span class="player-card-rank">${i + 1}</span>
-
-        <div class="player-card-photo-wrap">
-          <img src="${photoUrl || localBadgeUrl}" 
-               alt="${esc(p.name)}" 
-               loading="lazy" 
-               class="player-card-photo"
-               onerror="
-                 if (!this.dataset.triedLocalBadge) {
-                   this.dataset.triedLocalBadge = '1';
-                   this.src = '${localBadgeUrl}';
-                   this.style.maxHeight = '65%';
-                 } else {
-                   this.parentElement.innerHTML = \`${fallbackSvg.replace(/\n/g, '').replace(/"/g, "'")}\`;
-                 }
-               ">
-          <img src="${localBadgeUrl}" alt="${esc(teamShort)}" class="player-card-club-badge" onerror="this.style.display='none';">
-        </div>
-
-        <div class="player-card-name">${esc(p.name)}</div>
-        <div class="player-card-pos" style="color: ${posColor}; font-weight:800;">
-          ${isGk ? "GK" : rawPos.toUpperCase()}
-        </div>
-        
-        <div class="player-card-pts" style="color: ${activeColor} !important; text-shadow: 0 0 10px color-mix(in srgb, ${activeColor} 30%, transparent);">
-          ${M.show(p)}
-        </div>
-      </div>
-    `;
-  }).join("");
+  const set = (id, v) => { 
+    const e = $(id); 
+    if (e && e.textContent !== v) e.textContent = v; 
+  };
+  set("cd-d", pad(days)); 
+  set("cd-h", pad(h)); 
+  set("cd-m", pad(m)); 
+  set("cd-s", pad(s));
 }
 
 // ============================================
@@ -368,73 +323,138 @@ async function loadStats() {
 }
 
 // ============================================
-// ⏳ NON-BLOCKING DEADLINE ENGINE
+// 🌟 TOP 5 PLAYERS CARD GRID RENDERER (CLEAN NO C/V BADGES)
 // ============================================
-async function loadDeadline() {
-  let info = LS.get("twfm_deadline_v30", 10 * MIN);
+async function loadScoutHighlights() {
+  scoutHighlightsData = LS.get(SCOUT_CACHE_KEY_V40, 10 * MIN);
 
-  if (!info) {
-    info = { gw: 6, ts: new Date("2026-10-10T10:00:00Z").getTime(), lastDone: 5 };
-  }
-
-  deadlineTs = info.ts || 0;
-  currentGwNumber = info.gw || 6;
-  lastDone = info.lastDone ?? null;
-
-  if ($("gw-label")) $("gw-label").textContent = `GW${currentGwNumber} DEADLINE`;
-  if ($("gw-when") && info.ts) {
-    $("gw-when").textContent = new Date(info.ts).toLocaleString("en-GB", { 
-      timeZone: "Asia/Yangon", 
-      weekday: "short", 
-      day: "numeric", 
-      month: "short", 
-      year: "numeric", 
-      hour: "2-digit", 
-      minute: "2-digit", 
-      hour12: false 
-    }) + " MMT";
-  }
-
-  tick();
-  paintStats();
-
-  loadFixturesMaster().then(m => {
-    if (!m) return;
-    const cur = m.currentGameweek;
-    if (cur) {
-      const next = cur.nextGw;
-      const target = next && next.deadlineTimeEpoch > Date.now() ? next
-        : cur.deadlineTimeEpoch > Date.now() ? { id: cur.id, deadlineTimeEpoch: cur.deadlineTimeEpoch }
-        : null;
-      const targetGwId = target ? target.id : (cur.id || 6);
-      const lastDoneGw = cur.isFinished ? cur.id : (cur.status === "upcoming" || cur.status === "pre_season" ? 0 : Math.max(0, cur.id - 1));
-      const newInfo = { gw: targetGwId, ts: target ? target.deadlineTimeEpoch : 0, lastDone: lastDoneGw };
-      LS.set("twfm_deadline_v30", newInfo);
-
-      deadlineTs = newInfo.ts || 0;
-      currentGwNumber = newInfo.gw || 6;
-      lastDone = newInfo.lastDone;
-      tick();
-      paintStats();
+  if (!scoutHighlightsData) {
+    try {
+      const snap = await getDoc(doc(db, "scoutPlayers", "scoutHighlights"));
+      if (snap.exists()) {
+        scoutHighlightsData = snap.data();
+        LS.set(SCOUT_CACHE_KEY_V40, scoutHighlightsData);
+      }
+    } catch (err) {
+      console.warn("scoutHighlights load note:", err);
     }
-  }).catch(e => console.warn("Background deadline note:", e));
+  }
+
+  renderPlayerCards();
 }
 
-function tick() {
-  let d = deadlineTs ? Math.max(0, deadlineTs - Date.now()) : 0;
-  const days = Math.floor(d / 864e5); d -= days * 864e5;
-  const h = Math.floor(d / 36e5); d -= h * 36e5;
-  const m = Math.floor(d / 6e4); d -= m * 6e4;
-  const s = Math.floor(d / 1e3);
+function renderPlayerCards() {
+  const container = $("leader-cards-container");
+  if (!container) return;
 
-  const set = (id, v) => { 
-    const e = $(id); 
-    if (e && e.textContent !== v) e.textContent = v; 
-  };
-  set("cd-d", pad(days)); 
-  set("cd-h", pad(h)); 
-  set("cd-m", pad(m)); 
-  set("cd-s", pad(s));
+  if (!scoutHighlightsData) {
+    container.innerHTML = `
+      <div class="player-card-skel"></div>
+      <div class="player-card-skel"></div>
+      <div class="player-card-skel"></div>
+      <div class="player-card-skel"></div>
+      <div class="player-card-skel"></div>
+    `;
+    return;
+  }
+
+  const M = MODES[mode] || MODES.cap;
+  const activeColor = M.color;
+
+  // 🌟 Active Tab Single-State Highlight
+  document.querySelectorAll("#leader-tabs button, .home-tabs button").forEach((b) => {
+    const isCurrent = b.dataset.k === mode;
+    b.classList.toggle("on", isCurrent);
+
+    if (isCurrent) {
+      b.style.setProperty("--c", activeColor);
+      b.style.setProperty("background", activeColor, "important");
+      b.style.setProperty("color", "#FFFFFF", "important");
+      b.style.setProperty("box-shadow", `0 4px 14px color-mix(in srgb, ${activeColor} 40%, transparent)`, "important");
+    } else {
+      b.style.removeProperty("background");
+      b.style.removeProperty("color");
+      b.style.removeProperty("box-shadow");
+      b.style.background = "transparent";
+      b.style.color = "var(--mu)";
+    }
+  });
+
+  let list = [];
+  if (mode === "cap") {
+    const capData = scoutHighlightsData.mostCaptained || {};
+    list = capData.topList || [];
+    if (list.length === 0 && capData.leader) {
+      list = [capData.leader];
+      if (capData.viceLeader) list.push(capData.viceLeader);
+    }
+  } else {
+    const sectionData = scoutHighlightsData[M.key] || {};
+    list = sectionData.topList || (sectionData.leader ? [sectionData.leader] : []);
+  }
+
+  if (!list || list.length === 0) {
+    container.innerHTML = `<div class="col-span-full py-8 text-center text-xs text-slate-400 font-bold">Data မရရှိသေးပါ</div>`;
+    return;
+  }
+
+  // 💡 ထိပ်တန်းကစားသမား (၅) ဦး Card Grid Render ပြုလုပ်ခြင်း
+  // 🌟 Clean View: Rank နံပါတ်စဉ် (1, 2, 3, 4, 5) သာ ပြသပြီး C / V badges မပါဝင်ပါ
+  container.innerHTML = list.slice(0, 5).map((p, i) => {
+    const rawPos = String(p.position || "mid").toLowerCase().trim();
+    const isGk = rawPos === "gk" || rawPos === "gkp";
+    const posColor = POS[rawPos] || "#F59E0B";
+
+    const teamMeta = getTeamMeta(p.teamCode || p.team);
+    const teamColor = teamMeta.color;
+    const teamShort = teamMeta.short;
+    const localBadgeUrl = teamMeta.badgePath;
+
+    const photoUrl = resolvePlayerPhotoUrl(p);
+
+    const fallbackSvg = `
+      <div class="home-animated-badge-wrap" style="--tc:${teamColor}; width:52px; height:52px; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+        <svg style="width:28px; height:28px;" viewBox="0 0 24 24" fill="none" stroke="${teamColor}">
+          <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="12" cy="12" r="3.5" fill="${teamColor}"/>
+        </svg>
+        <span style="color:${teamColor}; font-size:9px; font-weight:900;">${esc(teamShort)}</span>
+      </div>
+    `;
+
+    return `
+      <div class="top-player-card" style="border-top: 3.5px solid ${posColor};">
+        <!-- 💡 Rank Number Only (1, 2, 3, 4, 5) - C / V Badges Removed -->
+        <span class="player-card-rank">${i + 1}</span>
+
+        <div class="player-card-photo-wrap">
+          <img src="${photoUrl || localBadgeUrl}" 
+               alt="${esc(p.name)}" 
+               loading="lazy" 
+               class="player-card-photo"
+               onerror="
+                 if (!this.dataset.triedLocalBadge) {
+                   this.dataset.triedLocalBadge = '1';
+                   this.src = '${localBadgeUrl}';
+                   this.style.maxHeight = '65%';
+                 } else {
+                   this.parentElement.innerHTML = \`${fallbackSvg.replace(/\n/g, '').replace(/"/g, "'")}\`;
+                 }
+               ">
+          <img src="${localBadgeUrl}" alt="${esc(teamShort)}" class="player-card-club-badge" onerror="this.style.display='none';">
+        </div>
+
+        <div class="player-card-name">${esc(p.name)}</div>
+        <div class="player-card-pos" style="color: ${posColor};">
+          ${isGk ? "GK" : rawPos.toUpperCase()}
+        </div>
+        
+        <div class="player-card-pts" style="color: ${activeColor} !important; text-shadow: 0 0 10px color-mix(in srgb, ${activeColor} 30%, transparent);">
+          ${M.show(p)}
+        </div>
+      </div>
+    `;
+  }).join("");
 }
 
 // ============================================
@@ -457,8 +477,8 @@ async function loadNextFixture() {
     if (!targetMatch) {
       targetMatch = {
         event: targetGw,
-        team_h: 1,
-        team_a: 13,
+        team_h: 1,  // Arsenal (ars.png)
+        team_a: 13, // Leeds United (lee.png)
         kickoff_time: "2026-10-10T12:30:00Z"
       };
     }
@@ -504,7 +524,7 @@ async function loadNextFixture() {
 }
 
 // ============================================
-// 🚀 EXPORT INITIALIZER
+// 🚀 EXPORT INITIALIZER (PARALLEL EXECUTION)
 // ============================================
 export async function initHomeTab(user, profile) {
   if (profile?.fplTeamId) {
@@ -514,19 +534,17 @@ export async function initHomeTab(user, profile) {
   // 1️⃣ Header Manager Frame ကို တန်းဖော်ပြသည် (Duplicate Free)
   decorateManagerFrame(profile);
 
-  // 2️⃣ Top 5 Cards (Instant)
+  // 2️⃣ 🌟 Countdown Timer Engine ကို ချက်ချင်း စတင်သည် (DAYS, HRS, MIN, SEC)
+  initDeadlineTimer();
+
+  // 3️⃣ Top 5 Cards ကို ချက်ချင်းတင်သည် (Instant)
   loadScoutHighlights();
 
-  // 3️⃣ Performance Stats (Instant)
+  // 4️⃣ Performance Stats ကို ချက်ချင်းတင်သည် (Instant)
   loadStats();
 
-  // 4️⃣ Deadline & Next Fixtures (Background Parallel)
-  loadDeadline();
+  // 5️⃣ Next Fixtures
   loadNextFixture();
-
-  // 5️⃣ Timer Engine စတင်ခြင်း
-  if (timerInterval) clearInterval(timerInterval);
-  timerInterval = setInterval(tick, 1000);
 
   // 6️⃣ Quick Stats Tabs Switching
   const tabsContainer = $("leader-tabs") || document.querySelector(".home-tabs");
