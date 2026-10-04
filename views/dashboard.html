@@ -5,7 +5,7 @@
 ============================================ -->
 
 <div class="home-root">
-  <!-- 🔝 Top Header: Clean Premium Brand Bar (No Bell/User Icons) -->
+  <!-- 🔝 Top Header: Clean Premium Brand Bar -->
   <header class="home-head safe-top">
     <div class="home-brand">
       <span class="home-logo font-black">TW</span>
@@ -23,7 +23,7 @@
   </header>
   
   <main class="home-scroll">
-    <!-- 👤 Manager Profile Card Component (Clean Layout - Duplicate Label Fixed) -->
+    <!-- 👤 Manager Profile Card Component (Clean Single Label) -->
     <section class="home-profile" aria-label="User Profile">
       <div class="home-avatar" aria-hidden="true">⚽</div>
       <div class="home-pf-text">
@@ -32,8 +32,8 @@
       </div>
     </section>
     
-    <!-- ⏳ Gameweek Deadline Hero Box (Clickable -> #/fixtures) -->
-    <section class="home-hero clickable-hero" id="hero-deadline-card" role="button" tabindex="0" aria-label="View Gameweek Fixtures">
+    <!-- ⏳ Gameweek Deadline Hero Box (Clean 4-Grid Digital Clock - Hint Removed) -->
+    <section class="home-hero clickable-hero" id="hero-deadline-card" role="button" tabindex="0" aria-label="Gameweek Deadline">
       <div class="home-tw-anim-bg" aria-hidden="true">
         <div class="tw-crest-glow">TW</div>
       </div>
@@ -43,40 +43,36 @@
         <span id="gw-when" class="home-hero-when">Sat, 10 Oct 2026 · 16:30 MMT</span>
       </div>
       
+      <!-- 🌟 4-Grid Digital Countdown Boxes -->
       <div class="home-cd" id="home-cd" aria-live="polite">
-        <div><b id="cd-d">--</b><small>DAYS</small></div>
-        <div><b id="cd-h">--</b><small>HRS</small></div>
-        <div><b id="cd-m">--</b><small>MIN</small></div>
-        <div><b id="cd-s">--</b><small>SEC</small></div>
-      </div>
-      
-      <div class="hero-tap-hint">
-        <span>Tap to open Fixtures schedule</span>
-        <span class="hint-arrow">›</span>
+        <div><b id="cd-d">06</b><small>DAYS</small></div>
+        <div><b id="cd-h">01</b><small>HRS</small></div>
+        <div><b id="cd-m">46</b><small>MIN</small></div>
+        <div><b id="cd-s">53</b><small>SEC</small></div>
       </div>
     </section>
     
-    <!-- 📊 3-Column Performance Stats Section (Balanced Alignment) -->
+    <!-- 📊 3-Column Performance Stats Section (Total Points, Overall Rank, GW Score) -->
     <section class="home-stats" aria-label="Season Performance Overview">
       <div class="home-stat c-violet">
         <div class="stat-icon" aria-hidden="true">★</div>
         <span class="t">Total Points</span>
-        <b id="st-total">–</b>
-        <em id="st-total-d" class="up"></em>
+        <b id="st-total">330</b>
+        <em id="st-total-d" class="up">▲ +51 (GW5)</em>
       </div>
       
       <div class="home-stat c-blue wide">
         <div class="stat-icon" aria-hidden="true">🏆</div>
         <span class="t">Overall Rank</span>
-        <b id="st-rank">–</b>
-        <em id="st-rank-d" class="up"></em>
+        <b id="st-rank">1,896,119</b>
+        <em id="st-rank-d" class="up">▲ +4,209,708</em>
       </div>
       
       <div class="home-stat c-green">
         <div class="stat-icon" aria-hidden="true">📊</div>
         <span class="t" id="st-gw-l">GW Score</span>
-        <b id="st-gw">–</b>
-        <em id="st-gw-d" class="up"></em>
+        <b id="st-gw">51</b>
+        <em id="st-gw-d" class="up">▲ avg 48</em>
       </div>
     </section>
     
@@ -146,7 +142,7 @@
       </div>
     </section>
     
-    <!-- 🗓️ Next Fixture Card Component (Clickable -> #/fixtures) -->
+    <!-- 🗓️ Next Fixture Card Component -->
     <a class="home-next-fixture-card text-decoration-none" id="next-fixture-card-link" href="#/fixtures" aria-label="Open Full Fixtures">
       <div class="fixture-head">
         <span class="fixture-tag">📅 Next Fixture</span>
