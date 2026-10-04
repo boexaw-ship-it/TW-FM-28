@@ -6,7 +6,7 @@
  * - Firebase data / auth call တွေ မစွက်ဖက်
  * VERSION နဲ့ precache list ကို `node tools/build.js` က auto ထည့်ပေးတယ်
  */
-const VERSION = '621d26d6';
+const VERSION = '27bbfc99';
 const CACHE_NAME = 'twfm-spa-' + VERSION;
 const PRECACHE = /*PRECACHE_START*/
 [
@@ -74,7 +74,7 @@ const PRECACHE = /*PRECACHE_START*/
   "./public/jerseys/gk/bou.png",
   "./public/jerseys/gk/bre.png",
   "./public/jerseys/gk/che.png",
-  "./public/jerseys/gk/cov_gk.png",
+  "./public/jerseys/gk/cov.png",
   "./public/jerseys/gk/cry.png",
   "./public/jerseys/gk/eve.png",
   "./public/jerseys/gk/ful.png",
