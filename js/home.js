@@ -4,7 +4,7 @@
 // Features:
 //   1. Deadline Countdown Timer Engine & Hero Click -> Fixtures Navigation
 //   2. 3-Column Balanced Stats Alignment (330, 1.8M, 51)
-//   3. Top 5 Real Captains Card Grid (Clean View - C / V Badges Removed)
+//   3. Top 5 Real Captains Card Grid (Haaland, Palmer, Saka, Salah, etc.)
 //   4. Tab Color = Points Color 100% Sync System
 //   5. Live Next Fixture Match Card (Current Gameweek Filter + Code-only Badges)
 // Standards: UI Design Knowledge Pack (Sports UI & 8px Grid)
@@ -121,7 +121,7 @@ const MODES = {
 // ⏳ DEADLINE COUNTDOWN ENGINE
 // ============================================
 async function loadDeadline() {
-  let info = LS.get("twfm_deadline_v10", 10 * MIN);
+  let info = LS.get("twfm_deadline_v9", 10 * MIN);
   if (!info || (info.ts && info.ts < Date.now())) {
     try {
       const m = await loadFixturesMaster();
@@ -137,7 +137,7 @@ async function loadDeadline() {
       } else {
         info = { gw: 6, ts: 0, lastDone: null };
       }
-      LS.set("twfm_deadline_v10", info);
+      LS.set("twfm_deadline_v9", info);
     } catch (e) { 
       console.warn("Deadline load note:", e); 
       info = info || { gw: 6, ts: 0, lastDone: null }; 
@@ -241,17 +241,17 @@ async function loadStats() {
 }
 
 // ============================================
-// 🌟 TOP 5 PLAYERS CARD GRID RENDERER (CLEAN NO C/V BADGES)
+// 🌟 TOP 5 PLAYERS CARD GRID RENDERER
 // ============================================
 async function loadScoutHighlights() {
-  scoutHighlightsData = LS.get("twfm_scout_highlights_v10", 15 * MIN);
+  scoutHighlightsData = LS.get("twfm_scout_highlights_v9", 15 * MIN);
 
   if (!scoutHighlightsData) {
     try {
       const snap = await getDoc(doc(db, "scoutPlayers", "scoutHighlights"));
       if (snap.exists()) {
         scoutHighlightsData = snap.data();
-        LS.set("twfm_scout_highlights_v10", scoutHighlightsData);
+        LS.set("twfm_scout_highlights_v9", scoutHighlightsData);
       }
     } catch (err) {
       console.warn("scoutHighlights load note:", err);
@@ -313,7 +313,7 @@ function renderPlayerCards() {
     return;
   }
 
-  // 💡 ထိပ်တန်းကစားသမား (၅) ဦး Card Grid Render ပြုလုပ်ခြင်း (Captain / Vice-Captain Badge မပါရှိပါ)
+  // 💡 ထိပ်တန်းကစားသမား (၅) ဦး Card Grid Render ပြုလုပ်ခြင်း
   container.innerHTML = list.slice(0, 5).map((p, i) => {
     const rawPos = String(p.position || "mid").toLowerCase().trim();
     const isGk = rawPos === "gk" || rawPos === "gkp";
@@ -333,6 +333,16 @@ function renderPlayerCards() {
       ? `https://resources.premierleague.com/premierleague/photos/players/250x250/p${pId}.png`
       : "");
 
+    // Captain / Vice-Captain Badge Tag
+    let roleBadgeHtml = "";
+    if (mode === "cap") {
+      if (i === 0) {
+        roleBadgeHtml = `<span class="player-card-role" style="background:#8c6dff;">👑 C</span>`;
+      } else if (i === 1) {
+        roleBadgeHtml = `<span class="player-card-role" style="background:#475569;">V</span>`;
+      }
+    }
+
     const fallbackSvg = `
       <div class="home-animated-badge-wrap" style="--tc:${teamColor}; width:68px; height:68px; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center;">
         <svg class="badge-pulse-svg" style="width:34px; height:34px;" viewBox="0 0 24 24" fill="none" stroke="${teamColor}">
@@ -345,8 +355,8 @@ function renderPlayerCards() {
 
     return `
       <div class="top-player-card" style="border-top: 3.5px solid ${posColor};">
-        <!-- 💡 Rank Number Only (1, 2, 3, 4, 5) -->
         <span class="player-card-rank">${i + 1}</span>
+        ${roleBadgeHtml}
 
         <div class="player-card-photo-wrap">
           <img src="${photoUrl}" 
@@ -370,7 +380,6 @@ function renderPlayerCards() {
           ${isGk ? "GK" : rawPos.toUpperCase()}
         </div>
         
-        <!-- 💡 Tab Color နှင့် Points Color ၁၀၀% Sync ဖြစ်ခြင်း -->
         <div class="player-card-pts" style="color: ${activeColor} !important; text-shadow: 0 0 10px color-mix(in srgb, ${activeColor} 30%, transparent);">
           ${M.show(p)}
         </div>
@@ -380,7 +389,7 @@ function renderPlayerCards() {
 }
 
 // ============================================
-// 🗓 NEXT FIXTURE MATCH RENDERER
+// 🗓️️ NEXT FIXTURE MATCH RENDERER
 // ============================================
 async function loadNextFixture() {
   try {
