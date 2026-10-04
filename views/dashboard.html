@@ -1,12 +1,11 @@
 <!-- ============================================
   TW FM — Dashboard View Layout
-  Style: Deep Stadium Mesh Glow & 6-Color Sync Tabs
-  Standards: UI Design Knowledge Pack (8px Grid & Sports UI)
+  Standards: UI Design Knowledge Pack (Zero Mock, 100% Dynamic Firestore)
   Path: views/dashboard.html
 ============================================ -->
 
 <div class="home-root">
-  <!-- 🌌 STADIUM AMBIENT MESH BACKGROUND (နောက်ခံ အဝိုင်းလိုင်းကွေးနှင့် နီယွန်အလင်းပြေး) -->
+  <!-- 🌌 STADIUM AMBIENT MESH BACKGROUND -->
   <div class="stadium-ambient-mesh" aria-hidden="true">
     <div class="mesh-orb orb-purple"></div>
     <div class="mesh-orb orb-blue"></div>
@@ -23,11 +22,12 @@
     </div>
 
     <div class="home-who">
-      <div id="account-type-pill" class="home-pill">
-        <svg viewBox="0 0 24 24" fill="currentColor" class="user-pill-ico">
+      <!-- 💡 Dynamic Account Type Pill: "TW MEMBER" အသေရေးသားထားခြင်းကို လုံးဝ ဖယ်ရှားပြီးဖြစ်သည် -->
+      <div id="account-type-pill" class="home-pill" aria-live="polite">
+        <svg viewBox="0 0 24 24" fill="currentColor" class="user-pill-ico" aria-hidden="true">
           <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
         </svg>
-        <span>TW MEMBER</span>
+        <span id="account-type-text">Loading...</span>
       </div>
       <button id="pending-refresh-btn" onclick="handleCheckApprovalStatus()" class="hidden home-refresh" type="button" aria-label="Refresh Status">
         <span id="check-icon">⟳</span><span>REFRESH</span>
@@ -35,19 +35,19 @@
     </div>
   </header>
   
-  <!-- 📜 Main Fixed Single Viewport Container (Zero Scroll Lock) -->
+  <!-- 📜 Main Fixed Single Viewport Container (Zero Scroll) -->
   <main class="home-scroll">
-    <!-- 🌟 2. UNIFIED HERO HUB (ခရမ်းရောင် အလင်းပြန် NEON PURPLE GLOW FRAME) -->
-    <section class="luxury-hero-hub neon-glow-purple" id="hero-deadline-card" aria-label="Manager and Gameweek Status">
-      <!-- Top Row: Clean Team Title & Deadline Group -->
+    <!-- 🌟 2. UNIFIED HERO HUB (Matt Black Border Line & Dynamic Firestore Manager Info) -->
+    <section class="luxury-hero-hub" id="hero-deadline-card" aria-label="Manager and Gameweek Status">
+      <!-- Top Row: Dynamic Team Info & Deadline Chip -->
       <div class="hero-hub-top">
         <div class="hero-manager-meta">
           <div class="hero-team-title">
             <span class="boat-ico" aria-hidden="true">⛵</span>
-            <span id="welcome-name" class="team-text">SEAROKER Tw</span>
+            <span id="welcome-name" class="team-text">Loading...</span>
           </div>
           <p class="hero-manager-sub">
-            <span class="opacity-60">Manager:</span> <span id="welcome-manager" class="manager-name">zaw moe</span>
+            <span class="opacity-60">Manager:</span> <span id="welcome-manager" class="manager-name">...</span>
           </p>
         </div>
         
@@ -55,71 +55,71 @@
         <div class="hero-deadline-group">
           <div class="hero-gw-chip">
             <span class="trophy-gold-ico" aria-hidden="true">🏆</span>
-            <span id="gw-label" class="gw-text">GW6 DEADLINE</span>
+            <span id="gw-label" class="gw-text">DEADLINE</span>
           </div>
           <div class="hero-date-text" id="gw-when">
-            Sat, 10 Oct 2026, 16:30 MMT
+            Calculating...
           </div>
         </div>
       </div>
 
-      <!-- Bottom Row: Digital Countdown 4-Boxes -->
+      <!-- Bottom Row: Real Countdown 4-Boxes -->
       <div class="hero-hub-bottom">
         <div class="home-cd" id="home-cd" aria-live="polite">
           <div class="cd-box">
-            <b id="cd-d">05</b>
+            <b id="cd-d">--</b>
             <small>DAYS</small>
           </div>
           <div class="cd-box">
-            <b id="cd-h">18</b>
+            <b id="cd-h">--</b>
             <small>HRS</small>
           </div>
           <div class="cd-box">
-            <b id="cd-m">45</b>
+            <b id="cd-m">--</b>
             <small>MIN</small>
           </div>
           <div class="cd-box cd-sec">
-            <b id="cd-s">27</b>
+            <b id="cd-s">--</b>
             <small>SEC</small>
           </div>
         </div>
       </div>
     </section>
     
-    <!-- 📊 3. 3-COLUMN PERFORMANCE STATS (အစိမ်း၊ အဝါ၊ စိမ်းပြာခရမ်း အလင်းပြန် GLOW TILES) -->
+    <!-- 📊 3. 3-COLUMN PERFORMANCE STATS (Real Live Points Tiles) -->
     <section class="luxury-stats-card" aria-label="Season Performance Overview">
-      <!-- Tile 1: Total Points (အစိမ်းရောင် အလင်းပြန်) -->
+      <!-- Tile 1: Total Points -->
       <div class="stat-nameplate-tile neon-glow-green">
         <div class="col-head">
           <span class="stat-ico c-green" aria-hidden="true">★</span>
           <span class="stat-title">TOTAL POINTS</span>
         </div>
-        <b id="st-total" class="stat-num">330</b>
-        <em id="st-total-d" class="stat-change up">▲ +51 (GW5)</em>
+        <b id="st-total" class="stat-num">--</b>
+        <em id="st-total-d" class="stat-change up">--</em>
       </div>
 
-      <!-- Tile 2: Overall Rank (အဝါရောင် အလင်းပြန်) -->
+      <!-- Tile 2: Overall Rank -->
       <div class="stat-nameplate-tile neon-glow-gold">
         <div class="col-head">
           <span class="stat-ico c-gold" aria-hidden="true">🏆</span>
           <span class="stat-title">OVERALL RANK</span>
         </div>
-        <b id="st-rank" class="stat-num font-mono">1,896,119</b>
-        <em id="st-rank-d" class="stat-change up">▲ +4,209,708</em>
+        <b id="st-rank" class="stat-num font-mono">--</b>
+        <em id="st-rank-d" class="stat-change up">--</em>
       </div>
 
-      <!-- Tile 3: GW Score (စိမ်းပြာခရမ်း အလင်းပြန်) -->
+      <!-- Tile 3: GW Score -->
       <div class="stat-nameplate-tile neon-glow-cyan">
         <div class="col-head">
           <span class="stat-ico c-cyan" aria-hidden="true">📊</span>
           <span class="stat-title" id="st-gw-l">GW SCORE</span>
         </div>
-        <b id="st-gw" class="stat-num">51</b>
-        <em id="st-gw-d" class="stat-change up">▲ avg 48</em>
+        <b id="st-gw" class="stat-num">--</b>
+        <em id="st-gw-d" class="stat-change up">--</em>
       </div>
     </section>
     
-    <!-- 🌟 4. TOP 5 PLAYERS CARD GRID (FPL Position Colors: GK Blue, DEF Red, MID Yellow, FWD Green) -->
+    <!-- 🌟 4. TOP 5 PLAYERS CARD GRID (Pure Dynamic Scout Feed) -->
     <section class="home-top-grid-section" aria-label="Top 5 Players">
       <div class="home-section-header">
         <h3 class="home-h">
@@ -138,7 +138,7 @@
       </div>
     </section>
     
-    <!-- ⚡ 5. QUICK STATS TABS (အဖြူ၊ အဝါ၊ အစိမ်း၊ အနီ၊ အပြာ၊ အစိမ်းနု ၆ မျိုးစလုံး အရောင်အတိအကျ) -->
+    <!-- ⚡ 5. QUICK STATS TABS (Dynamic Frameless Clean Filter Strip) -->
     <section class="home-quick-stats-section" aria-label="Quick Stats Filters">
       <div class="home-section-header">
         <h3 class="home-h">
@@ -148,32 +148,26 @@
       </div>
       
       <div class="home-tabs frameless-tabs" id="leader-tabs" role="tablist">
-        <!-- 1. Most Captain (အဖြူ) -->
         <button class="on" data-k="cap" style="--tab-c:#FFFFFF" role="tab" aria-selected="true" type="button">
           <span class="tab-ico">👑</span>
           <span class="tab-txt">Most Captain</span>
         </button>
-        <!-- 2. Ownership (အဝါ) -->
         <button data-k="own" style="--tab-c:#FBBF24" role="tab" aria-selected="false" type="button">
           <span class="tab-ico">🛡️</span>
           <span class="tab-txt">Ownership</span>
         </button>
-        <!-- 3. Transfer In (အစိမ်း) -->
         <button data-k="tin" style="--tab-c:#22C55E" role="tab" aria-selected="false" type="button">
           <span class="tab-ico">⇄</span>
           <span class="tab-txt">Transfer In</span>
         </button>
-        <!-- 4. Transfer Out (အနီ) -->
         <button data-k="tout" style="--tab-c:#EF4444" role="tab" aria-selected="false" type="button">
           <span class="tab-ico">⇄</span>
           <span class="tab-txt">Transfer Out</span>
         </button>
-        <!-- 5. Total Point (အပြာ) -->
         <button data-k="total" style="--tab-c:#38BDF8" role="tab" aria-selected="false" type="button">
           <span class="tab-ico">★</span>
           <span class="tab-txt">Total Point</span>
         </button>
-        <!-- 6. Week Point (အစိမ်းနု / Mint) -->
         <button data-k="gw" style="--tab-c:#34D399" role="tab" aria-selected="false" type="button">
           <span class="tab-ico">⚡</span>
           <span class="tab-txt">Week Point</span>
@@ -181,19 +175,19 @@
       </div>
     </section>
     
-    <!-- 🗓️ 6. POLISHED NEXT FIXTURE CARD (အနီရောင် အလင်းပြန် RED GLOW FRAME) -->
-    <a class="home-next-fixture-card text-decoration-none neon-glow-red" id="next-fixture-card-link" href="#/fixtures" aria-label="Open Full Fixtures">
+    <!-- 🗓️ 6. POLISHED NEXT FIXTURE CARD (Pure Dynamic Matchday Feed) -->
+    <a class="home-next-fixture-card text-decoration-none" id="next-fixture-card-link" href="#/fixtures" aria-label="Open Full Fixtures">
       <div class="fixture-head">
         <span class="fixture-tag">📅 Next Fixture</span>
-        <span class="fixture-time" id="next-fixture-time">GW6 · 10 Oct 2026 · 19:00</span>
+        <span class="fixture-time" id="next-fixture-time">Loading fixture...</span>
       </div>
       
       <div class="fixture-body">
         <div class="fixture-team home-side">
-          <img src="./assets/badges/ars.png" alt="ARS" class="fixture-badge" id="fixture-home-badge" onerror="this.src='./assets/badges/ars.png'">
+          <img src="./assets/badges/che.png" alt="HOME" class="fixture-badge" id="fixture-home-badge">
           <div class="team-meta">
-            <b id="fixture-home-code">ARS</b>
-            <small id="fixture-home-name">Arsenal</small>
+            <b id="fixture-home-code">---</b>
+            <small id="fixture-home-name">Loading...</small>
           </div>
         </div>
         
@@ -201,10 +195,10 @@
         
         <div class="fixture-team away-side">
           <div class="team-meta text-right">
-            <b id="fixture-away-code">LEE</b>
-            <small id="fixture-away-name">Leeds United</small>
+            <b id="fixture-away-code">---</b>
+            <small id="fixture-away-name">Loading...</small>
           </div>
-          <img src="./assets/badges/lee.png" alt="LEE" class="fixture-badge" id="fixture-away-badge" onerror="this.src='./assets/badges/lee.png'">
+          <img src="./assets/badges/che.png" alt="AWAY" class="fixture-badge" id="fixture-away-badge">
         </div>
         
         <span class="fixture-arrow" aria-hidden="true">›</span>
