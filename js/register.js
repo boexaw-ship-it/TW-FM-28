@@ -1,3 +1,9 @@
+// ============================================
+// TW Fantasy Official League — Register Controller
+// Path: js/register.js
+// Standards: UI Design Knowledge Pack (Zero Mock, Strict Schema)
+// ============================================
+
 import { auth, db } from "./firebase-config.js";
 import { 
   createUserWithEmailAndPassword, 
@@ -37,12 +43,6 @@ window.togglePassword = function() {
 // ============================================
 // 🔔 Telegram Notification Alert Helper
 // ============================================
-// Markdown Syntax မလွတ်သော စာလုံးများကို Escape လုပ်ပေးသည့် Helper
-function escapeMarkdown(text) {
-  if (!text) return "";
-  return String(text).replace(/[_*[\]()~`>#+\-=|{}.!\\]/g, "\\$&");
-}
-
 async function sendTelegramAlert(data) {
   const TELEGRAM_BOT_TOKEN = "8868220856:AAEiOdZFc7_iziO26zo3xchaRPDN0T9huU8";
   const TELEGRAM_CHAT_ID = "7935056299";
@@ -51,7 +51,6 @@ async function sendTelegramAlert(data) {
     return;
   }
 
-  // HTML format ကို ပြောင်းသုံးခြင်းဖြင့် Markdown parsing error လုံးဝ ကင်းဝေးစေပါသည်
   const message = `🚨 <b>TW Fantasy — အသင်းဝင်အသစ် Register ပြုလုပ်ပါသည်!</b>
 ━━━━━━━━━━━━━━━━━━
 👤 <b>Team Name:</b> ${data.teamName}
@@ -60,7 +59,7 @@ async function sendTelegramAlert(data) {
 ⚙️ <b>Status:</b> ⏳ Pending Approval / Sync
 ⏰ <b>အချိန်:</b> ${new Date().toLocaleString("en-US", { timeZone: "Asia/Yangon" })} (MMT)
 ━━━━━━━━━━━━━━━━━━
-🚀 <i>GitHub Workflow (register-sync) ဖြင့် Run နိုင်ပါပြီ။</i>`;
+🚀 <i>Admin Approval စစ်ဆေးပြီးမှ Dashboard ဝင်ရောက်ခွင့်ရပါမည်။</i>`;
 
   try {
     const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
@@ -72,7 +71,7 @@ async function sendTelegramAlert(data) {
         parse_mode: "HTML",
         disable_notification: false
       }),
-      keepalive: true // စာမျက်နှာ ကူးပြောင်းသွားသော်လည်း Network Request မပြတ်စေရန်
+      keepalive: true
     });
 
     const resData = await res.json();
@@ -80,12 +79,12 @@ async function sendTelegramAlert(data) {
       console.warn("Telegram API Error Response:", resData);
     }
   } catch (error) {
-    console.error("⚠️ Telegram Alert မအောင်မြင်ပါ (VPN လိုအပ်နိုင်ပါသည်):", error);
+    console.error("⚠️️ Telegram Alert မအောင်မြင်ပါ (VPN လိုအပ်နိုင်ပါသည်):", error);
   }
 }
 
 // ============================================
-// 🎯 Register Handler (Send to pending.html)
+// 🎯 Register Handler (Full Schema Matching Image 1000064991.jpg)
 // ============================================
 window.handleRegister = async () => {
   const teamName = document.getElementById("teamName").value.trim();
@@ -145,7 +144,7 @@ window.handleRegister = async () => {
       displayName: teamName
     });
 
-    // ၂။ Firestore ထဲသို့ User Data သိမ်းဆည်းခြင်း (Admin Approve စစ်ဆေးရန် isApproved: false)
+    // ၂။ Firestore သို့ စံသတ်မှတ်ချက် Schema အပြည့်အစုံဖြင့် သိမ်းဆည်းခြင်း (Matching Image 1000064991.jpg)
     const userDocData = {
       uid: uc.user.uid,
       username: teamName,
@@ -153,19 +152,23 @@ window.handleRegister = async () => {
       fplTeamId: fplTeamId,
       teamName: teamName,
       managerName: null,
-      status: "pending",
-      isApproved: false,
+      isApproved: false,       // 💡 Admin Approved စစ်ဆေးရန် (Default False)
+      isTwMember: false,       // 💡 TW Official Member စစ်ဆေးရန် (Default False)
+      role: "member",          // 💡 Default Role: member
+      status: "pending",       // 💡 Pending စစ်ဆေးရန်
+      syncError: null,
+      syncedAt: null,
       createdAt: serverTimestamp()
     };
 
     await setDoc(doc(db, "users", uc.user.uid), userDocData);
 
-    // Profile Cache သိမ်းဆည်းခြင်း
-    localStorage.setItem(`twf_user_profile_${uc.user.uid}`, JSON.stringify({
+    // Profile Cache သတ်မှတ်ခြင်း
+    localStorage.setItem(`twf_user_profile_live_${uc.user.uid}`, JSON.stringify({
       ...userDocData,
       createdAt: Date.now()
     }));
-    localStorage.setItem("twf_current_fpl_id", fplTeamId);
+    localStorage.setItem("twf_fpl_team_id", fplTeamId);
 
     // ၃။ Telegram သို့ အကြောင်းကြားခြင်း
     await sendTelegramAlert({
@@ -174,9 +177,13 @@ window.handleRegister = async () => {
       fplId: fplTeamId
     });
 
-    // Request တကယ် ထွက်သွားစေရန် ၄၀၀ မီလီစက္ကန့် စောင့်ပြီးမှ Redirect လုပ်မည်
+    // ၄။ Pending ဖြစ်နေသဖြင့် Pending Page သို့ တိုက်ရိုက် ပို့ဆောင်ခြင်း
     setTimeout(() => {
-      window.go("pending");
+      if (typeof window.go === "function") {
+        window.go("pending");
+      } else {
+        window.location.hash = "#/pending";
+      }
     }, 400);
 
   } catch (err) {
