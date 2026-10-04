@@ -4,11 +4,11 @@
 // Standards: UI Design Knowledge Pack (Sports UI & 8px Grid)
 // Architecture: Instant Non-Blocking Parallel Engine
 // Fixes Applied:
-//   1. Clean Single "Manager: zaw moe" Display (Zero Duplication)
-//   2. Guaranteed Permanent Digital Countdown Timer (DAYS, HRS, MIN, SEC)
-//   3. Clean Rank Display on Top 5 Cards (C / V Badges Permanently Removed)
+//   1. Permanent Non-Collapsing Deadline Countdown Timer (DAYS, HRS, MIN, SEC)
+//   2. Clean Single "Manager: zaw moe" Display (Zero Duplication)
+//   3. Top 5 Clean Rank Display (No C / V Badges)
 //   4. Tab Color = Points Color 100% Sync System
-//   5. Live Next Fixture Match Card with Code-Only Local Badges
+//   5. Live Next Fixtures Card Integration
 // ============================================
 
 import { db } from "./firebase-config.js";
@@ -18,8 +18,8 @@ import { loadFixturesMaster } from "./core/data.js";
 const $ = (id) => document.getElementById(id);
 const MIN = 60 * 1000;
 
-// 💡 Version 40 Cache Key (Cache သန့်စင်ပြီး ဒေတာသစ် တန်းဖတ်စေခြင်း)
-const SCOUT_CACHE_KEY_V40 = "twfm_scout_highlights_v40";
+// 💡 Version 45 Cache Key
+const SCOUT_CACHE_KEY_V45 = "twfm_scout_highlights_v45";
 
 const LS = {
   get(k, ttl) { 
@@ -143,7 +143,7 @@ function decorateManagerFrame(profile) {
     const teamName = profile?.teamName || "SEAROKER Tw";
     let rawManager = profile?.managerName || profile?.displayName || "zaw moe";
 
-    // 💡 "Manager:" စာသား အရှေ့မှ ပါလာပါက ဖြတ်ထုတ်သန့်စင်ခြင်း
+    // 💡 "Manager:" စာသား အရှေ့မှ ပါလာပါက အပြီးသတ် ဖယ်ရှားခြင်း
     const cleanManager = String(rawManager)
       .replace(/^manager:\s*/i, "")
       .replace(/^manager\s*/i, "")
@@ -165,7 +165,7 @@ function decorateManagerFrame(profile) {
 // ⏳ INSTANT DEADLINE COUNTDOWN ENGINE (NEVER COLLAPSE)
 // ============================================
 function initDeadlineTimer() {
-  let info = LS.get("twfm_deadline_v40", 10 * MIN);
+  let info = LS.get("twfm_deadline_v45", 10 * MIN);
 
   if (info && info.ts) {
     deadlineTs = info.ts;
@@ -194,7 +194,7 @@ function initDeadlineTimer() {
   if (timerInterval) clearInterval(timerInterval);
   timerInterval = setInterval(tick, 1000);
 
-  // Background Async Fetch (Fixtures API အသစ်ရောက်လာပါက အချိန်ကိုက် ညှိယူသည်)
+  // Background Async Fetch (Fixtures API အသစ်ရောက်လာပါက နောက်ကွယ်မှ အချိန်ကိုက် ညှိယူသည်)
   loadFixturesMaster().then(m => {
     if (!m) return;
     const cur = m.currentGameweek;
@@ -207,7 +207,7 @@ function initDeadlineTimer() {
       const lastDoneGw = cur.isFinished ? cur.id : (cur.status === "upcoming" || cur.status === "pre_season" ? 0 : Math.max(0, cur.id - 1));
       
       const newInfo = { gw: targetGwId, ts: target ? target.deadlineTimeEpoch : deadlineTs, lastDone: lastDoneGw };
-      LS.set("twfm_deadline_v40", newInfo);
+      LS.set("twfm_deadline_v45", newInfo);
 
       deadlineTs = newInfo.ts;
       currentGwNumber = newInfo.gw;
@@ -326,14 +326,14 @@ async function loadStats() {
 // 🌟 TOP 5 PLAYERS CARD GRID RENDERER (CLEAN NO C/V BADGES)
 // ============================================
 async function loadScoutHighlights() {
-  scoutHighlightsData = LS.get(SCOUT_CACHE_KEY_V40, 10 * MIN);
+  scoutHighlightsData = LS.get(SCOUT_CACHE_KEY_V45, 10 * MIN);
 
   if (!scoutHighlightsData) {
     try {
       const snap = await getDoc(doc(db, "scoutPlayers", "scoutHighlights"));
       if (snap.exists()) {
         scoutHighlightsData = snap.data();
-        LS.set(SCOUT_CACHE_KEY_V40, scoutHighlightsData);
+        LS.set(SCOUT_CACHE_KEY_V45, scoutHighlightsData);
       }
     } catch (err) {
       console.warn("scoutHighlights load note:", err);
@@ -361,7 +361,7 @@ function renderPlayerCards() {
   const M = MODES[mode] || MODES.cap;
   const activeColor = M.color;
 
-  // 🌟 Active Tab Single-State Highlight
+  // Active Tab Single-State Highlight
   document.querySelectorAll("#leader-tabs button, .home-tabs button").forEach((b) => {
     const isCurrent = b.dataset.k === mode;
     b.classList.toggle("on", isCurrent);
@@ -399,7 +399,7 @@ function renderPlayerCards() {
   }
 
   // 💡 ထိပ်တန်းကစားသမား (၅) ဦး Card Grid Render ပြုလုပ်ခြင်း
-  // 🌟 Clean View: Rank နံပါတ်စဉ် (1, 2, 3, 4, 5) သာ ပြသပြီး C / V badges မပါဝင်ပါ
+  // 🌟 Clean View: Rank နံပါတ်စဉ် (1, 2, 3, 4, 5) သာ ပြသပြီး C / V badges မပါရှိပါ
   container.innerHTML = list.slice(0, 5).map((p, i) => {
     const rawPos = String(p.position || "mid").toLowerCase().trim();
     const isGk = rawPos === "gk" || rawPos === "gkp";
