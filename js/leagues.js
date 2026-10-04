@@ -1,6 +1,8 @@
 // ============================================
 // TW FM — Fantasy Premier League Standings & Live Pitch Controller
 // Production Ready: Resilient Compact/Full Picks Schema Normalizer
+// Fixed: Player-to-Club ID Mapping (Haaland->MCI, Virgil->LIV, Fernandes->MUN etc.)
+// Standards: UI Design Knowledge Pack (Sports UI & 8px Grid)
 // ============================================
 
 import { auth, db } from "../js/firebase-config.js";
@@ -26,11 +28,140 @@ let unsubscribePopup = null;
 
 const LEAGUE_CACHE_KEY = "twf_leagues_cache_v2";
 const LEAGUE_TIME_KEY = "twf_leagues_quota_time_v2";
+const SCOUT_CACHE_KEY = "twfm_all_players_map_v2";
 
 const CHIP_LABELS = { "3xc": "TC", "bboost": "BB", "wildcard": "WC", "freehit": "FH", "manager": "AM" };
 
 // =========================================================================
-// 🌟 OFFLINE FIRST ENGINE: Auth မစောင့်ဘဲ Local Cache ဖြင့် ချက်ချင်း Render လုပ်ခြင်း
+// 🛡️ 2026/27 PREMIER LEAGUE TEAM ID & SHORT CODE MAP
+// =========================================================================
+const FPL_TEAM_MAP = {
+  1: "ars",  "arsenal": "ars",                 "ars": "ars",
+  2: "avl",  "aston villa": "avl",             "avl": "avl",
+  3: "bou",  "bournemouth": "bou",             "bou": "bou",
+  4: "bre",  "brentford": "bre",               "bre": "bre",
+  5: "bha",  "brighton": "bha",                "bha": "bha",
+  6: "che",  "chelsea": "che",                 "che": "che",
+  7: "cov",  "coventry": "cov",                "cov": "cov",
+  8: "cry",  "crystal palace": "cry",          "cry": "cry",
+  9: "eve",  "everton": "eve",                 "eve": "eve",
+  10: "ful", "fulham": "ful",                  "ful": "ful",
+  11: "hul", "hull": "hul", "hull city": "hul","hul": "hul",
+  12: "ips", "ipswich": "ips",                 "ips": "ips",
+  13: "lee", "leeds": "lee", "leeds united": "lee", "lee": "lee",
+  14: "liv", "liverpool": "liv",               "liv": "liv",
+  15: "mci", "man city": "mci", "manchester city": "mci", "mci": "mci",
+  16: "mun", "man utd": "mun", "manchester united": "mun", "mun": "mun",
+  17: "new", "newcastle": "new",               "new": "new",
+  18: "nfo", "nottingham forest": "nfo", "forest": "nfo", "nfo": "nfo",
+  19: "tot", "tottenham": "tot", "spurs": "tot", "tot": "tot",
+  20: "sun", "sunderland": "sun",              "sun": "sun"
+};
+
+// 🌟 Local Memory Registry for Player ID -> Team Code & Position
+const playerRegistry = {};
+
+// Fallback Common Star Players Map (Instant Offline Zero-Fail Registry)
+const KNOWN_PLAYERS = {
+  "haaland": { team: "mci", pos: "FWD" },
+  "salah": { team: "liv", pos: "MID" },
+  "saka": { team: "ars", pos: "MID" },
+  "palmer": { team: "che", pos: "MID" },
+  "b.fernandes": { team: "mun", pos: "MID" },
+  "raya": { team: "ars", pos: "GK" },
+  "virgil": { team: "liv", pos: "DEF" },
+  "gvardiol": { team: "mci", pos: "DEF" },
+  "calafiori": { team: "ars", pos: "DEF" },
+  "konsa": { team: "avl", pos: "DEF" },
+  "tarkowski": { team: "eve", pos: "DEF" },
+  "hall": { team: "new", pos: "DEF" },
+  "szoboszlai": { team: "liv", pos: "MID" },
+  "mbeumo": { team: "bre", pos: "MID" },
+  "groß": { team: "bha", pos: "MID" },
+  "calvert-lewin": { team: "eve", pos: "FWD" },
+  "dubravka": { team: "new", pos: "GK" },
+  "joão pedro": { team: "che", pos: "FWD" },
+  "rogers": { team: "che", pos: "MID" },
+  "belloumi": { team: "hul", pos: "MID" },
+  "tzolis": { team: "ips", pos: "MID" },
+  "dedić": { team: "sun", pos: "DEF" }
+};
+
+// 💡 Background Engine: scoutPlayers/allPlayers မှ ကစားသမားအားလုံး၏ အသင်း code များကို ဆွဲယူထားခြင်း
+async function initPlayerRegistry() {
+  try {
+    const cachedMap = localStorage.getItem(SCOUT_CACHE_KEY);
+    if (cachedMap) {
+      Object.assign(playerRegistry, JSON.parse(cachedMap));
+    }
+    const snap = await getDoc(doc(db, "scoutPlayers", "allPlayers"));
+    if (snap.exists()) {
+      const data = snap.data();
+      const players = data.players || [];
+      players.forEach(p => {
+        const id = String(p.playerId || p.id);
+        const nameClean = String(p.name || "").toLowerCase().trim();
+        const tCode = FPL_TEAM_MAP[p.teamId] || FPL_TEAM_MAP[String(p.teamCode).toLowerCase()] || "che";
+        const pos = String(p.position || "").toUpperCase();
+        playerRegistry[id] = { team: tCode, pos };
+        if (nameClean) playerRegistry[nameClean] = { team: tCode, pos };
+      });
+      localStorage.setItem(SCOUT_CACHE_KEY, JSON.stringify(playerRegistry));
+    }
+  } catch (err) {
+    console.warn("Player registry load note:", err);
+  }
+}
+
+initPlayerRegistry();
+
+function resolveTeamCode(rawTeam, playerName = "", playerId = "") {
+  // 1. Check ID from registry
+  const pIdStr = String(playerId || "");
+  if (pIdStr && playerRegistry[pIdStr]?.team) {
+    return playerRegistry[pIdStr].team;
+  }
+
+  // 2. Check Name from registry & known players
+  const cleanName = String(playerName || "").toLowerCase().trim();
+  if (cleanName && playerRegistry[cleanName]?.team) {
+    return playerRegistry[cleanName].team;
+  }
+  if (cleanName && KNOWN_PLAYERS[cleanName]?.team) {
+    return KNOWN_PLAYERS[cleanName].team;
+  }
+  for (const [k, v] of Object.entries(KNOWN_PLAYERS)) {
+    if (cleanName.includes(k)) return v.team;
+  }
+
+  // 3. Check explicit team field
+  if (rawTeam) {
+    const clean = String(rawTeam).toLowerCase().trim();
+    if (FPL_TEAM_MAP[clean]) return FPL_TEAM_MAP[clean];
+    if (FPL_TEAM_MAP[Number(clean)]) return FPL_TEAM_MAP[Number(clean)];
+  }
+
+  return "che";
+}
+
+// 🌐 Dynamic Base Path Detector
+function getAssetBasePath() {
+  const path = window.location.pathname;
+  if (path.includes("/TW-FM-28/")) {
+    return "/TW-FM-28";
+  }
+  return "";
+}
+
+function jerseyPath(p) {
+  const folder = (p.position || "").toUpperCase() === "GK" ? "gk" : "outfield"; 
+  const code = resolveTeamCode(p.teamCode || p.team, p.name, p.playerId); 
+  const base = getAssetBasePath();
+  return `${base}/public/jerseys/${folder}/${code}.png`; 
+}
+
+// =========================================================================
+// 🌟 OFFLINE FIRST ENGINE
 // =========================================================================
 
 function mountOfflineCacheImmediately() {
@@ -60,16 +191,11 @@ if (document.readyState === "loading") {
   mountOfflineCacheImmediately();
 }
 
-// =========================================================================
-// 🌟 CURRENT GAMEWEEK ENGINE (ချက်ချင်း ဖတ်ယူပြသမှု စနစ်)
-// =========================================================================
-
 function updateGwBadge(dataArray = []) {
   const badge = document.getElementById("gw-badge");
   if (!badge) return;
 
   let gw = null;
-
   if (Array.isArray(dataArray) && dataArray.length > 0) {
     const found = dataArray.find(d => d.gameweek || d.currentGw);
     if (found) gw = found.gameweek || found.currentGw;
@@ -83,10 +209,6 @@ function updateGwBadge(dataArray = []) {
 
   badge.textContent = "GW " + gw;
 }
-
-// =========================================================================
-// ⏰ IN-FILE SCHEDULE QUOTA CONTROLLER (Sat-Mon: 6h / Others: 24h)
-// =========================================================================
 
 function getMyanmarDate(dateObj = new Date()) {
   const utc = dateObj.getTime() + (dateObj.getTimezoneOffset() * 60000);
@@ -203,10 +325,6 @@ function triggerInitialFakeRefreshUI() {
   }, 1200);
 }
 
-// =========================================================================
-// 🔄 REFRESH BUTTON (Early-Return & 0 Read Guard)
-// =========================================================================
-
 window.forceRefreshLeague = async function() {
   if (!navigator.onLine) {
     mountOfflineCacheImmediately();
@@ -235,14 +353,12 @@ window.forceRefreshLeague = async function() {
 
   try {
     const isSuccess = await internalFetchLeagueData(true);
-
     if (isSuccess) {
       localStorage.setItem(LEAGUE_TIME_KEY, String(Date.now()));
       showLeagueNotice("✅ Standings Update ရရှိပါပြီ!");
     } else {
       throw new Error("LEAGUE_FETCH_FAILED");
     }
-
   } catch (err) {
     console.error("League Refresh Blocked:", err);
     mountOfflineCacheImmediately();
@@ -265,7 +381,6 @@ window.loadLeagueData = function() {
   return window.forceRefreshLeague();
 };
 
-// 🛡️ OFFLINE-BYPASS AUTH CONTROLLER
 onAuthStateChanged(auth, async (user) => {
   triggerInitialFakeRefreshUI();
 
@@ -328,13 +443,11 @@ async function internalFetchLeagueData(forceFresh = false) {
 
   try {
     const keys = ["league1", "league2", "league3", "league4", "league5"];
-    
     const fetchFunc = forceFresh 
       ? (k) => getLeagueStandingsSnap(k, true)
       : (k) => getLeagueStandingsSnap(k);
 
     const results = await Promise.allSettled(keys.map(fetchFunc));
-
     let hasAnySuccess = false;
 
     results.forEach((res, index) => {
@@ -412,14 +525,20 @@ function getPlayerStatusBadge(p) {
 
 // 🛡️ Compact vs Full Schema Normalizer Helper
 function normalizePick(p, idx) {
-  // 1. Position Resolution (pos vs position)
+  const pId = String(p.id || p.playerId || p.element || "");
+  const pName = p.name || p.web_name || "?";
+
+  // 1. Position Resolution
   let rawPos = String(p.pos || p.position || "").toUpperCase().trim();
   if (rawPos === "1" || rawPos === "GKP") rawPos = "GK";
   else if (rawPos === "2") rawPos = "DEF";
   else if (rawPos === "3") rawPos = "MID";
   else if (rawPos === "4") rawPos = "FWD";
 
-  // Index Fallback: 15-man standard FPL squad index
+  if (!rawPos && playerRegistry[pId]?.pos) {
+    rawPos = playerRegistry[pId].pos;
+  }
+
   if (!rawPos) {
     if (idx === 0 || idx === 11) rawPos = "GK";
     else if (idx >= 1 && idx <= 4) rawPos = "DEF";
@@ -430,7 +549,7 @@ function normalizePick(p, idx) {
     else rawPos = "FWD";
   }
 
-  // 2. Multiplier Resolution (mult vs multiplier vs originalMultiplier)
+  // 2. Multiplier Resolution
   let rawMult = 0;
   if (p.mult !== undefined && p.mult !== null) {
     rawMult = Number(p.mult);
@@ -439,7 +558,6 @@ function normalizePick(p, idx) {
   } else if (p.originalMultiplier !== undefined && p.originalMultiplier !== null) {
     rawMult = Number(p.originalMultiplier);
   } else {
-    // Fallback: 0-10 = Starters (1), 11-14 = Bench (0)
     rawMult = idx < 11 ? 1 : 0;
   }
 
@@ -448,18 +566,22 @@ function normalizePick(p, idx) {
   const isCap = Boolean(p.c !== undefined ? p.c : (p.isCaptain || p.is_captain));
   const isVc = Boolean(p.v !== undefined ? p.v : (p.isVice || p.is_vice_captain));
 
+  // 4. Team Code Resolution (Player ID & Name aware)
+  const resolvedTeam = resolveTeamCode(p.teamCode || p.team || p.team_code || p.teamId, pName, pId);
+
   return {
-    playerId: p.id || p.playerId || p.element,
-    name: p.name || "?",
+    playerId: pId,
+    name: pName,
     position: rawPos,
     multiplier: rawMult,
     livePoints: livePts,
     isCaptain: isCap,
     isVice: isVc,
-    teamCode: p.teamCode || p.team || "unknown",
+    teamCode: resolvedTeam,
     status: p.status || "a",
     isInjured: Boolean(p.isInjured),
-    isSuspended: Boolean(p.isSuspended)
+    isSuspended: Boolean(p.isSuspended),
+    chanceOfPlaying: p.chanceOfPlaying ?? 100
   };
 }
 
@@ -552,7 +674,6 @@ window.openTeamPopup = (leagueId, fplTeamId, teamName) => {
 
   if (unsubscribePopup) { unsubscribePopup(); unsubscribePopup = null; }
 
-  // 💡 Local cache store ထဲတွင် Team picks ရှိပြီးဖြစ်ပါက ချက်ချင်း ဆွဲတင်ပြသခြင်း
   const cachedLeague = leagueDataStore[leagueId] || [];
   const localFoundTeam = cachedLeague.find(t => String(t.fplTeamId) === String(fplTeamId));
   
@@ -585,7 +706,6 @@ function renderPopupData(d) {
   const rawPicks = d.picks || [];
 
   if (rawPicks.length > 0) {
-    // 💡 Auto-Normalize picks to support compact (pos, mult, pts) and full format
     const normalizedPicks = rawPicks.map(normalizePick);
 
     let starterPts = 0;
@@ -619,12 +739,7 @@ window.closeTeamPopup = () => {
   document.getElementById("team-popup-modal").style.display = "none";
 };
 
-function jerseyPath(p) {
-  const folder = (p.position || "").toLowerCase() === "gk" ? "gk" : "outfield"; 
-  const code = (p.teamCode || "unknown").toLowerCase(); 
-  return `./public/jerseys/${folder}/${code}.png`; 
-}
-
+// 🌟 Jersey Card Builder (Accurate Team Jerseys)
 function buildPlayerCard(p) {
   const mult = Number(p.multiplier) || 0; 
   const displayPoints = (p.livePoints ?? 0) * (mult > 1 ? mult : 1); 
@@ -640,13 +755,30 @@ function buildPlayerCard(p) {
   const statusBadge = getPlayerStatusBadge(p);
   const borderHighlight = (p.isCaptain || mult > 1) ? 'border-b-2 border-b-[#b3a1ff]' : p.isVice ? 'border-b-2 border-b-[#C0C0C0]' : ''; 
 
+  const primarySrc = jerseyPath(p);
+  const fallbackSrc1 = `./public/jerseys/${(p.position || "").toUpperCase() === "GK" ? "gk" : "outfield"}/${p.teamCode}.png`;
+  const fallbackSrc2 = `./public/jerseys/outfield/${p.teamCode}.png`;
+
   return `
     <div style="width:64px; flex-shrink:0; display:flex; flex-direction:column; align-items:center; position:relative;">
       ${cornerBadge}
       <div class="${borderHighlight}" style="width:44px; height:44px; display:flex; align-items:center; justify-content:center; margin-bottom:2px; position:relative;">
-        <img src="${jerseyPath(p)}"
-             onerror="this.outerHTML='<div style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;\\'>👕</div>'"
-             style="width:100%; height:100%; object-fit:contain; filter: drop-shadow(0px 2px 3px rgba(0,0,0,0.3));" alt="${p.name}" />
+        <img src="${primarySrc}"
+             data-fb1="${fallbackSrc1}"
+             data-fb2="${fallbackSrc2}"
+             onerror="
+               if (!this.dataset.tried1) {
+                 this.dataset.tried1 = '1';
+                 this.src = this.dataset.fb1;
+               } else if (!this.dataset.tried2) {
+                 this.dataset.tried2 = '1';
+                 this.src = this.dataset.fb2;
+               } else {
+                 this.outerHTML='<div style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:1.4rem;\\'>👕</div>';
+               }
+             "
+             style="width:100%; height:100%; object-fit:contain; filter: drop-shadow(0px 2px 3px rgba(0,0,0,0.4));" 
+             alt="${p.name}" />
         ${statusBadge}
       </div>
       <div style="width:100%; display:flex; flex-direction:column; border-radius:2px; overflow:hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
@@ -662,11 +794,9 @@ function buildPlayerCard(p) {
 }
 
 function renderPopupPitch(normalizedPicks) {
-  // 💡 Starters (၁၁ ယောက်) နှင့် Subs (၄ ယောက်) အား Multiplier နှင့် Index အဆင့်ဆင့်ဖြင့် တိကျစွာ ခွဲထုတ်ခြင်း
   let starters = normalizedPicks.filter(p => Number(p.multiplier ?? 0) > 0); 
   let subs = normalizedPicks.filter(p => Number(p.multiplier ?? 0) === 0); 
 
-  // Fail-Safe: အကယ်၍ Multiplier မပါလာခဲ့ပါက ပထမ ၁၁ ယောက်ကို Starters အဖြစ် သတ်မှတ်ပေးခြင်း
   if (starters.length === 0 && normalizedPicks.length >= 11) {
     starters = normalizedPicks.slice(0, 11);
     subs = normalizedPicks.slice(11);
