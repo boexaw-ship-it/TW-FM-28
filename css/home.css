@@ -165,7 +165,7 @@
 .home-scroll::-webkit-scrollbar { display: none; }
 .home-scroll { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* 👤 Manager Profile Card (Clean Layout - No Arrow) */
+/* 👤 Manager Profile Card (Clean Layout) */
 .home-profile {
   display: flex;
   align-items: center;
@@ -218,7 +218,9 @@
   font-weight: 600;
 }
 
-/* ⏳ Deadline Hero Box (Clickable -> #/fixtures) */
+/* =========================================================================
+   ⏳ DEADLINE HERO BOX (FIXED NON-COLLAPSING 4-GRID TIMER)
+   ========================================================================= */
 .home-hero {
   border-radius: 20px;
   padding: 16px;
@@ -227,6 +229,10 @@
   position: relative;
   overflow: hidden;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  min-height: 130px !important; /* 💡 မည်သည့်အခါမှ ပြားကပ်မသွားစေရန် Fixed Height သတ်မှတ်ခြင်း */
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
 }
 
 .clickable-hero {
@@ -299,43 +305,52 @@
   font-weight: 600;
 }
 
+/* ⏱️ 4-Grid Digital Countdown Box (Always Visible & Non-Collapsible) */
 .home-cd {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin-top: 12px;
-  position: relative;
-  z-index: 2;
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 8px !important;
+  margin-top: 10px !important;
+  margin-bottom: 4px !important;
+  position: relative !important;
+  z-index: 2 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: 100% !important;
 }
 
 .home-cd > div {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 14px;
-  padding: 8px 0 6px;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 14px !important;
+  padding: 8px 0 6px !important;
+  text-align: center !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 56px !important; /* 💡 Box အမြင့် အာမခံချက် */
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3) !important;
 }
 
 .home-cd b {
-  display: block;
-  font-size: 22px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.1;
-  color: #ffffff;
+  display: block !important;
+  font-size: 21px !important;
+  font-weight: 900 !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+  font-variant-numeric: tabular-nums !important;
+  line-height: 1.1 !important;
+  color: #ffffff !important;
 }
 
 .home-cd small {
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  color: #c9c3ff;
-  opacity: 0.85;
-  margin-top: 2px;
+  font-size: 8.5px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.12em !important;
+  color: #c9c3ff !important;
+  opacity: 0.9 !important;
+  margin-top: 2px !important;
+  text-transform: uppercase !important;
 }
 
 .hero-tap-hint {
@@ -343,7 +358,7 @@
   align-items: center;
   justify-content: flex-end;
   gap: 4px;
-  margin-top: 10px;
+  margin-top: 8px;
   font-size: 10.5px;
   color: #a58bff;
   font-weight: 700;
@@ -356,7 +371,9 @@
   line-height: 1;
 }
 
-/* 📊 3-Column Performance Stats Section */
+/* =========================================================================
+   📊 3-COLUMN PERFORMANCE STATS SECTION
+   ========================================================================= */
 .home-stats {
   display: grid;
   grid-template-columns: 1fr 1.35fr 1fr;
@@ -433,7 +450,7 @@
 .home-stat em.up { color: var(--ok); }
 
 /* =========================================================================
-   🌟 TOP 5 PLAYERS CARD GRID (Exact match to image_b95fdb.jpg)
+   🌟 TOP 5 PLAYERS CARD GRID (Rank Number Only - Clean Aesthetic)
    ========================================================================= */
 .home-top-grid-section {
   display: flex;
@@ -474,28 +491,16 @@
 
 .home-player-cards-grid {
   display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: calc((100% - 32px) / 3.2);
-  gap: 8px;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  padding-bottom: 4px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  width: 100%;
 }
-
-@media (min-width: 480px) {
-  .home-player-cards-grid {
-    grid-auto-columns: calc((100% - 32px) / 5);
-  }
-}
-
-.home-player-cards-grid::-webkit-scrollbar { display: none; }
 
 .top-player-card {
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 16px;
-  padding: 8px 6px;
+  padding: 8px 4px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -511,28 +516,12 @@
 
 .player-card-rank {
   position: absolute;
-  top: 6px;
-  left: 6px;
-  width: 18px;
-  height: 18px;
-  border-radius: 6px;
-  background: #3b82f6;
-  color: #ffffff;
-  font-size: 10px;
-  font-weight: 900;
-  display: grid;
-  place-items: center;
-  z-index: 3;
-}
-
-.player-card-role {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 18px;
-  height: 18px;
-  border-radius: 6px;
-  background: #8c6dff;
+  top: 4px;
+  left: 4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.6);
   color: #ffffff;
   font-size: 9px;
   font-weight: 900;
@@ -542,8 +531,8 @@
 }
 
 .player-card-photo-wrap {
-  width: 100%;
-  height: 82px;
+  width: 52px;
+  height: 52px;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -552,29 +541,31 @@
 }
 
 .player-card-photo {
-  max-width: 90%;
+  max-width: 100%;
   max-height: 100%;
-  object-fit: contain;
+  object-fit: cover;
+  border-radius: 50%;
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
 }
 
 .player-card-club-badge {
   position: absolute;
-  right: 4px;
-  bottom: 0px;
-  width: 18px;
-  height: 18px;
+  right: -2px;
+  bottom: -2px;
+  width: 16px;
+  height: 16px;
   object-fit: contain;
   background: rgba(11, 13, 26, 0.85);
   border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
   padding: 1px;
 }
 
 .player-card-name {
-  font-size: 11px;
+  font-size: 9.5px;
   font-weight: 800;
   color: #ffffff;
-  margin-top: 6px;
+  margin-top: 5px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -583,21 +574,22 @@
 }
 
 .player-card-pos {
-  font-size: 8.5px;
+  font-size: 8px;
   font-weight: 800;
   text-transform: uppercase;
   margin-top: 1px;
 }
 
 .player-card-pts {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 900;
   margin-top: 2px;
   font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 .player-card-skel {
-  min-height: 140px;
+  min-height: 120px;
   border-radius: 16px;
   background: linear-gradient(90deg, var(--card2), #242953, var(--card2));
   background-size: 200% 100%;
@@ -618,35 +610,34 @@
 .home-tabs {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 6px;
+  gap: 4px;
   background: var(--card);
   border-radius: 14px;
-  padding: 5px;
-  overflow-x: auto;
-  scrollbar-width: none;
+  padding: 4px;
 }
 
 .home-tabs button {
   border: 0;
   background: transparent;
   color: var(--mu);
-  padding: 8px 4px;
+  padding: 6px 2px;
   border-radius: 10px;
   font-family: inherit;
-  font-size: 10.5px;
-  font-weight: 700;
+  font-size: 8.5px;
+  font-weight: 800;
+  text-transform: uppercase;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 2px;
   white-space: nowrap;
   transition: all 0.2s ease;
 }
 
-.home-tabs button .tab-ico { font-size: 13px; }
-.home-tabs button .tab-txt { font-size: 9px; font-weight: 700; }
+.home-tabs button .tab-ico { font-size: 12px; }
+.home-tabs button .tab-txt { font-size: 8px; font-weight: 800; }
 
 .home-tabs button.on {
   background: var(--c, #8c6dff);
