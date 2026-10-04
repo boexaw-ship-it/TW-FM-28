@@ -1,97 +1,134 @@
 <!-- ============================================
   TW FM — Dashboard View Layout
-  Path: views/dashboard.html
+  Style: Deep Stadium Mesh Glow & 6-Color Sync Tabs
   Standards: UI Design Knowledge Pack (8px Grid & Sports UI)
+  Path: views/dashboard.html
 ============================================ -->
 
 <div class="home-root">
-  <!-- 🔝 Top Header: Clean Premium Brand Bar -->
+  <!-- 🌌 STADIUM AMBIENT MESH BACKGROUND (နောက်ခံ အဝိုင်းလိုင်းကွေးနှင့် နီယွန်အလင်းပြေး) -->
+  <div class="stadium-ambient-mesh" aria-hidden="true">
+    <div class="mesh-orb orb-purple"></div>
+    <div class="mesh-orb orb-blue"></div>
+    <div class="mesh-pitch-circle"></div>
+  </div>
+
+  <!-- 🔝 1. CLEAN TOP HEADER -->
   <header class="home-head safe-top">
     <div class="home-brand">
-      <span class="home-logo font-black">TW</span>
       <div class="home-brand-text">
         <h1 class="brand-title">TW FM</h1>
         <p class="brand-subtitle">TOGETHER WE PLAY</p>
       </div>
     </div>
+
     <div class="home-who">
-      <span id="account-type-pill" class="home-pill">TW MEMBER</span>
+      <div id="account-type-pill" class="home-pill">
+        <svg viewBox="0 0 24 24" fill="currentColor" class="user-pill-ico">
+          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+        </svg>
+        <span>TW MEMBER</span>
+      </div>
       <button id="pending-refresh-btn" onclick="handleCheckApprovalStatus()" class="hidden home-refresh" type="button" aria-label="Refresh Status">
         <span id="check-icon">⟳</span><span>REFRESH</span>
       </button>
     </div>
   </header>
   
+  <!-- 📜 Main Fixed Single Viewport Container (Zero Scroll Lock) -->
   <main class="home-scroll">
-    <!-- 👤 Manager Profile Card Component (Clean Single Label) -->
-    <section class="home-profile" aria-label="User Profile">
-      <div class="home-avatar" aria-hidden="true">⚽</div>
-      <div class="home-pf-text">
-        <h2 id="welcome-name">SEAROKER Tw <span class="crown-ico">👑</span></h2>
-        <p id="welcome-sub"><span class="manager-lbl opacity-70">Manager:</span> <span id="welcome-manager" class="font-bold text-white">zaw moe</span></p>
+    <!-- 🌟 2. UNIFIED HERO HUB (ခရမ်းရောင် အလင်းပြန် NEON PURPLE GLOW FRAME) -->
+    <section class="luxury-hero-hub neon-glow-purple" id="hero-deadline-card" aria-label="Manager and Gameweek Status">
+      <!-- Top Row: Clean Team Title & Deadline Group -->
+      <div class="hero-hub-top">
+        <div class="hero-manager-meta">
+          <div class="hero-team-title">
+            <span class="boat-ico" aria-hidden="true">⛵</span>
+            <span id="welcome-name" class="team-text">SEAROKER Tw</span>
+          </div>
+          <p class="hero-manager-sub">
+            <span class="opacity-60">Manager:</span> <span id="welcome-manager" class="manager-name">zaw moe</span>
+          </p>
+        </div>
+        
+        <!-- Deadline Header Group -->
+        <div class="hero-deadline-group">
+          <div class="hero-gw-chip">
+            <span class="trophy-gold-ico" aria-hidden="true">🏆</span>
+            <span id="gw-label" class="gw-text">GW6 DEADLINE</span>
+          </div>
+          <div class="hero-date-text" id="gw-when">
+            Sat, 10 Oct 2026, 16:30 MMT
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Row: Digital Countdown 4-Boxes -->
+      <div class="hero-hub-bottom">
+        <div class="home-cd" id="home-cd" aria-live="polite">
+          <div class="cd-box">
+            <b id="cd-d">05</b>
+            <small>DAYS</small>
+          </div>
+          <div class="cd-box">
+            <b id="cd-h">18</b>
+            <small>HRS</small>
+          </div>
+          <div class="cd-box">
+            <b id="cd-m">45</b>
+            <small>MIN</small>
+          </div>
+          <div class="cd-box cd-sec">
+            <b id="cd-s">27</b>
+            <small>SEC</small>
+          </div>
+        </div>
       </div>
     </section>
     
-    <!-- ⏳ Gameweek Deadline Hero Box (Clean 4-Grid Digital Clock - Hint Removed) -->
-    <section class="home-hero clickable-hero" id="hero-deadline-card" role="button" tabindex="0" aria-label="Gameweek Deadline">
-      <div class="home-tw-anim-bg" aria-hidden="true">
-        <div class="tw-crest-glow">TW</div>
+    <!-- 📊 3. 3-COLUMN PERFORMANCE STATS (အစိမ်း၊ အဝါ၊ စိမ်းပြာခရမ်း အလင်းပြန် GLOW TILES) -->
+    <section class="luxury-stats-card" aria-label="Season Performance Overview">
+      <!-- Tile 1: Total Points (အစိမ်းရောင် အလင်းပြန်) -->
+      <div class="stat-nameplate-tile neon-glow-green">
+        <div class="col-head">
+          <span class="stat-ico c-green" aria-hidden="true">★</span>
+          <span class="stat-title">TOTAL POINTS</span>
+        </div>
+        <b id="st-total" class="stat-num">330</b>
+        <em id="st-total-d" class="stat-change up">▲ +51 (GW5)</em>
       </div>
-      
-      <div class="home-hero-top">
-        <span id="gw-label" class="home-tag">GW6 DEADLINE</span>
-        <span id="gw-when" class="home-hero-when">Sat, 10 Oct 2026 · 16:30 MMT</span>
+
+      <!-- Tile 2: Overall Rank (အဝါရောင် အလင်းပြန်) -->
+      <div class="stat-nameplate-tile neon-glow-gold">
+        <div class="col-head">
+          <span class="stat-ico c-gold" aria-hidden="true">🏆</span>
+          <span class="stat-title">OVERALL RANK</span>
+        </div>
+        <b id="st-rank" class="stat-num font-mono">1,896,119</b>
+        <em id="st-rank-d" class="stat-change up">▲ +4,209,708</em>
       </div>
-      
-      <!-- 🌟 4-Grid Digital Countdown Boxes -->
-      <div class="home-cd" id="home-cd" aria-live="polite">
-        <div><b id="cd-d">06</b><small>DAYS</small></div>
-        <div><b id="cd-h">01</b><small>HRS</small></div>
-        <div><b id="cd-m">46</b><small>MIN</small></div>
-        <div><b id="cd-s">53</b><small>SEC</small></div>
-      </div>
-    </section>
-    
-    <!-- 📊 3-Column Performance Stats Section (Total Points, Overall Rank, GW Score) -->
-    <section class="home-stats" aria-label="Season Performance Overview">
-      <div class="home-stat c-violet">
-        <div class="stat-icon" aria-hidden="true">★</div>
-        <span class="t">Total Points</span>
-        <b id="st-total">330</b>
-        <em id="st-total-d" class="up">▲ +51 (GW5)</em>
-      </div>
-      
-      <div class="home-stat c-blue wide">
-        <div class="stat-icon" aria-hidden="true">🏆</div>
-        <span class="t">Overall Rank</span>
-        <b id="st-rank">1,896,119</b>
-        <em id="st-rank-d" class="up">▲ +4,209,708</em>
-      </div>
-      
-      <div class="home-stat c-green">
-        <div class="stat-icon" aria-hidden="true">📊</div>
-        <span class="t" id="st-gw-l">GW Score</span>
-        <b id="st-gw">51</b>
-        <em id="st-gw-d" class="up">▲ avg 48</em>
+
+      <!-- Tile 3: GW Score (စိမ်းပြာခရမ်း အလင်းပြန်) -->
+      <div class="stat-nameplate-tile neon-glow-cyan">
+        <div class="col-head">
+          <span class="stat-ico c-cyan" aria-hidden="true">📊</span>
+          <span class="stat-title" id="st-gw-l">GW SCORE</span>
+        </div>
+        <b id="st-gw" class="stat-num">51</b>
+        <em id="st-gw-d" class="stat-change up">▲ avg 48</em>
       </div>
     </section>
     
-    <!-- 🌟 Top 5 Players Card Grid Hub (250x250 Photos / Badges) -->
+    <!-- 🌟 4. TOP 5 PLAYERS CARD GRID (FPL Position Colors: GK Blue, DEF Red, MID Yellow, FWD Green) -->
     <section class="home-top-grid-section" aria-label="Top 5 Players">
       <div class="home-section-header">
         <h3 class="home-h">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="section-icon">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-            <circle cx="9" cy="7" r="4"></circle>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-          </svg>
+          <span class="h-dot" aria-hidden="true">●</span>
           Top 5 Players
         </h3>
         <a href="#/scout" class="home-see-all">View All ›</a>
       </div>
       
-      <!-- Card ၅ ခု Grid Container (Rank နံပါတ်စဉ်သာ ပြသသည်) -->
       <div class="home-player-cards-grid" id="leader-cards-container" aria-live="polite">
         <div class="player-card-skel"></div>
         <div class="player-card-skel"></div>
@@ -101,53 +138,56 @@
       </div>
     </section>
     
-    <!-- ⚡ Quick Stats Tabs Hub (Button ၆ ခု) -->
+    <!-- ⚡ 5. QUICK STATS TABS (အဖြူ၊ အဝါ၊ အစိမ်း၊ အနီ၊ အပြာ၊ အစိမ်းနု ၆ မျိုးစလုံး အရောင်အတိအကျ) -->
     <section class="home-quick-stats-section" aria-label="Quick Stats Filters">
       <div class="home-section-header">
         <h3 class="home-h">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="section-icon">
-            <line x1="18" y1="20" x2="18" y2="10"></line>
-            <line x1="12" y1="20" x2="12" y2="4"></line>
-            <line x1="6" y1="20" x2="6" y2="14"></line>
-          </svg>
+          <span class="h-dot" aria-hidden="true">●</span>
           Quick Stats
         </h3>
       </div>
       
-      <div class="home-tabs scroll-touch" id="leader-tabs" role="tablist">
-        <button class="on" data-k="cap" style="--c:#8c6dff" role="tab" aria-selected="true" type="button">
+      <div class="home-tabs frameless-tabs" id="leader-tabs" role="tablist">
+        <!-- 1. Most Captain (အဖြူ) -->
+        <button class="on" data-k="cap" style="--tab-c:#FFFFFF" role="tab" aria-selected="true" type="button">
           <span class="tab-ico">👑</span>
           <span class="tab-txt">Most Captain</span>
         </button>
-        <button data-k="own" style="--c:#38bdf8" role="tab" aria-selected="false" type="button">
+        <!-- 2. Ownership (အဝါ) -->
+        <button data-k="own" style="--tab-c:#FBBF24" role="tab" aria-selected="false" type="button">
           <span class="tab-ico">🛡️</span>
           <span class="tab-txt">Ownership</span>
         </button>
-        <button data-k="tin" style="--c:#22c55e" role="tab" aria-selected="false" type="button">
+        <!-- 3. Transfer In (အစိမ်း) -->
+        <button data-k="tin" style="--tab-c:#22C55E" role="tab" aria-selected="false" type="button">
           <span class="tab-ico">⇄</span>
           <span class="tab-txt">Transfer In</span>
         </button>
-        <button data-k="tout" style="--c:#ef4444" role="tab" aria-selected="false" type="button">
+        <!-- 4. Transfer Out (အနီ) -->
+        <button data-k="tout" style="--tab-c:#EF4444" role="tab" aria-selected="false" type="button">
           <span class="tab-ico">⇄</span>
           <span class="tab-txt">Transfer Out</span>
         </button>
-        <button data-k="total" style="--c:#fbbf24" role="tab" aria-selected="false" type="button">
+        <!-- 5. Total Point (အပြာ) -->
+        <button data-k="total" style="--tab-c:#38BDF8" role="tab" aria-selected="false" type="button">
           <span class="tab-ico">★</span>
           <span class="tab-txt">Total Point</span>
         </button>
-        <button data-k="gw" style="--c:#34d399" role="tab" aria-selected="false" type="button">
+        <!-- 6. Week Point (အစိမ်းနု / Mint) -->
+        <button data-k="gw" style="--tab-c:#34D399" role="tab" aria-selected="false" type="button">
           <span class="tab-ico">⚡</span>
           <span class="tab-txt">Week Point</span>
         </button>
       </div>
     </section>
     
-    <!-- 🗓️ Next Fixture Card Component -->
-    <a class="home-next-fixture-card text-decoration-none" id="next-fixture-card-link" href="#/fixtures" aria-label="Open Full Fixtures">
+    <!-- 🗓️ 6. POLISHED NEXT FIXTURE CARD (အနီရောင် အလင်းပြန် RED GLOW FRAME) -->
+    <a class="home-next-fixture-card text-decoration-none neon-glow-red" id="next-fixture-card-link" href="#/fixtures" aria-label="Open Full Fixtures">
       <div class="fixture-head">
         <span class="fixture-tag">📅 Next Fixture</span>
         <span class="fixture-time" id="next-fixture-time">GW6 · 10 Oct 2026 · 19:00</span>
       </div>
+      
       <div class="fixture-body">
         <div class="fixture-team home-side">
           <img src="./assets/badges/ars.png" alt="ARS" class="fixture-badge" id="fixture-home-badge" onerror="this.src='./assets/badges/ars.png'">
@@ -166,6 +206,7 @@
           </div>
           <img src="./assets/badges/lee.png" alt="LEE" class="fixture-badge" id="fixture-away-badge" onerror="this.src='./assets/badges/lee.png'">
         </div>
+        
         <span class="fixture-arrow" aria-hidden="true">›</span>
       </div>
     </a>
