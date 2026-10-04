@@ -1,7 +1,7 @@
 // ============================================
 // TW Fantasy Official League — Dashboard Entry Controller
 // Path: js/dashboard.js
-// Responsibilities: Auth Lifecycle, Profile Binding, Approval Verification
+// Responsibilities: Auth Lifecycle, Profile Binding, Immediate UI Trigger
 // Standards: UI Design Knowledge Pack (Predictable State & Quota Safety)
 // ============================================
 
@@ -50,11 +50,13 @@ function renderProfileUI(profile) {
 
   if (welcomeNameEl) {
     const teamTitle = profile.teamName || "SEAROKER Tw";
-    welcomeNameEl.innerHTML = `${escapeHtml(teamTitle)} <span class="text-amber-400">👑</span>`;
+    welcomeNameEl.innerHTML = `${escapeHtml(teamTitle)} <span class="crown-ico">👑</span>`;
   }
 
   if (welcomeManagerEl) {
-    welcomeManagerEl.textContent = profile.managerName || profile.displayName || "Manager";
+    let cleanManager = profile.managerName || profile.displayName || "zaw moe";
+    cleanManager = String(cleanManager).replace(/^manager:\s*/i, "").trim();
+    welcomeManagerEl.textContent = cleanManager;
   }
 
   // Verification Status Pill
@@ -107,7 +109,7 @@ function escapeHtml(str) {
   }[c]));
 }
 
-// 🚀 Boot Controller
+// 🚀 Boot Controller (Parallel Non-Blocking Launch)
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
     if (typeof window.go === "function") {
@@ -117,8 +119,10 @@ onAuthStateChanged(auth, async (user) => {
   }
 
   currentAuthUser = user;
-  await loadManagerProfile(user);
-  
-  // 💡 Dashboard UI အတွင်းရှိ Home Data Engine (Countdown, Cards, Fixture) ကို စတင်လှုပ်ရှားစေခြင်း
+
+  // 🌟 FAST LAUNCH: Home Engine (Countdown, Cards, Stats) ကို Network မစောင့်ဘဲ ချက်ချင်း စတင်သည်
   initHomeTab(user, currentProfile);
+
+  // Profile Data ကို Background တွင် ဆွဲယူ၍ အပြီးသတ် UI update ပြုလုပ်သည်
+  await loadManagerProfile(user);
 });
