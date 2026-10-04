@@ -1,3 +1,9 @@
+<!-- ============================================
+  TW FM — Dashboard View Layout
+  Path: views/dashboard.html
+  Standards: UI Design Knowledge Pack (8px Grid & Sports UI)
+============================================ -->
+
 <div class="home-root">
   <!-- 🔝 Top Header: Clean Premium Brand Bar (No Bell/User Icons) -->
   <header class="home-head safe-top">
@@ -17,12 +23,12 @@
   </header>
   
   <main class="home-scroll">
-    <!-- 👤 Manager Profile Card Component (Clean Card - No Chevron Arrow) -->
+    <!-- 👤 Manager Profile Card Component (Clean Layout - Duplicate Label Fixed) -->
     <section class="home-profile" aria-label="User Profile">
       <div class="home-avatar" aria-hidden="true">⚽</div>
       <div class="home-pf-text">
         <h2 id="welcome-name">SEAROKER Tw <span class="crown-ico">👑</span></h2>
-        <p id="welcome-sub">Manager: <span id="welcome-manager">zaw moe</span></p>
+        <p id="welcome-sub"><span class="manager-lbl opacity-70">Manager:</span> <span id="welcome-manager" class="font-bold text-white">zaw moe</span></p>
       </div>
     </section>
     
@@ -89,7 +95,7 @@
         <a href="#/scout" class="home-see-all">View All ›</a>
       </div>
       
-      <!-- Card ၅ ခု ဘေးတိုက် အံဝင်ခွင်ကျ Grid Container -->
+      <!-- Card ၅ ခု Grid Container (Rank နံပါတ်စဉ်သာ ပြသသည်) -->
       <div class="home-player-cards-grid" id="leader-cards-container" aria-live="polite">
         <div class="player-card-skel"></div>
         <div class="player-card-skel"></div>
