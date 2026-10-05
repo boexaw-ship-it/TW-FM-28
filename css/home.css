@@ -1,17 +1,17 @@
 /* =========================================================================
-   TW FM — Premium Fantasy Football Stylesheet
-   Theme: Matt Black & Electric Violet with Left/Right Pillar Accents
-   Standards: UI Design Knowledge Pack (8px Grid, 14-20px Radii, Zero Overflow)
+   TW FM — Production Home Stylesheet (Zero Horizontal Overflow Edition)
+   Theme: Electric Violet & Matt Black
+   Standards: UI Design Knowledge Pack (8px Grid, Viewport Lock, Touch Protect)
    Path: css/home.css
    ========================================================================= */
 
-/* 🚫 Global Touch & Anti-Selection Reset (Google Search Menu ပိတ်ပင်ခြင်း) */
+/* 🚫 ၁။ GLOBAL ANTI-SELECTION & HORIZONTAL LOCK RESET */
 *, *::before, *::after {
   -webkit-touch-callout: none !important;
   -webkit-user-select: none !important;
   user-select: none !important;
   -webkit-tap-highlight-color: transparent !important;
-  box-sizing: border-box;
+  box-sizing: border-box !important;
 }
 
 :root {
@@ -33,14 +33,27 @@
   --text-muted: #8e94a8;
 }
 
-.home-root {
+/* 📱 Frame ကွက်တိ ဘေးဘက် မလှုပ်အောင် ဖမ်းချုပ်ထားသော Root Viewport */
+html, body {
   width: 100%;
+  max-width: 100%;
+  overflow-x: hidden !important;
+  position: relative;
+  background-color: var(--bg-deep);
+  margin: 0;
+  padding: 0;
+}
+
+.home-root {
+  width: 100vw;
+  max-width: 100%;
   height: 100%;
+  min-height: 100vh;
   position: relative;
   background-color: var(--bg-deep);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-x: hidden !important; /* 💡 ဘေးဘက် လုံးဝ မလှုပ်စေရန် ပိတ်ပင်သည် */
   color: #ffffff;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", sans-serif;
 }
@@ -78,16 +91,16 @@
 .orb-primary {
   top: -80px;
   right: -40px;
-  width: 340px;
-  height: 340px;
+  width: 320px;
+  height: 320px;
   background: radial-gradient(circle, rgba(121, 40, 202, 0.25) 0%, transparent 70%);
 }
 
 .orb-secondary {
   top: 32%;
   left: -80px;
-  width: 300px;
-  height: 300px;
+  width: 280px;
+  height: 280px;
   background: radial-gradient(circle, rgba(157, 78, 221, 0.15) 0%, transparent 70%);
 }
 
@@ -100,13 +113,15 @@
   background: radial-gradient(ellipse at bottom, rgba(56, 189, 248, 0.06) 0%, transparent 75%);
 }
 
-/* 🔝 1. Header */
+/* 🔝 1. Header (Fixed Stable Width) */
 .home-head {
+  width: 100%;
+  max-width: 100%;
   padding: max(10px, env(safe-area-inset-top, 0px)) 16px 10px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(7, 8, 17, 0.92);
+  background: rgba(7, 8, 17, 0.94);
   border-bottom: 1px solid rgba(157, 78, 221, 0.16);
   z-index: 40;
   backdrop-filter: blur(20px);
@@ -174,10 +189,13 @@
   box-shadow: 0 0 6px var(--stat-green);
 }
 
-/* 📜 Scrollable Arena */
+/* 📜 Scrollable Arena (Zero Horizontal Movement) */
 .home-scroll {
   flex: 1;
+  width: 100%;
+  max-width: 100%;
   overflow-y: auto;
+  overflow-x: hidden !important; /* 💡 ဒေါင်လိုက်သာ scroll ဖြစ်ပြီး ဘေးမလှုပ်ပါ */
   -webkit-overflow-scrolling: touch;
   padding: 12px 14px 45px;
   display: flex;
@@ -192,11 +210,11 @@
   display: none;
 }
 
-/* 👑 2. HERO MATCHDAY HUB (💡 MATT BLACK FINISH — အလွန်ရှင်းလင်းသော အနက်ရောင်ပြား) */
+/* 👑 2. HERO SHOWCASE CARD (MATT BLACK FINISH) */
 .hero-showcase-card {
+  width: 100%;
   position: relative;
   border-radius: 18px;
-  /* Matt Black Solid Finish with Subtle Carbon Tint */
   background: linear-gradient(180deg, #0c0e1e 0%, var(--matt-black-hero) 100%);
   border: 1.2px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.06);
@@ -223,6 +241,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  width: 100%;
 }
 
 .hero-identity {
@@ -269,7 +288,6 @@
   font-weight: 800;
 }
 
-/* High-Contrast Visible Deadline Pill (Matt Black Base) */
 .hero-deadline-chip {
   background: #060710;
   border: 1px solid rgba(251, 191, 36, 0.35);
@@ -311,7 +329,7 @@
   letter-spacing: 0.02em;
 }
 
-/* Symmetrical 4-Box Countdown (Matt Black Cells) */
+/* Symmetrical 4-Box Countdown */
 .hero-countdown-4box {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -352,12 +370,13 @@
 }
 
 /* =========================================================================
-   📊 3. PRIMARY METRICS (💡 ဘယ်/ညာ ဘောင်ကွတ် PILLAR ACCENTS)
+   📊 3. PRIMARY METRICS (ဘယ်/ညာ ဘောင်ကွတ် PILLAR ACCENTS)
    ========================================================================= */
 .performance-matrix-section {
   display: flex;
   flex-direction: column;
   gap: 7px;
+  width: 100%;
   flex-shrink: 0;
 }
 
@@ -368,7 +387,6 @@
   width: 100%;
 }
 
-/* 🎯 Base Metric Card */
 .metric-card {
   background: var(--card-bg);
   border-top: 1px solid rgba(255, 255, 255, 0.06);
@@ -383,25 +401,23 @@
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(14px);
   min-height: 68px;
+  width: 100%;
   position: relative;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-/* 🌟 A. TOTAL POINTS : ဘယ်ဘက် + ညာဘက် အစိမ်းရောင် ဘောင်ကွတ် */
+/* Pillar Accents */
 .card-total {
   border-left: 2.8px solid var(--stat-green) !important;
   border-right: 2.8px solid var(--stat-green) !important;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), 0 0 10px rgba(34, 197, 94, 0.15);
 }
 
-/* 🌟 B. OVERALL RANK : ဘယ်ဘက် + ညာဘက် ရွှေဝါရောင် ဘောင်ကွတ် */
 .card-rank {
   border-left: 2.8px solid var(--stat-gold) !important;
   border-right: 2.8px solid var(--stat-gold) !important;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), 0 0 10px rgba(251, 191, 36, 0.15);
 }
 
-/* 🌟 C. GW SCORE : ဘယ်ဘက် + ညာဘက် စိမ်းပြာရောင် ဘောင်ကွတ် */
 .card-gw {
   border-left: 2.8px solid var(--stat-cyan) !important;
   border-right: 2.8px solid var(--stat-cyan) !important;
@@ -519,12 +535,13 @@
 }
 
 /* =========================================================================
-   ⚡ 4. LEAGUE SCOUT TRENDS & UNIFIED HORIZONTAL CAROUSEL
+   ⚡ 4. LEAGUE SCOUT TRENDS & 5-PLAYER CAROUSEL (3 VISIBLE + 2 SCROLLABLE)
    ========================================================================= */
 .quick-stats-section {
   display: flex;
   flex-direction: column;
   gap: 7px;
+  width: 100%;
   flex-shrink: 0;
 }
 
@@ -532,6 +549,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  width: 100%;
 }
 
 .section-title {
@@ -578,6 +596,7 @@
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 4px;
+  width: 100%;
   background: rgba(14, 18, 38, 0.88);
   padding: 4px;
   border-radius: 12px;
@@ -652,12 +671,14 @@
   box-shadow: 0 0 12px rgba(52, 211, 153, 0.4) !important;
 }
 
-/* 🌟 Horizontal Carousel Track: 3 Cards Visible (~31.8% width) */
+/* 🌟 5-PLAYER HORIZONTAL CAROUSEL (၃ ကတ်ပေါ်ပြီး ၂ ကတ် SCROLL ဆွဲနိုင်သော သီးခြား TRACK) */
 .trend-players-carousel-track {
   display: flex;
   gap: 8px;
   width: 100%;
-  overflow-x: auto;
+  max-width: 100%;
+  overflow-x: auto !important; /* 💡 ကစားသမား ၅ ယောက်ကိုသာ ဘေးသို့ scroll ဆွဲစေသည် */
+  overflow-y: hidden !important;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   padding: 4px 2px 6px;
@@ -670,7 +691,7 @@
 
 /* 👕 3D Kit Card */
 .trend-player-card {
-  flex: 0 0 calc(33.333% - 6px);
+  flex: 0 0 calc(33.333% - 6px); /* 💡 မျက်နှာပြင်ပေါ်တွင် ၃ ကတ် တိကျစွာ အချိုးညီပေါ်စေသည် */
   min-width: 106px;
   max-width: 124px;
   scroll-snap-align: start;
@@ -685,6 +706,7 @@
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
   transition: transform 0.15s ease, border-color 0.15s ease;
   min-height: 144px;
+  flex-shrink: 0;
 }
 
 .trend-player-card:active {
@@ -773,6 +795,7 @@
   border-radius: 14px;
   height: 144px;
   animation: pulse 1.5s infinite;
+  flex-shrink: 0;
 }
 
 @keyframes pulse {
@@ -781,9 +804,11 @@
 }
 
 /* =========================================================================
-   🗓️ 5. SLEEK RESIZED MATCHDAY FIXTURE CARD (COMPACT & ROBUST)
+   🗓️ 5. SLEEK RESIZED MATCHDAY FIXTURE CARD (FRAME အပြည့် & အံဝင်ခွင်ကျ)
    ========================================================================= */
 .grand-fixture-card.compact-fixture {
+  width: 100%;
+  max-width: 100%;
   position: relative;
   background: linear-gradient(145deg, rgba(20, 26, 58, 0.94) 0%, rgba(12, 14, 32, 0.98) 100%);
   border: 1.2px solid rgba(157, 78, 221, 0.35);
@@ -846,7 +871,7 @@
   color: #cbd5e1;
 }
 
-/* Match Clash Body (Home, VS, Away) */
+/* Match Clash Body */
 .fixture-clash-body {
   display: flex !important;
   align-items: center;
