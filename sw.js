@@ -5,7 +5,7 @@
  * =========================================================================
  */
 
-const VERSION = 'f2dd7dd0';
+const VERSION = '339b2a99';
 const CACHE_NAME = 'twff-cache-' + VERSION;
 
 // Precache Core Static Assets
