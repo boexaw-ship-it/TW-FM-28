@@ -6,13 +6,13 @@
 ============================================ -->
 
 <div class="home-root">
-  <!-- 🌌 STADIUM AMBIENT PURPLE MESH BACKGROUND -->
+  <!-- 🌌 Stadium Ambient Background Mesh -->
   <div class="stadium-ambient-mesh" aria-hidden="true">
     <div class="mesh-orb orb-primary"></div>
     <div class="mesh-orb orb-secondary"></div>
   </div>
 
-  <!-- 🔝 1. APP HEADER -->
+  <!-- 🔝 1. App Header -->
   <header class="home-head safe-top">
     <div class="home-brand">
       <h1 class="brand-title">TW FM</h1>
@@ -32,13 +32,12 @@
     </div>
   </header>
   
-  <!-- 📜 SCROLL ENGINE -->
+  <!-- 📜 Main Scroll Arena -->
   <main class="home-scroll">
-    <!-- 👑 2. HERO MATCHDAY HUB (Clean Team Name & Restored 4-Boxes Countdown) -->
+    <!-- 👑 2. Hero Matchday Hub -->
     <section class="hero-showcase-card" id="hero-deadline-card" aria-label="Manager & Gameweek Hub">
       <div class="hero-card-glow" aria-hidden="true"></div>
-      
-      <!-- Top Manager Strip (လှေရုပ် ⛵ လုံးဝမပါဝင်သော သန့်ရှင်းသည့် အမည်ပြား) -->
+
       <div class="hero-top-row">
         <div class="hero-identity">
           <div class="hero-text-block">
@@ -47,7 +46,6 @@
           </div>
         </div>
 
-        <!-- High-Contrast Visible Deadline Pill -->
         <div class="hero-deadline-chip">
           <div class="chip-label-row">
             <span class="chip-dot" aria-hidden="true"></span>
@@ -57,33 +55,20 @@
         </div>
       </div>
 
-      <!-- Restored Clean 4-Boxes Countdown (မူလ ၄ ကွက်တန်း အချိုးကျ အကွက်များ) -->
       <div class="hero-countdown-4box" id="home-cd" aria-live="polite">
-        <div class="cd-box">
-          <b id="cd-d" class="font-mono">--</b>
-          <small>DAYS</small>
-        </div>
-        <div class="cd-box">
-          <b id="cd-h" class="font-mono">--</b>
-          <small>HRS</small>
-        </div>
-        <div class="cd-box">
-          <b id="cd-m" class="font-mono">--</b>
-          <small>MIN</small>
-        </div>
-        <div class="cd-box cd-sec">
-          <b id="cd-s" class="font-mono">--</b>
-          <small>SEC</small>
-        </div>
+        <div class="cd-box"><b id="cd-d" class="font-mono">--</b><small>DAYS</small></div>
+        <div class="cd-box"><b id="cd-h" class="font-mono">--</b><small>HRS</small></div>
+        <div class="cd-box"><b id="cd-m" class="font-mono">--</b><small>MIN</small></div>
+        <div class="cd-box cd-sec"><b id="cd-s" class="font-mono">--</b><small>SEC</small></div>
       </div>
     </section>
-    
-    <!-- 📊 3. PERFORMANCE & TACTICAL SQUAD MATRIX -->
+
+    <!-- 📊 3. Performance & Tactical Squad Matrix -->
     <section class="performance-matrix-section" aria-label="Performance Metrics">
-      <!-- Row A: Primary Scores & Ranks -->
+      <!-- Row A: Primary Numbers -->
       <div class="metrics-primary-grid">
         <div class="metric-card card-total">
-          <span class="metric-tag">★ TOTAL POINTS</span>
+          <span class="metric-tag">✦ TOTAL POINTS</span>
           <b id="st-total" class="metric-value font-mono">--</b>
           <span id="st-total-d" class="metric-delta delta-up">--</span>
         </div>
@@ -95,35 +80,32 @@
         </div>
 
         <div class="metric-card card-gw">
-          <span class="metric-tag" id="st-gw-l">📊 GW SCORE</span>
+          <span class="metric-tag" id="st-gw-l">ϟ GW SCORE</span>
           <b id="st-gw" class="metric-value font-mono">--</b>
           <span id="st-gw-d" class="metric-delta delta-up">--</span>
         </div>
       </div>
 
-      <!-- Row B: Sleek Micro-Frames (Bank · Free Transfers · Captain Points) -->
+      <!-- Row B: Tactical Micro Stats -->
       <div class="tactical-micro-grid">
-        <!-- 1. Bank Pill -->
         <div class="tactical-micro-pill card-bank">
-          <span class="pill-ico">💰</span>
+          <span class="pill-ico">◇</span>
           <div class="pill-content">
             <small class="pill-title">BANK</small>
             <b id="st-bank" class="pill-val font-mono">£--M</b>
           </div>
         </div>
 
-        <!-- 2. Free Transfers Pill -->
         <div class="tactical-micro-pill card-ft">
-          <span class="pill-ico">🔄</span>
+          <span class="pill-ico">↻</span>
           <div class="pill-content">
             <small class="pill-title">FREE TRANSFERS</small>
             <b id="st-ft" class="pill-val font-mono">--</b>
           </div>
         </div>
 
-        <!-- 3. Captain Points Pill -->
         <div class="tactical-micro-pill card-captain">
-          <span class="pill-ico">👑</span>
+          <span class="pill-ico">♛</span>
           <div class="pill-content">
             <small class="pill-title truncate" id="st-cap-name">CAPTAIN</small>
             <b id="st-cap-pts" class="pill-val font-mono">--</b>
@@ -131,8 +113,8 @@
         </div>
       </div>
     </section>
-    
-    <!-- 👕 4. TOP 5 PLAYERS SHOWCASE -->
+
+    <!-- 👕 4. Top 5 Players Showcase -->
     <section class="top-showcase-section" aria-label="Top 5 Players">
       <div class="section-headline">
         <h3 class="section-title">
@@ -141,7 +123,7 @@
         </h3>
         <a href="#/scout" class="section-link">View All ›</a>
       </div>
-      
+
       <div class="top-players-grid" id="leader-cards-container" aria-live="polite">
         <div class="player-card-skel"></div>
         <div class="player-card-skel"></div>
@@ -150,8 +132,8 @@
         <div class="player-card-skel"></div>
       </div>
     </section>
-    
-    <!-- ⚡ 5. LEAGUE SCOUT TRENDS TABS (Vibrant 6-Color Tabs) -->
+
+    <!-- ⚡ 5. League Scout Trends Tabs -->
     <section class="quick-stats-section" aria-label="Quick Stats Filters">
       <div class="section-headline">
         <h3 class="section-title">
@@ -159,47 +141,36 @@
           League Scout Trends
         </h3>
       </div>
-      
+
       <div class="vibrant-tabs-strip" id="leader-tabs" role="tablist">
         <button class="on tab-cap" data-k="cap" role="tab" aria-selected="true" type="button">
-          <span class="tab-ico">👑</span>
-          <span class="tab-txt">Captain</span>
+          <span class="tab-ico">♛</span><span class="tab-txt">Captain</span>
         </button>
-
         <button class="tab-own" data-k="own" role="tab" aria-selected="false" type="button">
-          <span class="tab-ico">🛡️</span>
-          <span class="tab-txt">Owned</span>
+          <span class="tab-ico">◉</span><span class="tab-txt">Owned</span>
         </button>
-
         <button class="tab-tin" data-k="tin" role="tab" aria-selected="false" type="button">
-          <span class="tab-ico">📥</span>
-          <span class="tab-txt">Transfer In</span>
+          <span class="tab-ico">↗</span><span class="tab-txt">Transfer In</span>
         </button>
-
         <button class="tab-tout" data-k="tout" role="tab" aria-selected="false" type="button">
-          <span class="tab-ico">📤</span>
-          <span class="tab-txt">Transfer Out</span>
+          <span class="tab-ico">↘</span><span class="tab-txt">Transfer Out</span>
         </button>
-
         <button class="tab-total" data-k="total" role="tab" aria-selected="false" type="button">
-          <span class="tab-ico">★</span>
-          <span class="tab-txt">Total Pts</span>
+          <span class="tab-ico">✦</span><span class="tab-txt">Total Pts</span>
         </button>
-
         <button class="tab-gw" data-k="gw" role="tab" aria-selected="false" type="button">
-          <span class="tab-ico">⚡</span>
-          <span class="tab-txt">Week Pts</span>
+          <span class="tab-ico">ϟ</span><span class="tab-txt">Week Pts</span>
         </button>
       </div>
     </section>
-    
-    <!-- 🗓️ 6. MATCHDAY FIXTURE CARD -->
+
+    <!-- 🗓️ 6. Matchday Fixture Card -->
     <a class="upcoming-fixture-card" id="next-fixture-card-link" href="#/fixtures" aria-label="Open Full Fixtures">
       <div class="fixture-top-tag">
         <span class="tag-badge">NEXT MATCHDAY</span>
         <span class="tag-time" id="next-fixture-time">Loading fixture...</span>
       </div>
-      
+
       <div class="fixture-clash-body">
         <div class="team-side home">
           <img src="./assets/badges/che.png" alt="HOME" class="team-crest" id="fixture-home-badge">
@@ -208,9 +179,9 @@
             <small id="fixture-home-name">Loading...</small>
           </div>
         </div>
-        
+
         <div class="vs-capsule">VS</div>
-        
+
         <div class="team-side away">
           <div class="team-label text-right">
             <b id="fixture-away-code">---</b>
