@@ -1,22 +1,26 @@
-import { auth, db } from "../js/firebase-config.js";
-import { getFixturesSnap, getScoutSnap, getLeagueStandingsSnap, onLeagueTeam } from "./core/data.js";
+// ============================================
+// TW FF APPLICATION — My Team Controller
+// Path: js/team.js
+// Standards: UI Design Knowledge Pack (Quota Safe, Sports UI Contrast)
+// Key Fixes:
+//   1. Fully Automated Dynamic Current Gameweek Resolver (No Hardcoded "5")
+//   2. Real-time Upcoming Matches Detection
+//   3. Full Team Name & 5-Pill Strip Binding (GW, Hit, GWP, TTP, Chip)
+//   4. Triple Captain (3x) & Bench Boost Active Visual States
+// ============================================
+
+import { auth, db } from "./firebase-config.js";
+import { getFixturesSnap, getScoutSnap, loadFixturesMaster } from "./core/data.js";
 import { onAuthStateChanged } from "./core/auth.js";
-import { 
-  doc, getDoc, getDocFromServer, onSnapshot, collection, getDocs 
-} from "./core/fs.js";
+import { doc, getDoc, getDocFromServer } from "./core/fs.js";
 import { jerseyPath, splitSquadByPosition } from "./pitch-renderer.js";
 
 // =========================================================================
-//  Live squad loader (quota-safe) — liveteamquota.js ကို ဒီထဲ ပေါင်းထည့်ထား
-//  getLiveSquadWithQuota(fplId, force) -> { squad, points, fromCache }
-//   squad  = liveTeams/{fplId}  (picks, bank, freeTransfers, gameweek ...)
-//   points = livePoints/{fplId} (gwPoints, totalPoints, overallRank ...)
-//  normal load  : 3 မိနစ်အတွင်း cache ရှိရင် Firestore 0 read
-//  force refresh: 20 စက္ကန့်အတွင်း ထပ်နှိပ်ရင် cache ပြန်ပေး (spam ကာကွယ်)
-//  Cache key (team / live / draft / home မျှဝေ): twf_shared_squad_v2_<id> · twf_shared_points_v2_<id>
+// 🔒 LIVE SQUAD QUOTA ENGINE (twf_shared_squad_v2 / twf_shared_points_v2)
 // =========================================================================
-const LIVE_FRESH_MS = 3 * 60 * 1000;
-const LIVE_COOLDOWN_MS = 20 * 1000;
+const LIVE_FRESH_MS = 3 * 60 * 1000;      // 3 မိနစ်အတွင်း Firestore 0 read
+const LIVE_COOLDOWN_MS = 20 * 1000;       // 20 စက္ကန့် Cooldown (Anti-spam)
+
 const lsRead = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch (_) { return null; } };
 const lsWrite = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (_) {} };
 
@@ -29,7 +33,7 @@ async function getLiveSquadWithQuota(fplId, force = false) {
 
   const cachedSquad = lsRead(kSquad);
   const cachedPts = lsRead(kPts);
-  const haveCache = !!(cachedSquad || cachedPts);
+  const haveCache = Boolean(cachedSquad || cachedPts);
   const age = Date.now() - Number(localStorage.getItem(kTime) || 0);
 
   if (haveCache && ((!force && age < LIVE_FRESH_MS) || (force && age < LIVE_COOLDOWN_MS))) {
@@ -50,17 +54,19 @@ async function getLiveSquadWithQuota(fplId, force = false) {
     try { localStorage.setItem(kTime, String(Date.now())); } catch (_) {}
     return { squad, points, fromCache: false };
   } catch (e) {
-    console.warn("getLiveSquadWithQuota failed:", e);
+    console.warn("getLiveSquadWithQuota notice:", e);
     return haveCache ? { squad: cachedSquad, points: cachedPts, fromCache: true } : null;
   }
 }
 
-// Global Storage for Modal & Master Data Cache
+// Global Variables
 let allScoutPlayers = [];
 let currentSquadPicks = [];
 let rawTeamData = null;
+let currentPointsData = null;
 let firebaseFixturesCache = null;
 let currentFplId = null;
+let activeResolvedGw = null; // 🌟 Dynamic Live Gameweek
 
 const CACHE_DURATION = 24 * 60 * 60 * 1000;
 
@@ -123,6 +129,31 @@ function getPlayerStatusBadge(p, master) {
   return "";
 }
 
+// ⏱️️ DYNAMIC CURRENT GAMEWEEK RESOLVER
+function resolveCurrentActiveGameweek(meta) {
+  if (!meta) return null;
+
+  // 1. Check currentGameweek object
+  if (meta.currentGameweek && meta.currentGameweek.id) {
+    return Number(meta.currentGameweek.id);
+  }
+
+  // 2. Check events array
+  const eventsList = Array.isArray(meta.events) ? meta.events 
+                   : Array.isArray(meta.gameweeks) ? meta.gameweeks 
+                   : null;
+
+  if (eventsList && eventsList.length > 0) {
+    const current = eventsList.find(e => e.is_current === true || e.isCurrent === true);
+    if (current) return Number(current.id || current.event);
+
+    const next = eventsList.find(e => e.is_next === true || e.isNext === true);
+    if (next) return Number(next.id || next.event);
+  }
+
+  return null;
+}
+
 async function initGlobalFixturesAndScout(forceFresh = false) {
   const FIX_CACHE_KEY = "twf_fixtures_cache";
   const FIX_TIME_KEY = "twf_fixtures_cache_time";
@@ -130,15 +161,23 @@ async function initGlobalFixturesAndScout(forceFresh = false) {
   const SCOUT_TIME_KEY = "twf_scout_players_cache_time";
   const now = Date.now();
 
+  // Load Fixtures Master to Resolve Dynamic Live GW
+  try {
+    const meta = await loadFixturesMaster();
+    const resolvedGw = resolveCurrentActiveGameweek(meta);
+    if (resolvedGw) {
+      activeResolvedGw = resolvedGw;
+      localStorage.setItem("twf_current_gw", String(resolvedGw));
+    }
+  } catch (err) {
+    console.warn("Fixtures master resolve note:", err);
+  }
+
   const cachedFix = localStorage.getItem(FIX_CACHE_KEY);
   const cachedFixTime = localStorage.getItem(FIX_TIME_KEY);
 
   if (!forceFresh && cachedFix && cachedFixTime && (now - Number(cachedFixTime) < CACHE_DURATION)) {
-    try {
-      firebaseFixturesCache = JSON.parse(cachedFix);
-    } catch (e) {
-      console.warn("Corrupt fixtures cache:", e);
-    }
+    try { firebaseFixturesCache = JSON.parse(cachedFix); } catch (_) {}
   }
 
   if (!firebaseFixturesCache || firebaseFixturesCache.length === 0) {
@@ -149,7 +188,7 @@ async function initGlobalFixturesAndScout(forceFresh = false) {
       localStorage.setItem(FIX_CACHE_KEY, JSON.stringify(firebaseFixturesCache));
       localStorage.setItem(FIX_TIME_KEY, String(now));
     } catch (e) {
-      console.warn("Error fetching Firestore fixtures:", e);
+      console.warn("Firestore fixtures load bypassed:", e);
     }
   }
 
@@ -160,9 +199,7 @@ async function initGlobalFixturesAndScout(forceFresh = false) {
     try {
       allScoutPlayers = JSON.parse(cachedScout);
       return;
-    } catch (e) {
-      console.warn("Error parsing scout cache:", e);
-    }
+    } catch (_) {}
   }
 
   try {
@@ -172,13 +209,12 @@ async function initGlobalFixturesAndScout(forceFresh = false) {
     localStorage.setItem(SCOUT_CACHE_KEY, JSON.stringify(allScoutPlayers));
     localStorage.setItem(SCOUT_TIME_KEY, String(now));
   } catch (err) {
-    console.warn("Scout market load bypassed:", err);
+    console.warn("Scout cache load bypassed:", err);
   }
 }
 
 function getFirebaseTeamMatches(teamCode, targetGw) {
   if (!firebaseFixturesCache || !teamCode) return [];
-
   const cleanCode = String(teamCode).trim().toUpperCase();
   const teamId = Object.keys(TEAM_ID_MAP).find(k => TEAM_ID_MAP[k] === cleanCode);
   if (!teamId) return [];
@@ -206,14 +242,11 @@ function getFirebaseTeamMatches(teamCode, targetGw) {
 function getCurrentGwMatches(p, currentGw) {
   const master = allScoutPlayers.find(sp => String(sp.playerId || sp.id) === String(p.playerId || p.id));
   const rawMatches = (master && master.nextMatches) ? master.nextMatches : (p.nextMatches || []);
-  
   const playerTeam = p.team || master?.team || "";
   const pTeamCode = formatTeamShort(playerTeam);
 
   const fbMatches = getFirebaseTeamMatches(pTeamCode, currentGw);
-  if (fbMatches.length > 0) {
-    return fbMatches;
-  }
+  if (fbMatches.length > 0) return fbMatches;
 
   const matched = rawMatches.filter(m => Number(m.gw) === Number(currentGw));
   if (matched.length > 0) {
@@ -224,55 +257,38 @@ function getCurrentGwMatches(p, currentGw) {
       return { ...m, opponent: opp, isHome, fdr: Number(fdr) };
     });
   }
-
   return [];
 }
 
 function getPlayerUpcomingMatches(p, count = 3) {
   const master = allScoutPlayers.find(sp => String(sp.playerId || sp.id) === String(p.playerId || p.id));
-  const currentGwNum = parseInt(localStorage.getItem("twf_current_gw") || "5", 10);
+  // 🌟 Dynamic Active GW without Hardcoded fallback
+  const currentGwNum = activeResolvedGw || Number(rawTeamData?.gameweek) || Number(localStorage.getItem("twf_current_gw")) || 1;
   const nextTargetGw = currentGwNum + 1;
   const playerTeam = p.team || master?.team || "";
   const pTeamCode = formatTeamShort(playerTeam);
 
   let upcomingMatches = [];
-
   for (let g = nextTargetGw; g < nextTargetGw + 8; g++) {
     const matches = getFirebaseTeamMatches(pTeamCode, g);
     if (matches.length > 0) {
       matches.forEach(m => upcomingMatches.push(m));
     } else {
-      upcomingMatches.push({
-        gw: g,
-        opponent: "BLANK",
-        isBlank: true,
-        isHome: false,
-        fdr: 0
-      });
+      upcomingMatches.push({ gw: g, opponent: "BLANK", isBlank: true, isHome: false, fdr: 0 });
     }
     if (upcomingMatches.length >= count) break;
   }
-
   return upcomingMatches.slice(0, count);
 }
 
-// 🔄 Refresh Button Handler (liveteamquota.js ဖြင့် ပြင်ဆင်ချိတ်ဆက်ခြင်း)
+// 🔄 REFRESH BUTTON ACTION
 window.forceRefreshTeam = async function() {
   if (!currentFplId) return;
-
-  const btn = document.getElementById("btn-refresh-team") || document.querySelector("button[onclick*='forceRefreshTeam']");
+  const btn = document.getElementById("btn-refresh-team");
   const icon = document.getElementById("refresh-team-icon");
 
-  if (btn) {
-    btn.disabled = true;
-    btn.style.setProperty("background-color", "#8c6dff", "important");
-    btn.style.setProperty("color", "#14172b", "important");
-    btn.style.setProperty("border-color", "#b3a1ff", "important");
-    btn.style.setProperty("box-shadow", "0 0 12px rgba(140,109,255, 0.8)", "important");
-  }
-  if (icon) {
-    icon.classList.add("animate-spin");
-  }
+  if (btn) btn.disabled = true;
+  if (icon) icon.classList.add("animate-spin");
 
   try {
     const res = await getLiveSquadWithQuota(currentFplId, true);
@@ -283,77 +299,113 @@ window.forceRefreshTeam = async function() {
       if (squad) {
         rawTeamData = squad;
         if (rawTeamData.gameweek) {
+          activeResolvedGw = Number(rawTeamData.gameweek);
           localStorage.setItem("twf_current_gw", String(rawTeamData.gameweek));
         }
-        renderTeam(rawTeamData);
       }
       if (points) {
+        currentPointsData = points;
         updateHeaderPointsUI(points);
+      }
+      if (rawTeamData) {
+        renderTeam(rawTeamData);
       }
     }
   } catch (err) {
-    console.error("Refresh error:", err);
+    console.error("Manual refresh error:", err);
   } finally {
     setTimeout(() => {
-      if (btn) {
-        btn.disabled = false;
-        btn.style.removeProperty("background-color");
-        btn.style.removeProperty("color");
-        btn.style.removeProperty("border-color");
-        btn.style.removeProperty("box-shadow");
-      }
-      if (icon) {
-        icon.classList.remove("animate-spin");
-      }
+      if (btn) btn.disabled = false;
+      if (icon) icon.classList.remove("animate-spin");
     }, 400);
   }
 };
 
+// 🌟 DYNAMIC 5-DATA SUMMARY STRIP & ACTIVE CHIP BINDING
 function updateHeaderPointsUI(data) {
   if (!data) return;
 
-  const currentGw = data.gameweek ?? "—";
+  // 1. Dynamic Gameweek Label
+  const currentGw = data.gameweek ?? activeResolvedGw ?? rawTeamData?.gameweek ?? Number(localStorage.getItem("twf_current_gw")) ?? "–";
   const gwLabel = document.getElementById("gw-label");
   if (gwLabel) gwLabel.textContent = "GW " + currentGw;
 
-  // [object Object] မပြစေရန် primitive value စစ်ထုတ်ခြင်း
+  // 2. Hit Label
+  const hit = data.eventTransfersCost || data.transferCost || 0;
+  const hitLabelEl = document.getElementById("hit-label");
+  if (hitLabelEl) hitLabelEl.textContent = "Hit: -" + hit;
+
+  // 3. Gameweek Points (GWP)
   const rawGwPts = (data.gwPoints && typeof data.gwPoints === "object") ? data.gwPoints?.gwPoints : (data.points ?? data.gwPoints ?? data.livePoints);
   const gwPtsEl = document.getElementById("gw-pts");
   if (gwPtsEl) gwPtsEl.textContent = rawGwPts ?? "—";
   
+  // 4. Total Points (TTP)
   const overallPtsEl = document.getElementById("overall-pts");
   if (overallPtsEl) overallPtsEl.textContent = data.totalPoints ?? data.overallPoints ?? "—";
   
+  // Overall Rank
   const overallRank = data.overallRank;
   const rankBoxEl = document.getElementById("overall-rank-box");
   if (rankBoxEl) {
     rankBoxEl.textContent = overallRank ? Number(overallRank).toLocaleString() : "——";
   }
-  
-  const hit = data.eventTransfersCost || data.transferCost || 0;
-  const hitLabelEl = document.getElementById("hit-label");
-  if (hitLabelEl) hitLabelEl.textContent = "Hit: -" + hit;
-  
-  const chip = data.activeChip;
-  const chipBadgeEl = document.getElementById("chip-badge");
-  if (chipBadgeEl) {
-    chipBadgeEl.textContent = chip ? chip.toUpperCase() : "NO CHIP";
-  }
 
+  // Average Points
   const avgPtsEl = document.getElementById("avg-pts");
   if (avgPtsEl) {
     avgPtsEl.textContent = data.averagePoints ?? data.gwAverage ?? "—";
   }
+
+  // 5. Dynamic Active Chip Detection & Visual Glow Routing
+  const chip = String(data.activeChip || rawTeamData?.activeChip || "").toLowerCase().trim();
+  const chipPill = document.getElementById("chip-pill-container");
+  const chipBadgeEl = document.getElementById("chip-badge");
+  const benchBoothCard = document.getElementById("bench-booth-container");
+  const benchBoothLabel = document.getElementById("bench-booth-label");
+
+  if (chipPill && chipBadgeEl) {
+    chipPill.className = "summary-pill pill-chip";
+    if (benchBoothCard) benchBoothCard.classList.remove("booth-boost-glow");
+    if (benchBoothLabel) {
+      benchBoothLabel.className = "bench-badge-chip";
+      benchBoothLabel.textContent = "BENCH BOOTH";
+    }
+
+    if (!chip || chip === "none" || chip === "null") {
+      chipBadgeEl.textContent = "NO CHIP";
+    } else if (chip === "3xc" || chip === "triple_captain") {
+      chipBadgeEl.textContent = "TRIPLE CAP";
+      chipPill.classList.add("chip-active-3xc");
+    } else if (chip === "bboost" || chip === "bench_boost") {
+      chipBadgeEl.textContent = "BENCH BOOST";
+      chipPill.classList.add("chip-active-bboost");
+
+      if (benchBoothCard) benchBoothCard.classList.add("booth-boost-glow");
+      if (benchBoothLabel) {
+        benchBoothLabel.classList.add("boost-label-active");
+        benchBoothLabel.textContent = "⚡ BENCH BOOST ACTIVE";
+      }
+    } else if (chip === "freehit") {
+      chipBadgeEl.textContent = "FREE HIT";
+      chipPill.classList.add("chip-active-freehit");
+    } else if (chip === "wildcard") {
+      chipBadgeEl.textContent = "WILDCARD";
+      chipPill.classList.add("chip-active-wildcard");
+    } else {
+      chipBadgeEl.textContent = chip.toUpperCase();
+    }
+  }
 }
 
-// 📡 Firebase User Authentication & Real-time Live Watchers
+// 📡 Real-time Auth & Squad Loader
 onAuthStateChanged(auth, async (user) => {
   if (!user) { window.go("login"); return; }
 
   try {
     initPlayerDetailModalHtml();
 
-    const userCacheKey = `twf_user_profile_${user.uid}`;
+    const userCacheKey = `twf_user_profile_live_${user.uid}`;
     let uData = null;
     const cachedUser = localStorage.getItem(userCacheKey);
     if (cachedUser) {
@@ -371,17 +423,20 @@ onAuthStateChanged(auth, async (user) => {
     if (!uData) { window.go("login"); return; }
 
     currentFplId = String(uData.fplTeamId).trim();
+    
+    // 🌟 Full Team Name Binding
     const teamNameEl = document.getElementById("team-name");
-    if (teamNameEl) teamNameEl.textContent = uData.teamName || "My Team";
-
-    const transferBtn = document.getElementById("btn-transfer-action") || document.querySelector("button[onclick*='transfers']");
-    if (transferBtn) {
-      transferBtn.innerHTML = `🔄 TRANSFER STRATEGY`;
+    if (teamNameEl) {
+      let cleanTeam = String(uData.teamName || "SEAROKER Tw")
+        .replace(/^[\u{1F300}-\u{1F9FF}\s]+/u, "")
+        .replace(/^⛵\s*/, "")
+        .trim();
+      teamNameEl.textContent = cleanTeam || "SEAROKER Tw";
     }
 
     await initGlobalFixturesAndScout(false);
 
-    // liveteamquota.js မှ { squad, points } ခွဲယူဆွဲတင်ခြင်း
+    // Initial Live Squad Load
     const initialRes = await getLiveSquadWithQuota(currentFplId, false);
     if (initialRes) {
       const squad = initialRes.squad || (initialRes.picks ? initialRes : null);
@@ -390,44 +445,66 @@ onAuthStateChanged(auth, async (user) => {
       if (squad) {
         rawTeamData = squad;
         if (rawTeamData.gameweek) {
+          activeResolvedGw = Number(rawTeamData.gameweek);
           localStorage.setItem("twf_current_gw", String(rawTeamData.gameweek));
         }
-        renderTeam(rawTeamData);
       }
       if (points) {
+        currentPointsData = points;
         updateHeaderPointsUI(points);
+      }
+      if (rawTeamData) {
+        renderTeam(rawTeamData);
       }
     }
 
-    // Realtime listener အစား cache-first polling:
-    //   3 မိနစ်အတွင်း cache ရှိရင် Firestore 0 read၊ tab ဖျောက်ထားရင် မဖတ်ဘူး
-    //   (onSnapshot 2 ခုက ဖွင့်တိုင်း liveTeams + livePoints ကို အပြည့်ဖတ်ပြီး update တိုင်း ထပ်ဖတ်လို့ quota ကုန်တာ)
+    // Cache-First Polling Watcher
     setInterval(async () => {
       if (document.hidden || !currentFplId) return;
       const r = await getLiveSquadWithQuota(currentFplId, false);
-      if (!r || r.fromCache) return; // cache ကပဲ ပြန်ပေးရင် UI ထပ်မဆွဲ
+      if (!r || r.fromCache) return;
       if (r.squad) {
         rawTeamData = r.squad;
-        if (rawTeamData.gameweek) localStorage.setItem("twf_current_gw", String(rawTeamData.gameweek));
+        if (rawTeamData.gameweek) {
+          activeResolvedGw = Number(rawTeamData.gameweek);
+          localStorage.setItem("twf_current_gw", String(rawTeamData.gameweek));
+        }
+      }
+      if (r.points) {
+        currentPointsData = r.points;
+        updateHeaderPointsUI(r.points);
+      }
+      if (rawTeamData) {
         renderTeam(rawTeamData);
       }
-      if (r.points) updateHeaderPointsUI(r.points);
     }, 60 * 1000);
 
   } catch (err) {
-    console.warn("Silent Auth/Team startup error:", err);
+    console.warn("Auth setup warning:", err);
   }
 });
 
-// 🏆 Player Card Rendering
-function playerCard(p, isCaptain = false, isVice = false, isFiveRow = false) {
+/**
+ * 🏆 Player Card Component
+ * @param {Object} p - Player data object
+ * @param {boolean} isCaptain - Captain status
+ * @param {boolean} isVice - Vice-Captain status
+ * @param {boolean} isFiveRow - 5-player row scaling flag
+ * @param {boolean} isBench - Field (false) vs Bench (true) plate styling
+ */
+function playerCard(p, isCaptain = false, isVice = false, isFiveRow = false, isBench = false) {
   const master = allScoutPlayers.find(sp => String(sp.playerId || sp.id) === String(p.playerId || p.id));
   const mult = p.multiplier || 1;
   const displayPoints = (p.livePoints ?? p.points ?? 0) * (mult > 1 ? mult : 1);
   
+  // 🌟 Active Chip Check (Triple Captain & Bench Boost)
+  const activeChip = String(currentPointsData?.activeChip || rawTeamData?.activeChip || "").toLowerCase();
+  const isTripleCaptainActive = activeChip === "3xc" || activeChip === "triple_captain";
+  const isBenchBoostActive = activeChip === "bboost" || activeChip === "bench_boost";
+
   let cornerBadge = "";
-  if (mult === 3) {
-    cornerBadge = `<span class="captain-badge">3x</span>`;
+  if (mult === 3 || (isTripleCaptainActive && (p.isCaptain || isCaptain))) {
+    cornerBadge = `<span class="captain-badge triple-active">3x</span>`;
   } else if (p.isCaptain || isCaptain) {
     cornerBadge = `<span class="captain-badge">C</span>`;
   } else if (p.isVice || isVice) {
@@ -435,15 +512,16 @@ function playerCard(p, isCaptain = false, isVice = false, isFiveRow = false) {
   }
 
   const statusBadge = getPlayerStatusBadge(p, master);
-  const borderHighlight = (isCaptain || p.isCaptain) ? 'border-b-2 border-b-[#b3a1ff]' : (isVice || p.isVice) ? 'border-b-2 border-b-[#C0C0C0]' : '';
+  const borderHighlight = (isCaptain || p.isCaptain) ? 'style="border-bottom: 2px solid #b3a1ff;"' : (isVice || p.isVice) ? 'style="border-bottom: 2px solid #c0c0c0;"' : '';
 
-  const currentGwNum = parseInt(localStorage.getItem("twf_current_gw") || "5", 10);
+  // 🌟 Dynamic Active GW for Fixture Lookup
+  const currentGwNum = activeResolvedGw || Number(rawTeamData?.gameweek) || Number(localStorage.getItem("twf_current_gw")) || 1;
   const activeMatches = getCurrentGwMatches(p, currentGwNum);
   let fixtureBadgeHtml = "";
 
   if (!activeMatches || activeMatches.length === 0) {
     fixtureBadgeHtml = `
-      <div class="player-fixture-box" style="background:#334155 !important;">
+      <div class="player-fixture-box" style="background:#1e293b !important;">
         <span style="color:#94a3b8 !important;">BLANK</span>
       </div>
     `;
@@ -453,11 +531,11 @@ function playerCard(p, isCaptain = false, isVice = false, isFiveRow = false) {
     const venue = (m.isHome || m.is_home) ? "(H)" : "(A)";
     const fdrVal = Number(m.fdr) || calculateDynamicFdr(opp, m.isHome);
     const bg = fdrColor(fdrVal);
-    const textColor = fdrVal === 3 ? "#0b0d1a" : "#ffffff";
+    const textColor = fdrVal === 3 ? "#070a16" : "#ffffff";
 
     fixtureBadgeHtml = `
       <div class="player-fixture-box" style="background:${bg} !important;">
-        <span style="color:${textColor} !important;">${opp} ${venue}</span>
+        <span style="color:${textColor} !important; font-weight:900;">${opp} ${venue}</span>
       </div>
     `;
   } else {
@@ -468,11 +546,11 @@ function playerCard(p, isCaptain = false, isVice = false, isFiveRow = false) {
           const venue = (m.isHome || m.is_home) ? "H" : "A";
           const fdrVal = Number(m.fdr) || calculateDynamicFdr(opp, m.isHome);
           const bg = fdrColor(fdrVal);
-          const textColor = fdrVal === 3 ? "#0b0d1a" : "#ffffff";
+          const textColor = fdrVal === 3 ? "#070a16" : "#ffffff";
           const borderRight = idx === 0 ? 'border-r border-black/30' : '';
           return `
             <span class="flex-1 text-center truncate ${borderRight} text-[6.5px]" 
-                  style="background:${bg}; color:${textColor}; line-height:12px; height:100%;">
+                  style="background:${bg}; color:${textColor}; line-height:12px; height:100%; font-weight:900;">
               ${opp}(${venue})
             </span>
           `;
@@ -482,15 +560,17 @@ function playerCard(p, isCaptain = false, isVice = false, isFiveRow = false) {
   }
 
   const pIdSafe = String(p.playerId || p.id || "");
-  const cardScaleClass = isFiveRow ? 'scale-90 sm:scale-100' : '';
-
   const pName = p.name || "?";
-  const nameFontSize = pName.length > 9 ? "8.5px" : pName.length > 7 ? "9.5px" : "10px";
+  const nameFontSize = pName.length > 9 ? "8px" : pName.length > 7 ? "9px" : "9.5px";
+
+  let plateClass = isBench ? "player-plate-bench" : "player-plate-field";
+  if (isBench && isBenchBoostActive) {
+    plateClass += " bench-boost-active";
+  }
 
   return `
-    <div onclick="window.openPlayerDetailModal('${pIdSafe}')" class="player-card ${cardScaleClass}">
-      
-      <div class="jersey-wrap ${borderHighlight}" style="width:48px; height:48px;">
+    <div onclick="window.openPlayerDetailModal('${pIdSafe}')" class="player-card">
+      <div class="jersey-wrap" ${borderHighlight}>
         <img src="${jerseyPath(p)}"
              class="w-full h-full object-contain"
              onerror="this.outerHTML='<div class=\\'w-full h-full flex items-center justify-center text-lg\\'>👕</div>'"
@@ -499,18 +579,17 @@ function playerCard(p, isCaptain = false, isVice = false, isFiveRow = false) {
         ${statusBadge}
       </div>
 
-      <div class="w-full flex flex-col rounded overflow-hidden shadow-md mt-0.5">
-        <div class="player-name-box" style="background:#ffffff; padding:2px 2px;">
-          <p style="font-size:${nameFontSize} !important; font-weight:600 !important; color:#0f172a !important; line-height:1.2 !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:0;">
+      <div class="${plateClass}">
+        <div class="player-name-box">
+          <p style="font-size:${nameFontSize} !important;">
             ${pName}
           </p>
         </div>
         ${fixtureBadgeHtml}
-        <div class="player-point-circle" style="background:#000000 !important; color:#ffffff !important; font-weight:800 !important; font-size:10px !important; line-height:14px !important;">
+        <div class="player-point-circle">
           ${displayPoints}
         </div>
       </div>
-
     </div>
   `;
 }
@@ -522,11 +601,12 @@ function renderTeam(data) {
 
   const { subs, gk, def, mid, fwd } = splitSquadByPosition(currentSquadPicks);
 
+  // Field Players (Starting XI): isBench = false
   const renderRow = (players) => {
     const isFive = players.length >= 5;
     return `
       <div class="pitch-row">
-        ${players.map(p => playerCard(p, p.isCaptain, p.isVice, isFive)).join("")}
+        ${players.map(p => playerCard(p, p.isCaptain, p.isVice, isFive, false)).join("")}
       </div>
     `;
   };
@@ -542,14 +622,15 @@ function renderTeam(data) {
       </div>`;
   }
 
+  // Bench Players: isBench = true
   const benchRowEl = document.getElementById("bench-row");
   if (benchRowEl) {
     benchRowEl.innerHTML = subs.map(p => {
       const posLabel = String(p.position || "").toUpperCase();
       return `
-        <div class="flex flex-col items-center gap-1">
-          <span class="text-[8px] font-black text-[#d9d0ff] uppercase opacity-75">${posLabel}</span>
-          ${playerCard(p, p.isCaptain, p.isVice, false)}
+        <div class="bench-player-col">
+          <span class="bench-pos-label font-mono">${posLabel}</span>
+          ${playerCard(p, p.isCaptain, p.isVice, false, true)}
         </div>
       `;
     }).join("");
@@ -562,7 +643,7 @@ function initPlayerDetailModalHtml() {
 
   const modalHtml = `
     <div id="myteam-player-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-xs z-[99999] flex items-center justify-center p-4" onclick="if(event.target===this)window.closePlayerDetailModal()">
-      <div class="w-full max-w-xs rounded-2xl p-4 flex flex-col max-h-[92vh] bg-[#14172b] border border-[#3a3f7a] shadow-2xl text-white relative">
+      <div class="w-full max-w-xs rounded-2xl p-4 flex flex-col max-h-[92vh] bg-[#0e122a] border border-[#3a3f7a] shadow-2xl text-white relative">
         <button onclick="window.closePlayerDetailModal()" class="absolute top-3 right-3 text-gray-400 hover:text-white font-bold text-lg cursor-pointer">✕</button>
         
         <div class="text-center pb-2.5 border-b border-[#3a3f7a]/60">
@@ -576,19 +657,19 @@ function initPlayerDetailModalHtml() {
         </div>
 
         <div class="grid grid-cols-4 gap-1.5 my-2.5 text-center">
-          <div class="bg-black/30 rounded-lg p-1.5 border border-[#3a3f7a]/40">
+          <div class="bg-black/40 rounded-lg p-1.5 border border-[#3a3f7a]/40">
             <span class="text-[8px] text-gray-400 block font-bold">Price</span>
             <span id="mt-price" class="text-xs font-black text-[#b3a1ff]">£0.0M</span>
           </div>
-          <div class="bg-black/30 rounded-lg p-1.5 border border-[#3a3f7a]/40">
+          <div class="bg-black/40 rounded-lg p-1.5 border border-[#3a3f7a]/40">
             <span class="text-[8px] text-gray-400 block font-bold">Owned</span>
             <span id="mt-ownership" class="text-xs font-black text-white">0%</span>
           </div>
-          <div class="bg-black/30 rounded-lg p-1.5 border border-[#3a3f7a]/40">
+          <div class="bg-black/40 rounded-lg p-1.5 border border-[#3a3f7a]/40">
             <span class="text-[8px] text-gray-400 block font-bold">TPts</span>
             <span id="mt-points" class="text-xs font-black text-amber-400">0</span>
           </div>
-          <div class="bg-black/30 rounded-lg p-1.5 border border-[#3a3f7a]/40 flex flex-col items-center justify-center">
+          <div class="bg-black/40 rounded-lg p-1.5 border border-[#3a3f7a]/40 flex flex-col items-center justify-center">
             <span class="text-[8px] text-gray-400 block font-bold">Form</span>
             <span id="mt-form" class="w-full"></span>
           </div>
@@ -611,7 +692,7 @@ window.openPlayerDetailModal = (playerId) => {
   const master = allScoutPlayers.find(sp => String(sp.playerId || sp.id) === String(playerId));
   const pos = String(p.position || (master ? master.position : "")).toUpperCase().trim();
   const posBg = pos === "GK" ? "#1d4ed8" : pos === "DEF" ? "#dc2626" : pos === "MID" ? "#eab308" : "#16a34a";
-  const posColor = pos === "MID" ? "#0b0d1a" : "#ffffff";
+  const posColor = pos === "MID" ? "#070a16" : "#ffffff";
 
   document.getElementById("mt-name").textContent = p.fullName || p.name || master?.name || "—";
   document.getElementById("mt-team").textContent = p.team || master?.team || "—";
@@ -662,7 +743,7 @@ window.openPlayerDetailModal = (playerId) => {
     formEl.innerHTML = `
       <div class="flex flex-col items-center justify-center leading-tight">
         <span class="text-xs font-black text-sky-400">${p.form ?? master?.form ?? "0.0"}</span>
-        <span class="text-[8px] font-black text-[#0b0d1a] bg-yellow-300 px-1 py-0.5 rounded mt-0.5">
+        <span class="text-[8px] font-black text-[#070a16] bg-yellow-300 px-1 py-0.5 rounded mt-0.5">
           GW: ${p.livePoints ?? p.gwPoints ?? master?.gwPoints ?? 0}
         </span>
       </div>
@@ -678,9 +759,9 @@ window.openPlayerDetailModal = (playerId) => {
     fixturesEl.innerHTML = matches.map(m => {
       if (m.isBlank) {
         return `
-          <div class="flex items-center justify-between py-1.5 px-3 rounded-lg bg-black/30 border border-slate-700/50">
+          <div class="flex items-center justify-between py-1.5 px-3 rounded-lg bg-black/40 border border-slate-700/50">
             <div class="flex items-center gap-2">
-              <span class="text-[10px] font-black px-1.5 py-0.5 rounded bg-black/40 text-[#b3a1ff]">GW ${m.gw}</span>
+              <span class="text-[10px] font-black px-1.5 py-0.5 rounded bg-black/60 text-[#b3a1ff]">GW ${m.gw}</span>
               <span class="text-xs text-slate-400 font-semibold">BLANK GAMEWEEK</span>
             </div>
             <span class="text-[10px] font-black px-2 py-0.5 rounded text-slate-400 bg-slate-800">NO MATCH</span>
@@ -691,9 +772,9 @@ window.openPlayerDetailModal = (playerId) => {
       const isHome = m.isHome === true || m.is_home === true;
       const venueBadge = isHome ? `<span class="text-[10px] font-black text-emerald-400 ml-1">(H)</span>` : `<span class="text-[10px] font-black text-amber-300 ml-1">(A)</span>`;
       return `
-        <div class="flex items-center justify-between py-1.5 px-3 rounded-lg bg-black/30 border border-[#3a3f7a]/50">
+        <div class="flex items-center justify-between py-1.5 px-3 rounded-lg bg-black/40 border border-[#3a3f7a]/50">
           <div class="flex items-center gap-2">
-            <span class="text-[10px] font-black px-1.5 py-0.5 rounded bg-black/40 text-[#b3a1ff]">GW ${m.gw}</span>
+            <span class="text-[10px] font-black px-1.5 py-0.5 rounded bg-black/60 text-[#b3a1ff]">GW ${m.gw}</span>
             <span class="text-xs text-white font-semibold flex items-center">
               ${formatTeamShort(m.opponent)} ${venueBadge}
             </span>
