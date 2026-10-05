@@ -1,8 +1,11 @@
 // ============================================
 // TW FF APPLICATION — Home UI Controller
 // Path: js/home.js
-// Standards: UI Design Knowledge Pack (Zero Console Errors, Robust Fallback)
-// Fix: Clean Image Resolution & Graceful 403 Recovery
+// Standards: UI Design Knowledge Pack (Zero Mock, 100% Dynamic Firestore)
+// Key Fixes:
+//   1. 3 Live Metric Integrations: Bank, Free Transfers & Captain Points from liveTeams
+//   2. 3D Club Jerseys on Top 5 Cards (Replaces External Photo CDN)
+//   3. High-Contrast Sports UI & Pure Real-Time Sync
 // ============================================
 
 import { db } from "./firebase-config.js";
@@ -12,8 +15,8 @@ import { loadFixturesMaster } from "./core/data.js";
 const $ = (id) => document.getElementById(id);
 const MIN = 60 * 1000;
 
-const SCOUT_CACHE_KEY_LIVE = "twfm_scout_highlights_live_v2";
-const DEADLINE_CACHE_KEY_LIVE = "twfm_dynamic_deadline_live_v2";
+const SCOUT_CACHE_KEY_LIVE = "twfm_scout_highlights_live_v3";
+const DEADLINE_CACHE_KEY_LIVE = "twfm_dynamic_deadline_live_v3";
 
 const LS = {
   get(k, ttl) { 
@@ -38,6 +41,7 @@ let deadlineTs = 0;
 let currentGwNumber = null;
 let lastDoneGw = null;
 let liveStats = null;
+let liveTeamSquad = null; // 🌟 liveTeams data (bank, freeTransfers, picks)
 let currentFplId = null;
 let scoutHighlightsData = null;
 let mode = "cap";
@@ -102,24 +106,17 @@ function getTeamMeta(teamIdentifier) {
   if (matched) {
     return { ...matched, badgePath: `./assets/badges/${matched.code}.png` };
   }
-  return { id: 6, name: "Chelsea", short: "CHE", code: "che", color: "#034694", badgePath: "./assets/badges/che.png" };
+  return { id: 6, name: "Chelsea", short: "CHE", code: "che", color: "#034694", badgePath: `./assets/badges/che.png` };
 }
 
-// 🛡️ CDN PHOTO RESOLVER (403 Forbidden Query String Prevention)
-function resolvePlayerPhotoUrl(p) {
-  if (!p) return "";
+// 👕 3D CLUB JERSEY RESOLVER (No More CDN Player Photos)
+function resolveClubJerseyPath(p) {
+  const meta = getTeamMeta(p.teamCode || p.team);
+  const code = (meta.code || "che").toLowerCase();
+  const rawPos = String(p.position || "mid").toLowerCase().trim();
+  const isGk = rawPos === "gk" || rawPos === "gkp";
   
-  let rawUrl = p.photoUrl || "";
-  if (rawUrl && typeof rawUrl === "string") {
-    // 💡 ?v=2026_27 ကဲ့သို့ CDN error ဖြစ်စေသော parameter များကို သန့်စင်ပစ်သည်
-    rawUrl = rawUrl.split("?")[0].trim();
-    if (rawUrl.startsWith("http")) return rawUrl;
-  }
-
-  const rawCode = p.photoCode || p.photo || p.opta_code;
-  if (!rawCode) return "";
-  const clean = String(rawCode).replace(/\.(jpg|jpeg|png)$/i, "").replace(/^p/i, "").trim();
-  return clean ? `https://resources.premierleague.com/premierleague/photos/players/250x250/p${clean}.png` : "";
+  return isGk ? `./public/jerseys/gk/${code}.png` : `./public/jerseys/outfield/${code}.png`;
 }
 
 function normalizeEpochMs(epoch) {
@@ -254,6 +251,7 @@ function tick() {
   set("cd-s", pad(s));
 }
 
+// 🌟 PAINT ALL 6 DASHBOARD METRICS (Bank, Free Transfers, Captain Points Included)
 function paintStats() {
   if (!liveStats) return;
 
@@ -268,6 +266,7 @@ function paintStats() {
     if (cls !== undefined) e.className = cls; 
   };
 
+  // Row 1: Primary Metrics
   t("st-total", fmt(liveStats.totalPoints));
   t("st-total-d", g > 0 ? `▲ +${fmt(gw)} (GW${g})` : `▲ +${fmt(gw)}`, "stat-change up");
   t("st-rank", fmt(liveStats.overallRank));
@@ -281,8 +280,32 @@ function paintStats() {
   } else {
     t("st-gw-d", `–`, "stat-change up");
   }
+
+  // Row 2: Live Team Management Metrics (from liveTeams)
+  const bankVal = liveTeamSquad?.bank !== undefined ? Number(liveTeamSquad.bank).toFixed(1) : "0.0";
+  t("st-bank", `£${bankVal}M`);
+
+  const ftVal = liveTeamSquad?.freeTransfers !== undefined ? liveTeamSquad.freeTransfers : "1";
+  t("st-ft", String(ftVal));
+
+  // Captain Points Calculation from Picks
+  let capPts = 0;
+  let capName = "Captain";
+  if (Array.isArray(liveTeamSquad?.picks) && liveTeamSquad.picks.length > 0) {
+    const capPick = liveTeamSquad.picks.find(p => p.isCaptain === true) || liveTeamSquad.picks[0];
+    if (capPick) {
+      const mult = capPick.multiplier || 2;
+      const basePts = Number(capPick.livePoints ?? capPick.points ?? 0);
+      capPts = basePts * mult;
+      capName = capPick.fullName || capPick.name || "Captain";
+    }
+  }
+
+  t("st-cap-pts", fmt(capPts));
+  t("st-cap-name", capName);
 }
 
+// 🌟 PURE FIRESTORE SYNC (livePoints + liveTeams)
 async function loadStats(user, profile) {
   currentFplId = String(
     profile?.fplTeamId || 
@@ -293,18 +316,24 @@ async function loadStats(user, profile) {
 
   if (!currentFplId) return;
 
+  // Cache စစ်ဆေးခြင်း
   try { 
     const cachedLive = localStorage.getItem(`twf_shared_points_live_${currentFplId}`);
-    if (cachedLive) {
-      liveStats = JSON.parse(cachedLive);
-      paintStats();
-    }
+    const cachedSquad = localStorage.getItem(`twf_shared_squad_live_${currentFplId}`);
+    if (cachedLive) liveStats = JSON.parse(cachedLive);
+    if (cachedSquad) liveTeamSquad = JSON.parse(cachedSquad);
+    if (liveStats || liveTeamSquad) paintStats();
   } catch (_) {}
 
+  // Firestore: livePoints + liveTeams တပြိုင်နက်တည်းဆွဲယူခြင်း
   try {
-    const s = await getDoc(doc(db, "livePoints", String(currentFplId)));
-    if (s.exists()) {
-      const d = s.data();
+    const [pSnap, tSnap] = await Promise.all([
+      getDoc(doc(db, "livePoints", String(currentFplId))),
+      getDoc(doc(db, "liveTeams", String(currentFplId)))
+    ]);
+
+    if (pSnap.exists()) {
+      const d = pSnap.data();
       liveStats = { 
         totalPoints: d.totalPoints ?? d.overall_points ?? 0, 
         gwPoints: d.gwPoints ?? d.event_points ?? 0, 
@@ -314,25 +343,16 @@ async function loadStats(user, profile) {
         gameweek: d.gameweek ?? lastDoneGw ?? 0 
       };
       localStorage.setItem(`twf_shared_points_live_${currentFplId}`, JSON.stringify(liveStats));
-      paintStats();
-    } else {
-      const ltSnap = await getDoc(doc(db, "liveTeams", String(currentFplId)));
-      if (ltSnap.exists()) {
-        const ltd = ltSnap.data() || {};
-        liveStats = {
-          totalPoints: ltd.totalPoints || ltd.points || 0,
-          gwPoints: ltd.gwPoints || 0,
-          overallRank: ltd.overallRank || 0,
-          gwRank: ltd.gwRank || 0,
-          averagePoints: 0,
-          gameweek: ltd.gameweek || lastDoneGw || 0
-        };
-        localStorage.setItem(`twf_shared_points_live_${currentFplId}`, JSON.stringify(liveStats));
-        paintStats();
-      }
     }
+
+    if (tSnap.exists()) {
+      liveTeamSquad = tSnap.data();
+      localStorage.setItem(`twf_shared_squad_live_${currentFplId}`, JSON.stringify(liveTeamSquad));
+    }
+
+    paintStats();
   } catch (e) { 
-    console.warn("Firestore livePoints notice:", e); 
+    console.warn("Firestore stats query notice:", e); 
   }
 }
 
@@ -355,6 +375,7 @@ async function loadScoutHighlights() {
   }
 }
 
+// 👕 TOP 5 CARDS: 3D CLUB JERSEY RENDERING
 function renderPlayerCards() {
   const container = $("leader-cards-container");
   if (!container || !scoutHighlightsData) return;
@@ -384,27 +405,23 @@ function renderPlayerCards() {
     const posColor = POS[rawPos] || "#F59E0B";
 
     const teamMeta = getTeamMeta(p.teamCode || p.team);
-    const teamColor = teamMeta.color;
     const teamShort = teamMeta.short;
     const localBadgeUrl = teamMeta.badgePath;
 
-    const photoUrl = resolvePlayerPhotoUrl(p);
+    // 💡 Photo မသုံးတော့ဘဲ 3D Club Jersey Path ကို တိုက်ရိုက်ခေါ်ယူသည်
+    const jerseyPath = resolveClubJerseyPath(p);
 
     return `
       <div class="top-player-card" style="border-top: 3.2px solid ${posColor};">
         <span class="player-card-rank">${i + 1}</span>
 
-        <div class="player-card-photo-wrap">
-          <!-- 💡 403 Forbidden ကြုံတွေ့ပါက Local Club Badge သို့ အလိုအလျောက် သန့်ရှင်းစွာ fallback လုပ်ခြင်း -->
-          <img src="${photoUrl || localBadgeUrl}" 
+        <!-- 3D Jersey Frame (Larger & Clear) -->
+        <div class="player-card-jersey-wrap">
+          <img src="${jerseyPath}" 
                alt="${esc(p.name)}" 
                loading="lazy" 
-               class="player-card-photo"
-               onerror="
-                 this.onerror = null;
-                 this.src = '${localBadgeUrl}';
-                 this.style.maxHeight = '65%';
-               ">
+               class="player-card-jersey-img"
+               onerror="this.src='./assets/badges/${teamMeta.code}.png'; this.style.transform='scale(0.85)';">
           <img src="${localBadgeUrl}" alt="${esc(teamShort)}" class="player-card-club-badge" onerror="this.style.display='none';">
         </div>
 
