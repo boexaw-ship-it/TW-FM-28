@@ -1,7 +1,8 @@
 /* =========================================================================
-   TW Fantasy Official League — Home UI Theme
-   Style: Concept A Dashboard (Matt Black Hero Hub & Subtle Purple Fixture Line)
-   Standards: UI Design Knowledge Pack (8px Grid, Rounded 16-20px, Sports UI)
+   TW FF APPLICATION — Home Theme & Dashboard Styles
+   Standards: UI Design Knowledge Pack (8px Grid, Rounded 14-20px, Sports UI)
+   Style: Matt Black Arena, 6-Metric Hub & Jersey-First Top 5 Cards
+   Path: css/home.css
    ========================================================================= */
 
 * {
@@ -10,44 +11,39 @@
 }
 
 :root {
-  --bg: #070a16;
-  --card-bg: rgba(14, 18, 42, 0.94);
-  --card-inner: rgba(9, 12, 28, 0.85);
-  --line: rgba(255, 255, 255, 0.08);
-  --tx: #ffffff;
-  --mu: #94a3b8;
-  --ac: #8c6dff;
-  --gold: #fbbf24;
-  --cyan: #38bdf8;
-  --ok: #22c55e;
-  --no: #ef4444;
-
-  /* 🌟 FPL Position Colors */
-  --pos-gk: #2563eb;  /* အပြာ */
-  --pos-def: #ef4444; /* အနီ */
-  --pos-mid: #f59e0b; /* အဝါ */
-  --pos-fwd: #22c55e; /* အစိမ်း */
+  --home-bg: #070a16;
+  --home-card: rgba(14, 18, 42, 0.94);
+  --home-inner: rgba(9, 12, 28, 0.85);
+  --home-border: rgba(255, 255, 255, 0.08);
+  --home-purple: #8c6dff;
+  --home-purple-light: #b3a1ff;
+  --home-gold: #fbbf24;
+  --home-cyan: #38bdf8;
+  --home-green: #22c55e;
+  --home-red: #ef4444;
 }
 
-/* 🔒 Root Container Fixed Viewport (Zero Scroll) */
 .home-root {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background-color: var(--home-bg);
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  width: 100%;
-  background: var(--bg);
-  color: var(--tx);
-  overflow: hidden !important;
-  position: relative;
+  overflow: hidden;
+  color: #ffffff;
 }
 
-.text-decoration-none {
-  text-decoration: none;
+.safe-top {
+  padding-top: max(8px, env(safe-area-inset-top, 0px));
 }
 
-/* =========================================================================
-   🌌 STADIUM AMBIENT MESH BACKDROP
-   ========================================================================= */
+.font-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+/* 🌌 Ambient Background Mesh */
 .stadium-ambient-mesh {
   position: absolute;
   inset: 0;
@@ -56,87 +52,60 @@
   z-index: 0;
 }
 
-.mesh-orb.orb-purple {
+.mesh-orb {
   position: absolute;
-  top: -80px;
-  right: -60px;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.15;
+}
+
+.orb-purple {
+  top: -10%;
+  left: 10%;
+  width: 320px;
+  height: 320px;
+  background: var(--home-purple);
+}
+
+.orb-blue {
+  top: 40%;
+  right: -10%;
   width: 280px;
   height: 280px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(140, 109, 255, 0.18) 0%, rgba(140, 109, 255, 0) 70%);
-  filter: blur(35px);
+  background: var(--home-cyan);
 }
 
-.mesh-orb.orb-blue {
-  position: absolute;
-  bottom: 120px;
-  left: -80px;
-  width: 260px;
-  height: 260px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(56, 189, 248, 0.14) 0%, rgba(56, 189, 248, 0) 70%);
-  filter: blur(35px);
-}
-
-.mesh-pitch-circle {
-  position: absolute;
-  top: 45%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 380px;
-  height: 380px;
-  border-radius: 50%;
-  border: 1.5px dashed rgba(255, 255, 255, 0.035);
-  box-shadow: inset 0 0 40px rgba(140, 109, 255, 0.03);
-}
-
-/* =========================================================================
-   🔝 1. TOP HEADER (အပေါ် Top Bar line ပါးပါးလေး)
-   ========================================================================= */
+/* 🔝 Header */
 .home-head {
+  padding: max(10px, env(safe-area-inset-top, 0px)) 14px 10px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: max(12px, env(safe-area-inset-top, 0px)) 16px 10px;
-  flex: 0 0 auto;
-  /* 💡 Top Bar line ပါးပါးလေး သတ်မှတ်ခြင်း */
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
-  background: rgba(9, 12, 25, 0.95);
+  background: rgba(9, 12, 25, 0.92);
+  border-bottom: 1px solid var(--home-border);
+  z-index: 30;
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  z-index: 50;
-  position: relative;
-}
-
-.home-brand {
-  display: flex;
-  align-items: center;
-}
-
-.home-brand-text {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 1px;
+  flex-shrink: 0;
 }
 
 .brand-title {
   margin: 0;
-  font-size: 20px;
+  font-size: 19px;
   font-weight: 900;
+  letter-spacing: 0.05em;
+  background: linear-gradient(135deg, #ffffff, #c9bcff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
   line-height: 1;
-  letter-spacing: 0.04em;
-  color: #ffffff;
 }
 
 .brand-subtitle {
-  margin: 0;
-  font-size: 8px;
+  margin: 2px 0 0;
+  font-size: 7.5px;
   font-weight: 800;
   letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: #94a3b8;
+  color: #64748b;
 }
 
 .home-who {
@@ -146,17 +115,17 @@
 }
 
 .home-pill {
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: rgba(140, 109, 255, 0.12);
-  color: #c9bcff;
-  border: 1px solid rgba(140, 109, 255, 0.35);
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 4px;
+  padding: 3.5px 8px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  border: 1px solid rgba(140, 109, 255, 0.4);
+  background: rgba(140, 109, 255, 0.15);
+  color: var(--home-purple-light);
 }
 
 .user-pill-ico {
@@ -164,464 +133,325 @@
   height: 11px;
 }
 
-.home-refresh {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  border-radius: 8px;
-  font-size: 9px;
-  font-weight: 800;
-  background: rgba(245, 158, 11, 0.14);
-  color: var(--gold);
-  border: 1px solid rgba(245, 158, 11, 0.4);
-  cursor: pointer;
-}
-
-.home-refresh.hidden { display: none !important; }
-
-/* =========================================================================
-   🔒 2. LOCKED SINGLE VIEWPORT CONTAINER (ZERO SCROLL)
-   ========================================================================= */
+/* 📜 Scrollable Main Arena */
 .home-scroll {
-  flex: 1 1 auto;
-  min-height: 0;
-  height: 100%;
-  overflow: hidden !important;
-  overflow-y: hidden !important;
-  overscroll-behavior: none !important;
-  padding: 10px 14px 10px !important;
-  display: flex !important;
-  flex-direction: column !important;
-  justify-content: space-between !important;
-  gap: 9px !important;
-  position: relative;
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 10px 12px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   z-index: 10;
 }
 
-/* =========================================================================
-   🌟 3. UNIFIED HERO HUB (MATT BLACK BORDER LINE)
-   ========================================================================= */
-.luxury-hero-hub,
-.home-hero {
-  position: relative !important;
-  background: linear-gradient(135deg, rgba(16, 20, 42, 0.96), rgba(9, 12, 28, 0.98)) !important;
-  border-radius: 18px !important;
-  padding: 12px 14px !important;
-  overflow: hidden !important;
-  backdrop-filter: blur(14px) !important;
-  -webkit-backdrop-filter: blur(14px) !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 10px !important;
-  flex-shrink: 0 !important;
+.home-scroll::-webkit-scrollbar {
+  display: none;
 }
 
-/* 🖤 Team Name Deadline Hero: Matt Black Border Line & Deep Shadow */
-.neon-glow-purple,
+/* 🌟 Hero Hub */
 .luxury-hero-hub {
-  border: 1.2px solid rgba(255, 255, 255, 0.14) !important; /* Matt Black Contrast Line */
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.65), inset 0 1px 1px rgba(255, 255, 255, 0.08) !important;
-}
-
-/* 🎨 Hero Card Pitch Radar Watermark */
-.luxury-hero-hub::after {
-  content: "";
-  position: absolute;
-  right: -20px;
-  top: -20px;
-  width: 170px;
-  height: 170px;
-  background-image: radial-gradient(circle, transparent 35%, rgba(255, 255, 255, 0.04) 36%, transparent 38%),
-                    radial-gradient(circle, transparent 65%, rgba(255, 255, 255, 0.03) 66%, transparent 68%);
-  border: 1.5px dashed rgba(255, 255, 255, 0.05);
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 1;
+  background: linear-gradient(180deg, rgba(16, 21, 50, 0.95) 0%, rgba(10, 13, 30, 0.98) 100%);
+  border-radius: 18px;
+  border: 1.2px solid rgba(140, 109, 255, 0.25);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55), inset 0 1px 1px rgba(255, 255, 255, 0.08);
+  padding: 12px 14px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .hero-hub-top {
-  display: flex !important;
-  align-items: flex-start !important;
-  justify-content: space-between !important;
-  gap: 10px !important;
-  position: relative !important;
-  z-index: 2 !important;
-}
-
-.hero-manager-meta {
-  min-width: 0;
-  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .hero-team-title {
-  display: flex !important;
-  align-items: center !important;
-  gap: 6px !important;
-  font-size: 16px !important;
-  font-weight: 900 !important;
-  letter-spacing: 0.02em !important;
-  color: #ffffff !important;
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .hero-team-title .boat-ico {
-  font-size: 14px;
+  font-size: 13px;
 }
 
-.hero-team-title .team-text {
+.team-text {
+  font-size: 15px;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+.hero-manager-sub {
+  margin: 3px 0 0;
+  font-size: 9.5px;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.hero-manager-sub .manager-name {
+  color: #e2e8f0;
+  font-weight: 800;
+}
+
+.hero-deadline-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
+
+.hero-gw-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2.5px 7px;
+  border-radius: 6px;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: var(--home-gold);
+  font-size: 8.5px;
+  font-weight: 900;
+}
+
+.hero-date-text {
+  font-size: 8.5px;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.home-cd {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.cd-box {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 5px 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.cd-box b {
+  font-size: 15px;
+  font-weight: 900;
+  color: #ffffff;
+  line-height: 1.1;
+  font-family: ui-monospace, monospace;
+}
+
+.cd-box small {
+  font-size: 7px;
+  font-weight: 800;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.cd-sec b {
+  color: var(--home-purple-light);
+}
+
+/* =========================================================================
+   📊 3. 6-TILE PERFORMANCE METRIC GRID (2 Rows x 3 Columns)
+   ========================================================================= */
+.luxury-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+}
+
+.stat-nameplate-tile {
+  background: var(--home-card);
+  border-radius: 14px;
+  padding: 8px 7px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 68px;
+  border: 1.2px solid var(--home-border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+  position: relative;
+  overflow: hidden;
+}
+
+.col-head {
+  display: flex;
+  align-items: center;
+  gap: 3.5px;
+}
+
+.stat-ico {
+  font-size: 9px;
+}
+
+.stat-title {
+  font-size: 7.5px;
+  font-weight: 800;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.stat-num {
+  font-size: 14px;
+  font-weight: 900;
+  color: #ffffff;
+  margin: 3px 0 1px;
+  line-height: 1.1;
+}
+
+.stat-change {
+  font-size: 7.5px;
+  font-weight: 800;
+  font-style: normal;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.hero-manager-sub {
-  margin: 2px 0 0 !important;
-  font-size: 11px !important;
-  color: #cbd5e1 !important;
-  font-weight: 600 !important;
-}
+.stat-change.up { color: #86efac; }
+.stat-change.dn { color: #fca5a5; }
+.stat-change.muted { color: #94a3b8; }
 
-.hero-manager-sub .manager-name {
-  color: #ffffff !important;
-  font-weight: 800 !important;
-}
+/* Neon Borders & Glow Accents */
+.neon-glow-green { border-color: rgba(34, 197, 94, 0.35); }
+.neon-glow-gold  { border-color: rgba(251, 191, 36, 0.35); }
+.neon-glow-cyan  { border-color: rgba(56, 189, 248, 0.35); }
+.neon-glow-purple{ border-color: rgba(140, 109, 255, 0.35); }
+.neon-glow-emerald{ border-color: rgba(16, 185, 129, 0.35); }
+.neon-glow-amber { border-color: rgba(245, 158, 11, 0.35); }
 
-.hero-deadline-group {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: flex-end !important;
-  gap: 3px !important;
-  flex-shrink: 0 !important;
-}
-
-.hero-gw-chip {
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 4px !important;
-  padding: 3.5px 9px !important;
-  border-radius: 999px !important;
-  background: rgba(251, 191, 36, 0.12) !important;
-  border: 1px solid rgba(251, 191, 36, 0.4) !important;
-}
-
-.trophy-gold-ico { font-size: 10.5px; }
-
-.hero-gw-chip .gw-text {
-  font-size: 9.5px !important;
-  font-weight: 900 !important;
-  letter-spacing: 0.06em !important;
-  color: var(--gold) !important;
-  text-transform: uppercase !important;
-}
-
-.hero-date-text {
-  font-size: 9px !important;
-  font-weight: 700 !important;
-  color: #94a3b8 !important;
-  text-align: right !important;
-}
-
-.hero-hub-bottom {
-  display: flex !important;
-  flex-direction: column !important;
-  position: relative !important;
-  z-index: 2 !important;
-}
-
-/* ⏱️ DIGITAL COUNTDOWN 4-BOXES */
-.home-cd {
-  display: grid !important;
-  grid-template-columns: repeat(4, 1fr) !important;
-  gap: 6px !important;
-  width: 100% !important;
-}
-
-.cd-box {
-  background: var(--card-inner) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: 12px !important;
-  padding: 6px 0 !important;
-  text-align: center !important;
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35) !important;
-  min-height: 48px !important;
-}
-
-.cd-box b {
-  display: block !important;
-  font-size: 18.5px !important;
-  font-weight: 900 !important;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
-  font-variant-numeric: tabular-nums !important;
-  line-height: 1.1 !important;
-  color: #ffffff !important;
-}
-
-.cd-box small {
-  font-size: 7.5px !important;
-  font-weight: 800 !important;
-  letter-spacing: 0.1em !important;
-  text-transform: uppercase !important;
-  color: #b3a1ff !important;
-  opacity: 0.85 !important;
-  margin-top: 2px !important;
-}
-
-.cd-box.cd-sec b {
-  color: var(--cyan) !important;
-}
+.c-green { color: #22c55e; }
+.c-gold  { color: #fbbf24; }
+.c-cyan  { color: #38bdf8; }
+.c-purple{ color: #b3a1ff; }
+.c-emerald{ color: #10b981; }
+.c-amber { color: #f59e0b; }
 
 /* =========================================================================
-   📊 4. 3-COLUMN PERFORMANCE STATS (PRESERVED GLOW TILES)
-   ========================================================================= */
-.luxury-stats-card,
-.glass-stats-capsule,
-.home-stats {
-  display: grid !important;
-  grid-template-columns: 1fr 1.3fr 1fr !important;
-  gap: 8px !important;
-  align-items: stretch !important;
-  background: transparent !important;
-  border: none !important;
-  padding: 0 !important;
-  min-height: 68px !important;
-  width: 100% !important;
-  flex-shrink: 0 !important;
-}
-
-.stat-nameplate-tile {
-  border-radius: 14px !important;
-  padding: 8px 4px 6px !important;
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
-  text-align: center !important;
-  position: relative !important;
-  overflow: hidden !important;
-}
-
-/* 💚 1. Total Points Tile: အစိမ်းရောင် အလင်းပြန် */
-.neon-glow-green {
-  background: linear-gradient(135deg, rgba(6, 44, 30, 0.95), rgba(9, 24, 18, 0.98)) !important;
-  border: 1.8px solid #10b981 !important;
-  box-shadow: 0 0 16px rgba(16, 185, 129, 0.6), inset 0 0 12px rgba(16, 185, 129, 0.25) !important;
-}
-.neon-glow-green::after {
-  content: "★";
-  position: absolute;
-  right: -8px;
-  bottom: -12px;
-  font-size: 48px;
-  color: rgba(16, 185, 129, 0.08);
-  pointer-events: none;
-  font-weight: 900;
-}
-
-/* 💛 2. Overall Rank Tile: အဝါရောင် အလင်းပြန် */
-.neon-glow-gold {
-  background: linear-gradient(135deg, rgba(46, 34, 8, 0.95), rgba(24, 18, 6, 0.98)) !important;
-  border: 1.8px solid #f59e0b !important;
-  box-shadow: 0 0 16px rgba(245, 158, 11, 0.6), inset 0 0 12px rgba(245, 158, 11, 0.25) !important;
-}
-.neon-glow-gold::after {
-  content: "🏆";
-  position: absolute;
-  right: -6px;
-  bottom: -10px;
-  font-size: 42px;
-  opacity: 0.09;
-  filter: grayscale(1) invert(1);
-  pointer-events: none;
-}
-
-/* 💙 3. GW Score Tile: စိမ်းပြာရောင် အလင်းပြန် */
-.neon-glow-cyan {
-  background: linear-gradient(135deg, rgba(6, 36, 48, 0.95), rgba(8, 20, 32, 0.98)) !important;
-  border: 1.8px solid #06b6d4 !important;
-  box-shadow: 0 0 16px rgba(6, 182, 212, 0.6), inset 0 0 12px rgba(6, 182, 212, 0.25) !important;
-}
-.neon-glow-cyan::after {
-  content: "📊";
-  position: absolute;
-  right: -6px;
-  bottom: -8px;
-  font-size: 38px;
-  opacity: 0.09;
-  filter: grayscale(1) invert(1);
-  pointer-events: none;
-}
-
-.col-head {
-  display: flex !important;
-  align-items: center !important;
-  gap: 3px !important;
-  position: relative;
-  z-index: 2;
-}
-
-.stat-ico { font-size: 9.5px; }
-.stat-ico.c-green { color: #10b981; }
-.stat-ico.c-gold  { color: #f59e0b; }
-.stat-ico.c-cyan  { color: #06b6d4; }
-
-.stat-title {
-  font-size: 8px !important;
-  font-weight: 900 !important;
-  letter-spacing: 0.05em !important;
-  text-transform: uppercase !important;
-  color: var(--mu) !important;
-  white-space: nowrap !important;
-}
-
-.stat-num {
-  display: block !important;
-  font-size: 18.5px !important;
-  font-weight: 900 !important;
-  margin: 2px 0 1px !important;
-  color: #ffffff !important;
-  line-height: 1.1 !important;
-  position: relative;
-  z-index: 2;
-}
-
-.font-mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
-  font-variant-numeric: tabular-nums !important;
-}
-
-.stat-change {
-  font-style: normal !important;
-  font-size: 8.5px !important;
-  font-weight: 800 !important;
-  white-space: nowrap !important;
-  position: relative;
-  z-index: 2;
-}
-
-.stat-change.up { color: var(--ok) !important; }
-
-/* =========================================================================
-   🌟 5. TOP 5 PLAYERS (FPL POSITION COLORS: GK Blue, DEF Red, MID Yellow, FWD Green)
+   🌟 4. JERSEY-CENTRIC TOP 5 PLAYERS CARDS (LARGER & VISIBLE)
    ========================================================================= */
 .home-top-grid-section {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 7px !important;
-  flex-shrink: 0 !important;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .home-section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 2px;
 }
 
 .home-h {
-  display: flex;
-  align-items: center;
-  gap: 6px;
   margin: 0;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 900;
   letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  gap: 5px;
   color: #ffffff;
-  text-transform: uppercase;
 }
 
 .h-dot {
+  color: var(--home-purple-light);
   font-size: 8px;
-  color: var(--ac);
 }
 
 .home-see-all {
-  font-size: 10.5px;
-  font-weight: 700;
-  color: var(--mu);
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--home-purple-light);
   text-decoration: none;
 }
 
+/* 5 Cards Horizontal Grid */
 .home-player-cards-grid {
-  display: grid !important;
-  grid-template-columns: repeat(5, 1fr) !important;
-  gap: 5px !important;
-  width: 100% !important;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  width: 100%;
 }
 
+/* 👕 Expanded Top Player Card (Jersey First) */
 .top-player-card {
-  background: linear-gradient(180deg, rgba(20, 26, 56, 0.95), rgba(11, 14, 32, 0.98));
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 6px 3px 7px;
+  background: linear-gradient(180deg, rgba(20, 26, 60, 0.95) 0%, rgba(10, 14, 32, 0.98) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 6px 3px 5px;
   display: flex;
   flex-direction: column;
   align-items: center;
   position: relative;
-  overflow: hidden;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  transition: transform 0.15s ease;
+  min-height: 124px; /* ပိုမိုကြီးမားသောအမြင့် */
+}
+
+.top-player-card:active {
+  transform: scale(0.96);
 }
 
 .player-card-rank {
   position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 14px;
-  height: 14px;
-  border-radius: 4px;
-  background: rgba(0, 0, 0, 0.7);
-  color: #ffffff;
-  font-size: 8px;
+  top: 4px;
+  left: 5px;
+  font-size: 8.5px;
   font-weight: 900;
-  display: grid;
-  place-items: center;
-  z-index: 3;
+  color: #64748b;
+  font-family: ui-monospace, monospace;
 }
 
-.player-card-photo-wrap {
-  width: 44px;
-  height: 44px;
+/* 3D Jersey Display Frame */
+.player-card-jersey-wrap {
+  width: 50px;
+  height: 50px;
+  margin: 6px 0 4px;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
   position: relative;
-  margin-top: 2px;
 }
 
-.player-card-photo {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: cover;
-  border-radius: 50%;
-  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.5));
+.player-card-jersey-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.6));
 }
 
 .player-card-club-badge {
   position: absolute;
-  right: -2px;
-  bottom: -2px;
-  width: 15px;
-  height: 15px;
-  object-fit: contain;
-  background: #090c19;
+  bottom: 0px;
+  right: -1px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 1px;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 1.5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
+/* Nameplate */
 .player-nameplate-frame {
   width: 100%;
-  margin-top: 3px;
-  background: var(--card-inner);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 7px;
-  padding: 3px 2px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 1px;
+  text-align: center;
 }
 
 .player-card-name {
@@ -632,220 +462,174 @@
   overflow: hidden;
   text-overflow: ellipsis;
   width: 100%;
-  text-align: center;
   line-height: 1.1;
 }
 
 .player-card-pos {
   font-size: 7px;
   font-weight: 900;
-  text-transform: uppercase;
-  margin-top: 1px;
+  letter-spacing: 0.05em;
   line-height: 1;
 }
 
 .player-card-pts {
   font-size: 9.5px;
   font-weight: 900;
-  margin-top: 2px;
-  color: #ffffff !important;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  margin-top: 1px;
+  font-family: ui-monospace, monospace;
+  line-height: 1.1;
 }
 
+/* Skeleton Loading */
 .player-card-skel {
-  min-height: 110px;
-  border-radius: 14px;
-  background: linear-gradient(90deg, var(--card2), #242953, var(--card2));
-  background-size: 200% 100%;
-  animation: skel 1.2s linear infinite;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  height: 124px;
+  animation: pulse 1.5s infinite;
 }
 
-@keyframes skel { to { background-position: -200% 0; } }
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
 
 /* =========================================================================
-   ⚡ 6. QUICK STATS TABS (FRAMELESS CLEAN BUTTONS)
+   ⚡ 5. QUICK STATS FILTER STRIP
    ========================================================================= */
 .home-quick-stats-section {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 5px !important;
-  flex-shrink: 0 !important;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.home-tabs.frameless-tabs {
-  display: grid !important;
-  grid-template-columns: repeat(6, 1fr) !important;
-  gap: 5px !important;
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  padding: 0 !important;
+.frameless-tabs {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+  background: var(--home-card);
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid var(--home-border);
 }
 
-.home-tabs.frameless-tabs button {
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  background: rgba(14, 18, 42, 0.8) !important;
-  color: var(--mu) !important;
-  padding: 5px 1px !important;
-  border-radius: 8px !important;
-  font-family: inherit;
-  font-size: 7.5px !important;
-  font-weight: 800 !important;
-  text-transform: uppercase;
-  cursor: pointer;
+.frameless-tabs button {
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 5px 2px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 2px;
-  white-space: nowrap;
-  transition: all 0.25s ease;
+  cursor: pointer;
+  color: #64748b;
+  transition: all 0.2s ease;
 }
 
-.home-tabs.frameless-tabs button .tab-ico { font-size: 11px; }
-.home-tabs.frameless-tabs button .tab-txt { font-size: 7.5px; font-weight: 800; }
+.frameless-tabs button .tab-ico {
+  font-size: 11px;
+}
 
-.home-tabs.frameless-tabs button.on {
-  background: var(--tab-c, #ffffff) !important;
-  color: #070a16 !important;
-  font-weight: 900 !important;
-  border-color: var(--tab-c, #ffffff) !important;
-  box-shadow: 0 0 14px color-mix(in srgb, var(--tab-c, #ffffff) 65%, transparent) !important;
+.frameless-tabs button .tab-txt {
+  font-size: 6.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  white-space: nowrap;
+  letter-spacing: -0.02em;
+}
+
+.frameless-tabs button.on {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--tab-c);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--tab-c) 30%, transparent);
 }
 
 /* =========================================================================
-   🗓️ 7. NEXT FIXTURE CARD (ခရမ်းရောင် ပါးပါးလေး SUBTLE PURPLE LINE)
+   🗓️ 6. NEXT FIXTURE CARD
    ========================================================================= */
 .home-next-fixture-card {
-  background: var(--card-bg) !important;
-  border-radius: 16px !important;
-  padding: 10px 13px !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 8px !important;
-  cursor: pointer !important;
-  color: var(--tx) !important;
-  text-decoration: none !important;
-  overflow: hidden !important;
-  width: 100% !important;
-  backdrop-filter: blur(14px) !important;
-  flex-shrink: 0 !important;
-  position: relative !important;
-}
-
-/* 💜 Next Fixture: ခရမ်းရောင် ပါးပါးလေး (Subtle Purple Line & Soft Glow) */
-.neon-glow-red,
-.home-next-fixture-card {
-  border: 1.2px solid rgba(168, 85, 247, 0.45) !important; /* ခရမ်းရောင် ပါးပါးလေး */
-  box-shadow: 0 0 14px rgba(168, 85, 247, 0.18), 0 4px 16px rgba(0, 0, 0, 0.45) !important;
-}
-
-/* 🎨 Fixture Card Watermark Graphic */
-.home-next-fixture-card::after {
-  content: "⚽";
-  position: absolute;
-  right: 45%;
-  bottom: -15px;
-  font-size: 70px;
-  opacity: 0.04;
-  filter: grayscale(1) invert(1);
-  pointer-events: none;
+  background: linear-gradient(180deg, rgba(16, 21, 50, 0.95) 0%, rgba(9, 12, 28, 0.98) 100%);
+  border: 1.2px solid rgba(140, 109, 255, 0.22);
+  border-radius: 14px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
 }
 
 .fixture-head {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  width: 100% !important;
-  position: relative;
-  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .fixture-tag {
-  font-size: 10.5px !important;
-  font-weight: 900 !important;
-  color: #ffffff !important;
-  letter-spacing: 0.02em !important;
+  font-size: 8.5px;
+  font-weight: 900;
+  color: var(--home-purple-light);
 }
 
 .fixture-time {
-  font-size: 9.5px !important;
-  font-weight: 700 !important;
-  color: var(--mu) !important;
+  font-size: 8.5px;
+  font-weight: 800;
+  color: #94a3b8;
 }
 
 .fixture-body {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  gap: 6px !important;
-  width: 100% !important;
-  position: relative;
-  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .fixture-team {
-  display: flex !important;
-  align-items: center !important;
-  gap: 6px !important;
-  flex: 1 1 0 !important;
-  min-width: 0 !important;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
 }
 
 .fixture-team.away-side {
-  justify-content: flex-end !important;
-  text-align: right !important;
+  justify-content: flex-end;
 }
 
 .fixture-badge {
-  width: 30px !important;
-  height: 30px !important;
-  max-width: 30px !important;
-  max-height: 30px !important;
-  object-fit: contain !important;
-  flex: 0 0 30px !important;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4)) !important;
-}
-
-.team-meta {
-  display: flex !important;
-  flex-direction: column !important;
-  min-width: 0 !important;
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
 }
 
 .team-meta b {
-  font-size: 12px !important;
-  font-weight: 900 !important;
-  line-height: 1.15 !important;
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  color: #ffffff !important;
+  font-size: 11px;
+  font-weight: 900;
+  color: #ffffff;
+  display: block;
+  line-height: 1;
 }
 
 .team-meta small {
-  font-size: 9px !important;
-  color: var(--mu) !important;
-  font-weight: 600 !important;
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
+  font-size: 8px;
+  font-weight: 700;
+  color: #94a3b8;
+  display: block;
+  margin-top: 2px;
 }
 
 .fixture-vs-pill {
-  padding: 3px 8px !important;
-  border-radius: 999px !important;
-  background: var(--card-inner) !important;
-  border: 1px solid var(--line) !important;
-  font-size: 8.5px !important;
-  font-weight: 900 !important;
-  color: var(--mu) !important;
-  flex: 0 0 auto !important;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 8px;
+  font-weight: 900;
+  color: #64748b;
+  flex-shrink: 0;
 }
 
 .fixture-arrow {
-  color: var(--mu) !important;
-  font-size: 15px !important;
-  margin-left: 2px !important;
-  flex: 0 0 auto !important;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 800;
+  margin-left: 6px;
 }
