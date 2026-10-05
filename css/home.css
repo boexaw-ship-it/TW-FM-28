@@ -1,40 +1,37 @@
 /* =========================================================================
-   TW FM — Production Home & Dashboard Stylesheet
-   Design System: Material 3 + Apple iOS Frosted Glassmorphism
-   Theme: Electric Violet & Deep Matt Black
-   Standards: UI Design Knowledge Pack (8px Grid, 12-20px Corners, High Contrast)
+   TW FM — Premium Fantasy Football Stylesheet
+   Theme: Electric Violet & Dark Glassmorphism
+   Standards: UI Design Knowledge Pack (8px Grid, 12-20px Radii, Zero Overflow)
    Path: css/home.css
    ========================================================================= */
 
-/* 🚫 ၁။ GLOBAL ANTI-SELECTION RESET (Google Search / Copy Context Menu ပိတ်ပင်ခြင်း) */
+/* 🚫 Global Touch & Anti-Selection Reset */
 *, *::before, *::after {
-  -webkit-touch-callout: none !important; /* iOS Safari & Chrome Callout Menu Disable */
-  -webkit-user-select: none !important;   /* Safari & Chrome Selection Disable */
-  -khtml-user-select: none !important;
-  -moz-user-select: none !important;
-  -ms-user-select: none !important;
-  user-select: none !important;          /* Standard Text Selection Disable */
+  -webkit-touch-callout: none !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
   -webkit-tap-highlight-color: transparent !important;
   box-sizing: border-box;
 }
 
 :root {
-  --bg-deep: #070913;
-  --card-bg: rgba(14, 18, 38, 0.92);
-  --card-border: rgba(255, 255, 255, 0.08);
+  --bg-deep: #080914;
+  --card-bg: rgba(18, 20, 42, 0.78);
+  --card-border: rgba(157, 78, 221, 0.22);
+  --card-glow: rgba(121, 40, 202, 0.18);
   
-  --purple-main: #8c6dff;
-  --purple-light: #b3a1ff;
+  --violet-primary: #9d4edd;
+  --violet-neon: #7928ca;
+  --violet-light: #c77dff;
   
-  --gold-main: #fbbf24;
-  --green-main: #22c55e;
-  --cyan-main: #38bdf8;
-  --red-main: #ef4444;
-  --mint-main: #34d399;
-  --text-muted: #94a3b8;
+  --stat-green: #22c55e;
+  --stat-gold: #fbbf24;
+  --stat-cyan: #38bdf8;
+  --stat-yellow: #facc15;
+  --stat-red: #f43f5e;
+  --text-muted: #8e94a8;
 }
 
-/* 📱 Base App Shell */
 .home-root {
   width: 100%;
   height: 100%;
@@ -44,7 +41,7 @@
   flex-direction: column;
   overflow: hidden;
   color: #ffffff;
-  font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", sans-serif;
 }
 
 .safe-top {
@@ -74,46 +71,72 @@
 .mesh-orb {
   position: absolute;
   border-radius: 50%;
-  filter: blur(100px);
-  pointer-events: none;
+  filter: blur(120px);
 }
 
 .orb-primary {
-  top: -120px;
-  right: -50px;
-  width: 380px;
-  height: 380px;
-  background: radial-gradient(circle, rgba(140, 109, 255, 0.22) 0%, transparent 70%);
+  top: -80px;
+  right: -40px;
+  width: 340px;
+  height: 340px;
+  background: radial-gradient(circle, rgba(121, 40, 202, 0.3) 0%, transparent 70%);
 }
 
 .orb-secondary {
-  top: 35%;
-  left: -100px;
-  width: 320px;
-  height: 320px;
-  background: radial-gradient(circle, rgba(56, 189, 248, 0.12) 0%, transparent 70%);
+  top: 32%;
+  left: -80px;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(157, 78, 221, 0.18) 0%, transparent 70%);
 }
 
-/* 🔝 1. APP HEADER */
+.mesh-stadium-glow {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 250px;
+  background: radial-gradient(ellipse at bottom, rgba(56, 189, 248, 0.08) 0%, transparent 75%);
+}
+
+/* 🔝 1. Header */
 .home-head {
   padding: max(10px, env(safe-area-inset-top, 0px)) 16px 10px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(7, 9, 19, 0.88);
-  border-bottom: 1px solid var(--card-border);
+  background: rgba(8, 9, 20, 0.85);
+  border-bottom: 1px solid rgba(157, 78, 221, 0.18);
   z-index: 40;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   flex-shrink: 0;
 }
 
+.home-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brand-crest-pill {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(121, 40, 202, 0.6), rgba(157, 78, 221, 0.3));
+  border: 1px solid rgba(199, 125, 255, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
 .brand-title {
   margin: 0;
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 900;
-  letter-spacing: 0.05em;
-  background: linear-gradient(135deg, #ffffff 40%, var(--purple-light) 100%);
+  letter-spacing: 0.06em;
+  background: linear-gradient(135deg, #ffffff 40%, var(--violet-light) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   line-height: 1;
@@ -121,43 +144,33 @@
 
 .brand-subtitle {
   margin: 2px 0 0;
-  font-size: 8px;
+  font-size: 7.5px;
   font-weight: 800;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.18em;
   color: var(--text-muted);
 }
 
-.luxury-pill {
+.luxury-status-pill {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   padding: 4px 10px;
   border-radius: 999px;
-  font-size: 9px;
+  font-size: 8.5px;
   font-weight: 900;
-  letter-spacing: 0.04em;
-  background: rgba(140, 109, 255, 0.14);
-  border: 1px solid rgba(140, 109, 255, 0.35);
-  color: var(--purple-light);
-  box-shadow: 0 0 12px rgba(140, 109, 255, 0.18);
+  letter-spacing: 0.05em;
+  background: rgba(121, 40, 202, 0.2);
+  border: 1px solid rgba(157, 78, 221, 0.45);
+  color: var(--violet-light);
+  box-shadow: 0 0 12px rgba(121, 40, 202, 0.25);
 }
 
-.pill-ico {
-  width: 12px;
-  height: 12px;
-}
-
-.luxury-refresh-btn {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--card-border);
-  color: #ffffff;
-  width: 28px;
-  height: 28px;
+.status-indicator {
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
+  background: var(--stat-green);
+  box-shadow: 0 0 6px var(--stat-green);
 }
 
 /* 📜 Scrollable Arena */
@@ -165,7 +178,7 @@
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding: 12px 14px 24px;
+  padding: 12px 14px 28px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -178,27 +191,28 @@
   display: none;
 }
 
-/* 👑 2. HERO MATCHDAY HUB */
+/* 👑 2. HERO SHOWCASE CARD */
 .hero-showcase-card {
   position: relative;
   border-radius: 18px;
-  background: linear-gradient(145deg, rgba(28, 22, 60, 0.95) 0%, rgba(12, 15, 36, 0.98) 100%);
-  border: 1.2px solid rgba(140, 109, 255, 0.35);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55), 0 0 20px rgba(140, 109, 255, 0.12);
+  background: linear-gradient(145deg, rgba(30, 22, 60, 0.88) 0%, rgba(14, 16, 36, 0.94) 100%);
+  border: 1.2px solid var(--card-border);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55), 0 0 20px var(--card-glow);
   padding: 12px 14px 10px;
   display: flex;
   flex-direction: column;
   gap: 10px;
   overflow: hidden;
+  backdrop-filter: blur(16px);
 }
 
 .hero-card-glow {
   position: absolute;
   top: -40px;
   right: -30px;
-  width: 160px;
-  height: 160px;
-  background: radial-gradient(circle, rgba(140, 109, 255, 0.35) 0%, transparent 70%);
+  width: 150px;
+  height: 150px;
+  background: radial-gradient(circle, rgba(157, 78, 221, 0.3) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -212,14 +226,22 @@
 .hero-identity {
   display: flex;
   align-items: center;
+  gap: 8px;
   min-width: 0;
   flex: 1;
 }
 
-.hero-text-block {
+.hero-crest-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: rgba(121, 40, 202, 0.25);
+  border: 1px solid rgba(199, 125, 255, 0.35);
   display: flex;
-  flex-direction: column;
-  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
 }
 
 .hero-team-title {
@@ -230,25 +252,26 @@
   overflow: hidden;
   text-overflow: ellipsis;
   letter-spacing: -0.01em;
-  line-height: 1.2;
+  display: block;
 }
 
 .hero-manager-sub {
   font-size: 10px;
   color: var(--text-muted);
-  margin-top: 2px;
+  display: block;
+  margin-top: 1px;
 }
 
 .hero-manager-sub b {
-  color: var(--purple-light);
+  color: var(--violet-light);
   font-weight: 800;
 }
 
 /* High-Contrast Visible Deadline Pill */
 .hero-deadline-chip {
-  background: rgba(10, 13, 28, 0.85);
-  border: 1px solid rgba(251, 191, 36, 0.4);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  background: rgba(10, 12, 28, 0.85);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
   border-radius: 10px;
   padding: 4px 8px;
   display: flex;
@@ -268,26 +291,25 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: var(--gold-main);
-  box-shadow: 0 0 6px var(--gold-main);
+  background: var(--stat-gold);
+  box-shadow: 0 0 6px var(--stat-gold);
 }
 
 .chip-text {
-  font-size: 9px;
+  font-size: 8.5px;
   font-weight: 900;
-  color: var(--gold-main);
+  color: var(--stat-gold);
   letter-spacing: 0.04em;
 }
 
 .chip-date-text {
-  font-size: 9.5px !important;
+  font-size: 9px !important;
   color: #f1f5f9 !important;
   font-weight: 700 !important;
   letter-spacing: 0.02em;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
 }
 
-/* Clean 4-Boxes Countdown Grid */
+/* Symmetrical 4-Box Countdown Grid */
 .hero-countdown-4box {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -296,7 +318,7 @@
 }
 
 .hero-countdown-4box .cd-box {
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(8, 10, 24, 0.65);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
   padding: 5px 2px;
@@ -304,7 +326,6 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05);
 }
 
 .hero-countdown-4box .cd-box b {
@@ -324,11 +345,11 @@
 }
 
 .hero-countdown-4box .cd-sec b {
-  color: var(--purple-light);
+  color: var(--violet-light);
 }
 
 /* =========================================================================
-   📊 3. PRIMARY STATS (CENTER ALIGNED) & TACTICAL MICRO-PILLS
+   📊 3. PERFORMANCE & TACTICAL SQUAD MATRIX
    ========================================================================= */
 .performance-matrix-section {
   display: flex;
@@ -336,7 +357,7 @@
   gap: 6px;
 }
 
-/* 🎯 Primary Numbers: Horizontal & Vertical Center Alignment */
+/* Tier A: Primary Centered Metrics */
 .metrics-primary-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -351,31 +372,38 @@
   padding: 8px 6px;
   display: flex;
   flex-direction: column;
-  align-items: center;       /* 💡 Center */
-  justify-content: center;    /* 💡 Center */
-  text-align: center;        /* 💡 Center */
+  align-items: center;
+  justify-content: center;
+  text-align: center;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(14px);
   min-height: 68px;
 }
 
-.card-total { border-color: rgba(34, 197, 94, 0.35); }
-.card-rank  { border-color: rgba(251, 191, 36, 0.35); }
-.card-gw    { border-color: rgba(56, 189, 248, 0.35); }
+.card-total { border-color: rgba(34, 197, 94, 0.4); }
+.card-rank  { border-color: rgba(251, 191, 36, 0.4); }
+.card-gw    { border-color: rgba(56, 189, 248, 0.4); }
+
+.metric-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.metric-ico {
+  font-size: 8px;
+}
 
 .metric-tag {
   font-size: 7.5px;
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  text-align: center;
-  width: 100%;
-  display: block;
 }
 
-.card-total .metric-tag { color: var(--green-main); }
-.card-rank .metric-tag  { color: var(--gold-main); }
-.card-gw .metric-tag    { color: var(--cyan-main); }
+.card-total .metric-tag { color: var(--stat-green); }
+.card-rank .metric-tag  { color: var(--stat-gold); }
+.card-gw .metric-tag    { color: var(--stat-cyan); }
 
 .metric-value {
   font-size: 15.5px;
@@ -384,8 +412,6 @@
   margin: 3px 0 1px;
   line-height: 1.1;
   text-align: center;
-  width: 100%;
-  display: block;
 }
 
 .metric-delta {
@@ -396,14 +422,12 @@
   overflow: hidden;
   text-overflow: ellipsis;
   text-align: center;
-  width: 100%;
-  display: block;
 }
 
 .delta-up { color: #86efac; }
 .delta-dn { color: #fca5a5; }
 
-/* 🌟 TACTICAL MICRO-PILLS (BANK: အဝါ | FT: အနီ | CAPTAIN: အစိမ်း) */
+/* Tier B: Tactical Micro-Cards (Bank: Yellow, FT: Red, Cap: Green) */
 .tactical-micro-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -416,99 +440,70 @@
   border-radius: 12px;
   padding: 6px 4px;
   display: flex;
-  flex-direction: column;     /* 💡 Center Stack */
-  align-items: center;         /* 💡 Center */
-  justify-content: center;    /* 💡 Center */
-  text-align: center;         /* 💡 Center */
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
-  min-height: 48px;
-  width: 100%;
-  transition: transform 0.15s ease;
-}
-
-.tactical-micro-pill:active {
-  transform: scale(0.97);
-}
-
-.pill-ico {
-  display: none !important;  /* Center အချိုးညီစေရန် ပိုလျှံသော Icon ဖယ်ရှားသည် */
-}
-
-.pill-content {
-  display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+  min-height: 48px;
   width: 100%;
 }
 
-.tactical-micro-pill .pill-val {
+.pill-head-center {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  max-width: 100%;
+}
+
+.pill-ico {
+  font-size: 9px;
+  flex-shrink: 0;
+}
+
+.pill-val {
   font-size: 11.5px !important;
   font-weight: 900 !important;
   color: #ffffff !important;
   line-height: 1.1;
-  text-align: center;
-  width: 100%;
   margin-top: 2px;
-  display: block;
 }
 
-/* 💛 A. BANK : စာသား အဝါရောင် + Border အဝါရောင် */
+/* 💛 Bank: Yellow Accent */
 .tactical-micro-pill.card-bank {
-  border: 1.2px solid rgba(251, 191, 36, 0.45) !important;
-  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.12), inset 0 1px 1px rgba(251, 191, 36, 0.15);
+  border: 1.2px solid rgba(250, 204, 21, 0.45) !important;
 }
 .tactical-micro-pill.card-bank .pill-title {
   font-size: 7.5px !important;
   font-weight: 900 !important;
-  color: #fbbf24 !important; /* အဝါရောင် */
+  color: var(--stat-yellow) !important;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  line-height: 1;
-  text-align: center;
-  width: 100%;
-  display: block;
-  text-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
 }
 
-/* ❤️ B. FREE TRANSFERS : စာသား အနီရောင် + Border အနီရောင် */
+/* ❤️ Free Transfers: Red Accent */
 .tactical-micro-pill.card-ft {
-  border: 1.2px solid rgba(239, 68, 68, 0.45) !important;
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.12), inset 0 1px 1px rgba(239, 68, 68, 0.15);
+  border: 1.2px solid rgba(244, 63, 94, 0.45) !important;
 }
 .tactical-micro-pill.card-ft .pill-title {
   font-size: 7.5px !important;
   font-weight: 900 !important;
-  color: #ef4444 !important; /* အနီရောင် */
+  color: var(--stat-red) !important;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  line-height: 1;
-  text-align: center;
-  width: 100%;
-  display: block;
-  text-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
 }
 
-/* 💚 C. CAPTAIN POINTS : စာသား အစိမ်းရောင် + Border အစိမ်းရောင် */
+/* 💚 Captain: Green Accent */
 .tactical-micro-pill.card-captain {
   border: 1.2px solid rgba(34, 197, 94, 0.45) !important;
-  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.12), inset 0 1px 1px rgba(34, 197, 94, 0.15);
 }
 .tactical-micro-pill.card-captain .pill-title {
   font-size: 7.5px !important;
   font-weight: 900 !important;
-  color: #22c55e !important; /* အစိမ်းရောင် */
+  color: var(--stat-green) !important;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  line-height: 1;
-  text-align: center;
-  width: 100%;
-  display: block;
-  text-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
 }
 
 /* =========================================================================
-   👕 4. TOP 5 PLAYERS SHOWCASE (3D JERSEYS)
+   👕 4. TOP 5 PLAYERS SHOWCASE (3D KITS)
    ========================================================================= */
 .top-showcase-section {
   display: flex;
@@ -534,17 +529,13 @@
 }
 
 .title-accent-glow {
-  width: 3.5px;
-  height: 13px;
-  border-radius: 2px;
-  background: var(--purple-main);
-  box-shadow: 0 0 8px var(--purple-main);
+  font-size: 12px;
 }
 
 .section-link {
   font-size: 9.5px;
   font-weight: 800;
-  color: var(--purple-light);
+  color: var(--violet-light);
   text-decoration: none;
 }
 
@@ -556,17 +547,17 @@
 }
 
 .top-player-card {
-  background: linear-gradient(180deg, rgba(22, 28, 56, 0.9) 0%, rgba(10, 13, 28, 0.95) 100%);
+  background: linear-gradient(180deg, rgba(24, 28, 58, 0.88) 0%, rgba(10, 13, 28, 0.95) 100%);
   border: 1px solid var(--card-border);
   border-radius: 12px;
-  padding: 5px 3px 5px;
+  padding: 5px 3px 6px;
   display: flex;
   flex-direction: column;
   align-items: center;
   position: relative;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
   transition: transform 0.15s ease;
-  min-height: 122px;
+  min-height: 124px;
 }
 
 .top-player-card:active {
@@ -650,7 +641,7 @@
 .player-card-skel {
   background: rgba(255, 255, 255, 0.04);
   border-radius: 12px;
-  height: 122px;
+  height: 124px;
   animation: pulse 1.5s infinite;
 }
 
@@ -660,7 +651,7 @@
 }
 
 /* =========================================================================
-   ⚡ 5. LEAGUE SCOUT TRENDS TABS (VIBRANT 6-COLOR SYSTEM)
+   ⚡ 5. LEAGUE SCOUT TRENDS TABS
    ========================================================================= */
 .quick-stats-section {
   display: flex;
@@ -695,7 +686,6 @@
 
 .vibrant-tabs-strip button .tab-ico {
   font-size: 11px;
-  transition: transform 0.15s ease;
 }
 
 .vibrant-tabs-strip button .tab-txt {
@@ -705,7 +695,7 @@
   white-space: nowrap;
 }
 
-/* 🌟 Vibrant Multi-Color Active Glow States */
+/* Vibrant Active Glow Tabs */
 .vibrant-tabs-strip button.tab-cap.on {
   background: rgba(255, 255, 255, 0.14) !important;
   border-color: rgba(255, 255, 255, 0.4) !important;
@@ -749,17 +739,17 @@
 }
 
 /* =========================================================================
-   🗓️ 6. UPCOMING FIXTURE CARD
+   🗓️ 6. MATCHDAY FIXTURE CARD
    ========================================================================= */
 .upcoming-fixture-card {
-  background: linear-gradient(145deg, rgba(18, 23, 48, 0.95) 0%, rgba(10, 13, 28, 0.98) 100%);
-  border: 1.2px solid rgba(140, 109, 255, 0.25);
+  background: linear-gradient(145deg, rgba(20, 24, 52, 0.92) 0%, rgba(10, 12, 28, 0.96) 100%);
+  border: 1.2px solid var(--card-border);
   border-radius: 14px;
   padding: 10px 12px;
   display: flex;
   flex-direction: column;
   gap: 7px;
-  box-shadow: 0 5px 16px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
   text-decoration: none;
 }
 
@@ -772,7 +762,7 @@
 .tag-badge {
   font-size: 7.5px;
   font-weight: 900;
-  color: var(--purple-light);
+  color: var(--violet-light);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
