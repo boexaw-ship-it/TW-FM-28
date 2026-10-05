@@ -1,0 +1,44 @@
+{
+  "name": "TW FF APPLICATION",
+  "short_name": "TW FF",
+  "description": "TW FF Official Fantasy Football & Sports Analytics Application",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b0d1a",
+  "theme_color": "#0b0d1a",
+  "lang": "my",
+  "dir": "ltr",
+  "categories": ["sports", "games", "entertainment"],
+  "icons": [
+    {
+      "src": "./public/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./public/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Home",
+      "description": "View Manager Dashboard & Deadlines",
+      "url": "./#/dashboard",
+      "icons": [{ "src": "./public/icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "My Team",
+      "short_name": "Team",
+      "description": "View Squad & Tactics",
+      "url": "./#/team",
+      "icons": [{ "src": "./public/icons/icon-192x192.png", "sizes": "192x192" }]
+    }
+  ]
+}
