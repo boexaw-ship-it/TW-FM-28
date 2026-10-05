@@ -1,6 +1,7 @@
 <!-- ============================================
   TW FM — Dashboard View Layout
   Standards: UI Design Knowledge Pack (Zero Mock, 100% Dynamic Firestore)
+  Features: 6 Performance Metric Hub (Bank, FT, CapPts) & Jersey-Centric Top 5 Cards
   Path: views/dashboard.html
 ============================================ -->
 
@@ -11,7 +12,7 @@
     <div class="mesh-orb orb-blue"></div>
     <div class="mesh-pitch-circle"></div>
   </div>
-
+  
   <!-- 🔝 1. CLEAN TOP HEADER -->
   <header class="home-head safe-top">
     <div class="home-brand">
@@ -20,12 +21,11 @@
         <p class="brand-subtitle">TOGETHER WE PLAY</p>
       </div>
     </div>
-
+    
     <div class="home-who">
-      <!-- 💡 Dynamic Account Type Pill: "TW MEMBER" အသေရေးသားထားခြင်းကို လုံးဝ ဖယ်ရှားပြီးဖြစ်သည် -->
       <div id="account-type-pill" class="home-pill" aria-live="polite">
         <svg viewBox="0 0 24 24" fill="currentColor" class="user-pill-ico" aria-hidden="true">
-          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
         </svg>
         <span id="account-type-text">Loading...</span>
       </div>
@@ -35,9 +35,9 @@
     </div>
   </header>
   
-  <!-- 📜 Main Fixed Single Viewport Container (Zero Scroll) -->
+  <!-- 📜 Main Scroll Area (Full Fit Mobile Optimization) -->
   <main class="home-scroll">
-    <!-- 🌟 2. UNIFIED HERO HUB (Matt Black Border Line & Dynamic Firestore Manager Info) -->
+    <!-- 🌟 2. UNIFIED HERO HUB (Manager Identity & Real Gameweek Countdown) -->
     <section class="luxury-hero-hub" id="hero-deadline-card" aria-label="Manager and Gameweek Status">
       <!-- Top Row: Dynamic Team Info & Deadline Chip -->
       <div class="hero-hub-top">
@@ -62,7 +62,7 @@
           </div>
         </div>
       </div>
-
+      
       <!-- Bottom Row: Real Countdown 4-Boxes -->
       <div class="hero-hub-bottom">
         <div class="home-cd" id="home-cd" aria-live="polite">
@@ -86,19 +86,18 @@
       </div>
     </section>
     
-    <!-- 📊 3. 3-COLUMN PERFORMANCE STATS (Real Live Points Tiles) -->
-    <section class="luxury-stats-card" aria-label="Season Performance Overview">
-      <!-- Tile 1: Total Points -->
+    <!-- 📊 3. 6-TILE PERFORMANCE & SQUAD METRIC GRID (Bank, FT, CapPts Added) -->
+    <section class="luxury-stats-grid" aria-label="Season Performance & Team Metrics">
+      <!-- Row 1: Primary Ranks & Scores -->
       <div class="stat-nameplate-tile neon-glow-green">
         <div class="col-head">
           <span class="stat-ico c-green" aria-hidden="true">★</span>
           <span class="stat-title">TOTAL POINTS</span>
         </div>
-        <b id="st-total" class="stat-num">--</b>
+        <b id="st-total" class="stat-num font-mono">--</b>
         <em id="st-total-d" class="stat-change up">--</em>
       </div>
-
-      <!-- Tile 2: Overall Rank -->
+      
       <div class="stat-nameplate-tile neon-glow-gold">
         <div class="col-head">
           <span class="stat-ico c-gold" aria-hidden="true">🏆</span>
@@ -107,19 +106,46 @@
         <b id="st-rank" class="stat-num font-mono">--</b>
         <em id="st-rank-d" class="stat-change up">--</em>
       </div>
-
-      <!-- Tile 3: GW Score -->
+      
       <div class="stat-nameplate-tile neon-glow-cyan">
         <div class="col-head">
           <span class="stat-ico c-cyan" aria-hidden="true">📊</span>
           <span class="stat-title" id="st-gw-l">GW SCORE</span>
         </div>
-        <b id="st-gw" class="stat-num">--</b>
+        <b id="st-gw" class="stat-num font-mono">--</b>
         <em id="st-gw-d" class="stat-change up">--</em>
+      </div>
+      
+      <!-- Row 2: Live Team Management Metrics (Bank · Free Transfers · Captain Points) -->
+      <div class="stat-nameplate-tile neon-glow-purple">
+        <div class="col-head">
+          <span class="stat-ico c-purple" aria-hidden="true">💰</span>
+          <span class="stat-title">IN THE BANK</span>
+        </div>
+        <b id="st-bank" class="stat-num font-mono">£--M</b>
+        <em class="stat-change muted">Remaining Budget</em>
+      </div>
+      
+      <div class="stat-nameplate-tile neon-glow-emerald">
+        <div class="col-head">
+          <span class="stat-ico c-emerald" aria-hidden="true">🔄</span>
+          <span class="stat-title">FREE TRANSFERS</span>
+        </div>
+        <b id="st-ft" class="stat-num font-mono">--</b>
+        <em class="stat-change up" id="st-ft-sub">Available</em>
+      </div>
+      
+      <div class="stat-nameplate-tile neon-glow-amber">
+        <div class="col-head">
+          <span class="stat-ico c-amber" aria-hidden="true">👑</span>
+          <span class="stat-title">CAPTAIN PTS</span>
+        </div>
+        <b id="st-cap-pts" class="stat-num font-mono">--</b>
+        <em class="stat-change up" id="st-cap-name">Captain Score</em>
       </div>
     </section>
     
-    <!-- 🌟 4. TOP 5 PLAYERS CARD GRID (Pure Dynamic Scout Feed) -->
+    <!-- 🌟 4. TOP 5 PLAYERS CARD GRID (Jersey-Centric Larger Visual Cards) -->
     <section class="home-top-grid-section" aria-label="Top 5 Players">
       <div class="home-section-header">
         <h3 class="home-h">
@@ -138,7 +164,7 @@
       </div>
     </section>
     
-    <!-- ⚡ 5. QUICK STATS TABS (Dynamic Frameless Clean Filter Strip) -->
+    <!-- ⚡ 5. QUICK STATS TABS (Frameless Clean Filter Strip) -->
     <section class="home-quick-stats-section" aria-label="Quick Stats Filters">
       <div class="home-section-header">
         <h3 class="home-h">
@@ -175,7 +201,7 @@
       </div>
     </section>
     
-    <!-- 🗓️ 6. POLISHED NEXT FIXTURE CARD (Pure Dynamic Matchday Feed) -->
+    <!-- 🗓️ 6. POLISHED NEXT FIXTURE CARD -->
     <a class="home-next-fixture-card text-decoration-none" id="next-fixture-card-link" href="#/fixtures" aria-label="Open Full Fixtures">
       <div class="fixture-head">
         <span class="fixture-tag">📅 Next Fixture</span>
