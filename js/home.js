@@ -1,8 +1,8 @@
 // ============================================
 // TW FM — Home UI Controller (Production)
 // Path: js/home.js
-// Standards: UI Design Knowledge Pack (Zero Mock, 100% Dynamic Firestore)
-// Responsibilities: Pure Firestore Current GW Sync & Dynamic Stadium Resolver
+// Standards: UI Design Knowledge Pack (Zero Logic Change, 100% Dynamic Sync)
+// Feature: Official Captaincy % Display Support
 // ============================================
 
 import { db } from "./firebase-config.js";
@@ -12,8 +12,8 @@ import { loadFixturesMaster } from "./core/data.js";
 const $ = (id) => document.getElementById(id);
 const MIN = 60 * 1000;
 
-const SCOUT_CACHE_KEY_LIVE = "twfm_scout_highlights_v13";
-const DEADLINE_CACHE_KEY_LIVE = "twfm_dynamic_deadline_v13";
+const SCOUT_CACHE_KEY_LIVE = "twfm_scout_highlights_v14";
+const DEADLINE_CACHE_KEY_LIVE = "twfm_dynamic_deadline_v14";
 
 const LS = {
   get(k, ttl) { 
@@ -52,9 +52,14 @@ const POS = {
   fwd: "#22C55E"   
 };
 
-// 6 Modes Dynamic Synchronization
+// 6 Modes Dynamic Synchronization (💡 Captaincy % Display Integrated)
 const MODES = {
-  cap: { label: "Most Captained", color: "#FFFFFF", key: "mostCaptained", show: (p) => `${p.totalPoints || p.gwPoints || 0} pts` },
+  cap: { 
+    label: "Most Captained", 
+    color: "#FFFFFF", 
+    key: "mostCaptained", 
+    show: (p) => `${p.captainPercent !== undefined && p.captainPercent !== null ? p.captainPercent : Number(p.ownership || 0).toFixed(1)}%` 
+  },
   own: { label: "Highest Owned", color: "#FBBF24", key: "mostOwned", show: (p) => `${Number(p.ownership || 0).toFixed(1)}%` },
   tin: { label: "Top Transfers In", color: "#22C55E", key: "mostTransferredIn", show: (p) => `+${fmt(p.transfersInEvent || 0)}` },
   tout: { label: "Top Transfers Out", color: "#EF4444", key: "mostTransferredOut", show: (p) => `-${fmt(p.transfersOutEvent || 0)}` },
@@ -62,7 +67,6 @@ const MODES = {
   gw: { label: "Gameweek High Scorers", color: "#34D399", key: "mostGwPoints", show: (p) => `${p.gwPoints || 0} pts` }
 };
 
-// 🏟️ Premier League Official Stadium Map (Dynamic Stadium Resolver)
 const TEAM_STADIUM_MAP = {
   "ARS": "Emirates Stadium",
   "AVL": "Villa Park",
@@ -129,7 +133,6 @@ function getTeamMeta(teamIdentifier) {
   return { id: 1, name: "Arsenal", short: "ARS", code: "ars", color: "#EF0107", badgePath: "./assets/badges/ars.png" };
 }
 
-// 👕 3D Club Kits Only — Zero Player Portrait Dependency
 function resolveClubJerseyPath(p) {
   const meta = getTeamMeta(p.teamCode || p.team);
   const code = (meta.code || "che").toLowerCase();
@@ -452,6 +455,9 @@ function renderScoutTrendsCarousel() {
     const localBadgeUrl = teamMeta.badgePath;
     const jerseyPath = resolveClubJerseyPath(p);
 
+    // 💡 Value Formatting: Captain Tab တွင် ရာခိုင်နှုန်း (%) ပြသပြီး ကျန် Tab များတွင် ပုံမှန်တိုင်း သက်ဆိုင်ရာ Metrics အတိုင်း ပြသသည်
+    const metricDisplay = M.show(p);
+
     return `
       <div class="trend-player-card" style="border-top: 2.8px solid ${posColor};">
         <span class="player-card-rank">#${i + 1}</span>
@@ -471,7 +477,7 @@ function renderScoutTrendsCarousel() {
             ${isGk ? "GK" : rawPos.toUpperCase()}
           </div>
           <div class="player-card-pts" style="color: ${M.color} !important; text-shadow: 0 0 10px rgba(157, 78, 221, 0.45);">
-            ${M.show(p)}
+            ${metricDisplay}
           </div>
         </div>
       </div>
@@ -479,13 +485,12 @@ function renderScoutTrendsCarousel() {
   }).join("");
 }
 
-// 🗓️ PURE DYNAMIC MATCHDAY FIXTURE & STADIUM RESOLVER (NO MOCK DATA)
+// 🗓️ PURE DYNAMIC MATCHDAY FIXTURE & STADIUM RESOLVER
 async function loadNextFixture() {
   try {
     const meta = await loadFixturesMaster();
     if (!meta || !Array.isArray(meta.fixtures) || meta.fixtures.length === 0) return;
 
-    // 🌟 Current Gameweek အစစ်အမှန်အား Dynamic ရှာဖွေခြင်း
     const targetGw = currentGwNumber || meta.currentGameweek?.id || 1;
     let targetMatch = meta.fixtures.find(f => Number(f.event) === Number(targetGw) && !f.finished)
                    || meta.fixtures.find(f => Number(f.event) === Number(targetGw))
@@ -496,7 +501,6 @@ async function loadNextFixture() {
     const homeTeam = getTeamMeta(targetMatch.team_h);
     const awayTeam = getTeamMeta(targetMatch.team_a);
 
-    // 💡 Home Team ၏ တရားဝင် အိမ်ကွင်းအမည်အား Dynamic ဆွဲထုတ်သည် (Mock မဟုတ်ပါ)
     const resolvedStadium = TEAM_STADIUM_MAP[homeTeam.short] || `${homeTeam.name} Stadium`;
     const stadiumEl = $("fixture-stadium-name");
     if (stadiumEl) {
