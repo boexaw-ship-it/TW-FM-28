@@ -1,185 +1,166 @@
 /**
- * TW Fantasy — Service Worker (SPA app-shell)
- * - Install မှာ အားလုံးကို precache (offline + page ပြောင်းတိုင်း network မသွားတော့ဘူး)
- * - Same-origin asset: stale-while-revalidate (query string ?r=N ကို ignore လုပ်)
- * - Navigation: index.html (app shell) ကိုပဲ ပြန်ပေး
- * - Firebase data / auth call တွေ မစွက်ဖက်
- * VERSION နဲ့ precache list ကို `node tools/build.js` က auto ထည့်ပေးတယ်
+ * =========================================================================
+ * TW FF APPLICATION — Production Service Worker (PWA SPA App-Shell)
+ * Supports: Vercel Deployments, Localhost Development & Offline App Shell
+ * =========================================================================
  */
-const VERSION = 'fb98c3d4';
-const CACHE_NAME = 'twfm-spa-' + VERSION;
-const PRECACHE = /*PRECACHE_START*/
-[
-  "./",
-  "./css/app.css",
-  "./css/dashboard.css",
-  "./css/draft.css",
-  "./css/fixtures.css",
-  "./css/home.css",
-  "./css/index.css",
-  "./css/inline/draft.css",
-  "./css/inline/fixtures.css",
-  "./css/inline/leagues.css",
-  "./css/inline/live.css",
-  "./css/inline/pending.css",
-  "./css/inline/register.css",
-  "./css/inline/scout.css",
-  "./css/inline/team.css",
-  "./css/inline/transfers.css",
-  "./css/inline/twsuper.css",
-  "./css/leagues.css",
-  "./css/live.css",
-  "./css/pending.css",
-  "./css/register.css",
-  "./css/scout.css",
-  "./css/style.css",
-  "./css/tailwind.css",
-  "./css/team.css",
-  "./css/transfers.css",
-  "./css/twsuper.css",
-  "./index.html",
-  "./js/app.js",
-  "./js/core/auth.js",
-  "./js/core/data.js",
-  "./js/core/fs.js",
-  "./js/core/scope.js",
-  "./js/dashboard.js",
-  "./js/draft-ui.js",
-  "./js/draft.js",
-  "./js/firebase-config.js",
-  "./js/fixtures.js",
-  "./js/home.js",
-  "./js/index-ui.js",
-  "./js/index.js",
-  "./js/inline/draft.js",
-  "./js/insights.js",
-  "./js/leagues.js",
-  "./js/live-ui.js",
-  "./js/live.js",
-  "./js/more.js",
-  "./js/pending.js",
-  "./js/pitch-renderer.js",
-  "./js/register.js",
-  "./js/routes.js",
-  "./js/scout-ui.js",
-  "./js/scout.js",
-  "./js/team.js",
-  "./js/transfer-pricing.js",
-  "./js/transfers.js",
-  "./js/twsuper.js",
-  "./js/weekfixtures.js",
-  "./public/jerseys/gk/ars.png",
-  "./public/jerseys/gk/avl.png",
-  "./public/jerseys/gk/bha.png",
-  "./public/jerseys/gk/bou.png",
-  "./public/jerseys/gk/bre.png",
-  "./public/jerseys/gk/che.png",
-  "./public/jerseys/gk/cov.png",
-  "./public/jerseys/gk/cry.png",
-  "./public/jerseys/gk/eve.png",
-  "./public/jerseys/gk/ful.png",
-  "./public/jerseys/gk/hul.png",
-  "./public/jerseys/gk/ips.png",
-  "./public/jerseys/gk/lee.png",
-  "./public/jerseys/gk/liv.png",
-  "./public/jerseys/gk/mci.png",
-  "./public/jerseys/gk/mun.png",
-  "./public/jerseys/gk/new.png",
-  "./public/jerseys/gk/nfo.png",
-  "./public/jerseys/gk/sun.png",
-  "./public/jerseys/gk/tot.png",
-  "./public/jerseys/outfield/ars.png",
-  "./public/jerseys/outfield/avl.png",
-  "./public/jerseys/outfield/bha.png",
-  "./public/jerseys/outfield/bou.png",
-  "./public/jerseys/outfield/bre.png",
-  "./public/jerseys/outfield/che.png",
-  "./public/jerseys/outfield/cov.png",
-  "./public/jerseys/outfield/cry.png",
-  "./public/jerseys/outfield/eve.png",
-  "./public/jerseys/outfield/ful.png",
-  "./public/jerseys/outfield/hul.png",
-  "./public/jerseys/outfield/ips.png",
-  "./public/jerseys/outfield/lee.png",
-  "./public/jerseys/outfield/liv.png",
-  "./public/jerseys/outfield/mci.png",
-  "./public/jerseys/outfield/mun.png",
-  "./public/jerseys/outfield/new.png",
-  "./public/jerseys/outfield/nfo.png",
-  "./public/jerseys/outfield/sun.png",
-  "./public/jerseys/outfield/tot.png",
-  "./public/manifest.json",
-  "./views/dashboard.html",
-  "./views/draft.html",
-  "./views/fixtures.html",
-  "./views/leagues.html",
-  "./views/live.html",
-  "./views/login.html",
-  "./views/more.html",
-  "./views/pending.html",
-  "./views/register.html",
-  "./views/scout.html",
-  "./views/team.html",
-  "./views/transfers.html",
-  "./views/twsuper.html"
-]
-/*PRECACHE_END*/;
 
-const BYPASS = ['firestore.googleapis.com', 'identitytoolkit.googleapis.com', 'securetoken.googleapis.com',
-  'firebaseinstallations.googleapis.com', 'google-analytics.com', 'googletagmanager.com', 'firebase.googleapis.com'];
+const VERSION = 'twff-v1.0.1';
+const CACHE_NAME = 'twff-cache-' + VERSION;
 
-const abs = (p) => new URL(p, self.registration.scope).href;
+// Precache Core Static Assets
+const PRECACHE = [
+  './',
+  './index.html',
+  './public/manifest.json',
+  './css/style.css',
+  './css/app.css',
+  './css/tailwind.css',
+  './css/home.css',
+  './css/dashboard.css',
+  './css/team.css',
+  './css/live.css',
+  './css/leagues.css',
+  './css/fixtures.css',
+  './css/scout.css',
+  './css/transfers.css',
+  './css/pending.css',
+  './css/register.css',
+  './js/app.js',
+  './js/firebase-config.js',
+  './js/dashboard.js',
+  './js/home.js',
+  './js/team.js',
+  './js/pending.js',
+  './js/register.js',
+  './views/dashboard.html',
+  './views/team.html',
+  './views/live.html',
+  './views/leagues.html',
+  './views/fixtures.html',
+  './views/scout.html',
+  './views/transfers.html',
+  './views/pending.html',
+  './views/register.html'
+];
+
+// Firebase & Analytics API bypass domains (Never cache authentication or database calls)
+const BYPASS_DOMAINS = [
+  'firestore.googleapis.com',
+  'identitytoolkit.googleapis.com',
+  'securetoken.googleapis.com',
+  'firebaseinstallations.googleapis.com',
+  'google-analytics.com',
+  'googletagmanager.com',
+  'firebase.googleapis.com',
+  'api.telegram.org'
+];
+
+const abs = (path) => new URL(path, self.registration.scope).href;
 const INDEX_URL = abs('./index.html');
 
-self.addEventListener('install', (e) => {
+// 1. Install Lifecycle: Cache core app-shell
+self.addEventListener('install', (event) => {
   self.skipWaiting();
-  e.waitUntil(caches.open(CACHE_NAME).then((cache) =>
-    Promise.allSettled(PRECACHE.map(async (p) => {
-      const url = abs(p);
-      const res = await fetch(url, { cache: 'reload' });
-      if (res.ok) await cache.put(url === abs('./') ? INDEX_URL : url, res);
-    }))
-  ));
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return Promise.allSettled(
+        PRECACHE.map(async (path) => {
+          try {
+            const url = abs(path);
+            const res = await fetch(url, { cache: 'reload' });
+            if (res.ok) {
+              await cache.put(url === abs('./') ? INDEX_URL : url, res);
+            }
+          } catch (err) {
+            console.warn(`[TW FF SW] Precache warning for ${path}:`, err);
+          }
+        })
+      );
+    })
+  );
 });
 
-self.addEventListener('activate', (e) => {
-  e.waitUntil(
+// 2. Activate Lifecycle: Clean legacy caches & claim clients
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(
+        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+      ))
       .then(() => self.clients.claim())
   );
 });
 
-self.addEventListener('fetch', (e) => {
-  const req = e.request;
+// 3. Fetch Lifecycle: Stale-While-Revalidate with Navigation Fallback
+self.addEventListener('fetch', (event) => {
+  const req = event.request;
   if (req.method !== 'GET') return;
-  const url = new URL(req.url);
-  if (BYPASS.some((h) => url.hostname.includes(h))) return;
 
-  // App shell
-  if (req.mode === 'navigate') {
-    e.respondWith((async () => {
-      const cache = await caches.open(CACHE_NAME);
-      const hit = await cache.match(INDEX_URL);
-      const net = fetch(INDEX_URL).then((r) => { if (r.ok) cache.put(INDEX_URL, r.clone()); return r; }).catch(() => null);
-      if (hit) { e.waitUntil(net); return hit; }
-      return (await net) || new Response('Offline', { status: 503 });
-    })());
+  const url = new URL(req.url);
+
+  // Bypass Google Firebase & External Live APIs
+  if (BYPASS_DOMAINS.some((domain) => url.hostname.includes(domain))) {
     return;
   }
 
-  const same = url.origin === self.location.origin;
-  let key = req.url;
-  if (same) { const u = new URL(req.url); u.search = ''; key = u.href; } // ?r=N router cache-bust ကို ignore
+  // SPA Navigation Mode: Return cached index.html app-shell immediately
+  if (req.mode === 'navigate') {
+    event.respondWith(
+      (async () => {
+        const cache = await caches.open(CACHE_NAME);
+        const hit = await cache.match(INDEX_URL);
+        const networkFetch = fetch(INDEX_URL)
+          .then((networkRes) => {
+            if (networkRes.ok) cache.put(INDEX_URL, networkRes.clone());
+            return networkRes;
+          })
+          .catch(() => null);
 
-  e.respondWith((async () => {
-    const cache = await caches.open(CACHE_NAME);
-    const hit = await cache.match(key);
-    const net = fetch(same ? key : req).then((res) => {
-      if (res && res.status === 200 && (res.type === 'basic' || res.type === 'cors')) cache.put(key, res.clone());
-      return res;
-    }).catch(() => null);
-    if (hit) { e.waitUntil(net); return hit; }
-    return (await net) || new Response('', { status: 504 });
-  })());
+        if (hit) {
+          event.waitUntil(networkFetch);
+          return hit;
+        }
+
+        return (await networkFetch) || new Response('Offline - TW FF Application', {
+          status: 503,
+          headers: { 'Content-Type': 'text/html; charset=utf-8' }
+        });
+      })()
+    );
+    return;
+  }
+
+  // Same-Origin Asset Strategy: Stale-While-Revalidate (Ignore cache-busting queries)
+  const isSameOrigin = url.origin === self.location.origin;
+  let cacheKey = req.url;
+
+  if (isSameOrigin) {
+    const cleanUrl = new URL(req.url);
+    cleanUrl.search = ''; // Strip ?r=123 queries for consistent cache hits
+    cacheKey = cleanUrl.href;
+  }
+
+  event.respondWith(
+    (async () => {
+      const cache = await caches.open(CACHE_NAME);
+      const hit = await cache.match(cacheKey);
+
+      const networkFetch = fetch(isSameOrigin ? cacheKey : req)
+        .then((res) => {
+          if (res && res.status === 200 && (res.type === 'basic' || res.type === 'cors')) {
+            cache.put(cacheKey, res.clone());
+          }
+          return res;
+        })
+        .catch(() => null);
+
+      if (hit) {
+        event.waitUntil(networkFetch);
+        return hit;
+      }
+
+      return (await networkFetch) || new Response('', { status: 504 });
+    })()
+  );
 });
