@@ -1,11 +1,8 @@
 // ============================================
-// TW FF APPLICATION — Home UI Controller
+// TW FM — Home UI Controller (Luxury Sports Edition)
 // Path: js/home.js
 // Standards: UI Design Knowledge Pack (Zero Mock, 100% Dynamic Firestore)
-// Key Fixes:
-//   1. 3 Live Metric Integrations: Bank, Free Transfers & Captain Points from liveTeams
-//   2. 3D Club Jerseys on Top 5 Cards (Replaces External Photo CDN)
-//   3. High-Contrast Sports UI & Pure Real-Time Sync
+// Responsibilities: 100% Dynamic Firebase Sync, Clean Team Name, Restored 4-Box Countdown
 // ============================================
 
 import { db } from "./firebase-config.js";
@@ -15,8 +12,8 @@ import { loadFixturesMaster } from "./core/data.js";
 const $ = (id) => document.getElementById(id);
 const MIN = 60 * 1000;
 
-const SCOUT_CACHE_KEY_LIVE = "twfm_scout_highlights_live_v3";
-const DEADLINE_CACHE_KEY_LIVE = "twfm_dynamic_deadline_live_v3";
+const SCOUT_CACHE_KEY_LIVE = "twfm_scout_highlights_v7";
+const DEADLINE_CACHE_KEY_LIVE = "twfm_dynamic_deadline_v7";
 
 const LS = {
   get(k, ttl) { 
@@ -41,13 +38,12 @@ let deadlineTs = 0;
 let currentGwNumber = null;
 let lastDoneGw = null;
 let liveStats = null;
-let liveTeamSquad = null; // 🌟 liveTeams data (bank, freeTransfers, picks)
+let liveTeamSquad = null;
 let currentFplId = null;
 let scoutHighlightsData = null;
 let mode = "cap";
 let timerInterval = null;
 
-// FPL Position Colors
 const POS = { 
   gk: "#2563EB",   
   gkp: "#2563EB",  
@@ -56,7 +52,6 @@ const POS = {
   fwd: "#22C55E"   
 };
 
-// 6 Modes Dynamic Synchronization
 const MODES = {
   cap: { color: "#FFFFFF", key: "mostCaptained", show: (p) => `${p.totalPoints || p.gwPoints || 0} pts` },
   own: { color: "#FBBF24", key: "mostOwned", show: (p) => `${Number(p.ownership || 0).toFixed(1)}%` },
@@ -109,7 +104,6 @@ function getTeamMeta(teamIdentifier) {
   return { id: 6, name: "Chelsea", short: "CHE", code: "che", color: "#034694", badgePath: `./assets/badges/che.png` };
 }
 
-// 👕 3D CLUB JERSEY RESOLVER (No More CDN Player Photos)
 function resolveClubJerseyPath(p) {
   const meta = getTeamMeta(p.teamCode || p.team);
   const code = (meta.code || "che").toLowerCase();
@@ -223,9 +217,10 @@ function initDeadlineTimer() {
       tick();
       paintStats();
     }
-  }).catch(err => console.warn("Live deadline resolver notice:", err));
+  }).catch(err => console.warn("Deadline resolver notice:", err));
 }
 
+// ⏱ 4-Boxes Countdown Tick Engine
 function tick() {
   const now = Date.now();
   let d = deadlineTs ? Math.max(0, deadlineTs - now) : 0;
@@ -251,7 +246,33 @@ function tick() {
   set("cd-s", pad(s));
 }
 
-// 🌟 PAINT ALL 6 DASHBOARD METRICS (Bank, Free Transfers, Captain Points Included)
+// 👑 CLEAN MANAGER & TEAM NAME BINDING (Regex Strips ⛵ from Image 1000065125.jpg)
+function decorateManagerFrame(profile) {
+  try {
+    const teamNameEl = $("welcome-name");
+    const managerNameEl = $("welcome-manager");
+
+    let rawTeam = profile?.teamName || "SEAROKER Tw";
+    // 💡 Firestore ထဲတွင် '⛵ SEAROKER Tw' ဟု ရှိနေပါက ⛵ အား သန့်စင်ဖယ်ရှားသည်
+    let cleanTeam = String(rawTeam)
+      .replace(/^[\u{1F300}-\u{1F9FF}\s]+/u, "")
+      .replace(/^⛵\s*/, "")
+      .trim();
+
+    let rawManager = profile?.managerName || profile?.displayName || "zaw moe";
+    let cleanManager = String(rawManager)
+      .replace(/^manager:\s*/i, "")
+      .replace(/^manager\s*/i, "")
+      .trim();
+
+    if (teamNameEl) teamNameEl.textContent = cleanTeam || "SEAROKER Tw";
+    if (managerNameEl) managerNameEl.textContent = cleanManager || "zaw moe";
+  } catch (err) {
+    console.warn("Manager frame decorate note:", err);
+  }
+}
+
+// 🌟 PAINT STATS & SLEEK MICRO-PILLS
 function paintStats() {
   if (!liveStats) return;
 
@@ -266,38 +287,37 @@ function paintStats() {
     if (cls !== undefined) e.className = cls; 
   };
 
-  // Row 1: Primary Metrics
+  // Primary Metrics
   t("st-total", fmt(liveStats.totalPoints));
-  t("st-total-d", g > 0 ? `▲ +${fmt(gw)} (GW${g})` : `▲ +${fmt(gw)}`, "stat-change up");
+  t("st-total-d", g > 0 ? `▲ +${fmt(gw)} (GW${g})` : `▲ +${fmt(gw)}`, "metric-delta delta-up");
   t("st-rank", fmt(liveStats.overallRank));
-  t("st-rank-d", liveStats.gwRank ? `▲ +${fmt(liveStats.gwRank)}` : `–`, "stat-change up");
-  t("st-gw-l", `GW SCORE`);
+  t("st-rank-d", liveStats.gwRank ? `▲ +${fmt(liveStats.gwRank)}` : `–`, "metric-delta delta-up");
+  t("st-gw-l", `📊 GW SCORE`);
   t("st-gw", fmt(gw));
 
   if (Number.isFinite(avg) && avg > 0) {
     const up = gw >= avg;
-    t("st-gw-d", `${up ? "▲" : "▼"} avg ${fmt(avg)}`, up ? "stat-change up" : "stat-change dn");
+    t("st-gw-d", `${up ? "▲" : "▼"} avg ${fmt(avg)}`, up ? "metric-delta delta-up" : "metric-delta delta-dn");
   } else {
-    t("st-gw-d", `–`, "stat-change up");
+    t("st-gw-d", `–`, "metric-delta delta-up");
   }
 
-  // Row 2: Live Team Management Metrics (from liveTeams)
+  // Micro-Pills Data Binding (Bank, Free Transfers, Captain Pts)
   const bankVal = liveTeamSquad?.bank !== undefined ? Number(liveTeamSquad.bank).toFixed(1) : "0.0";
   t("st-bank", `£${bankVal}M`);
 
   const ftVal = liveTeamSquad?.freeTransfers !== undefined ? liveTeamSquad.freeTransfers : "1";
   t("st-ft", String(ftVal));
 
-  // Captain Points Calculation from Picks
   let capPts = 0;
-  let capName = "Captain";
+  let capName = "CAPTAIN";
   if (Array.isArray(liveTeamSquad?.picks) && liveTeamSquad.picks.length > 0) {
     const capPick = liveTeamSquad.picks.find(p => p.isCaptain === true) || liveTeamSquad.picks[0];
     if (capPick) {
       const mult = capPick.multiplier || 2;
       const basePts = Number(capPick.livePoints ?? capPick.points ?? 0);
       capPts = basePts * mult;
-      capName = capPick.fullName || capPick.name || "Captain";
+      capName = (capPick.fullName || capPick.name || "CAPTAIN").toUpperCase();
     }
   }
 
@@ -305,7 +325,7 @@ function paintStats() {
   t("st-cap-name", capName);
 }
 
-// 🌟 PURE FIRESTORE SYNC (livePoints + liveTeams)
+// 🌟 PURE FIRESTORE SYNC
 async function loadStats(user, profile) {
   currentFplId = String(
     profile?.fplTeamId || 
@@ -316,7 +336,6 @@ async function loadStats(user, profile) {
 
   if (!currentFplId) return;
 
-  // Cache စစ်ဆေးခြင်း
   try { 
     const cachedLive = localStorage.getItem(`twf_shared_points_live_${currentFplId}`);
     const cachedSquad = localStorage.getItem(`twf_shared_squad_live_${currentFplId}`);
@@ -325,7 +344,6 @@ async function loadStats(user, profile) {
     if (liveStats || liveTeamSquad) paintStats();
   } catch (_) {}
 
-  // Firestore: livePoints + liveTeams တပြိုင်နက်တည်းဆွဲယူခြင်း
   try {
     const [pSnap, tSnap] = await Promise.all([
       getDoc(doc(db, "livePoints", String(currentFplId))),
@@ -352,7 +370,7 @@ async function loadStats(user, profile) {
 
     paintStats();
   } catch (e) { 
-    console.warn("Firestore stats query notice:", e); 
+    console.warn("Firestore stats load error:", e); 
   }
 }
 
@@ -371,11 +389,10 @@ async function loadScoutHighlights() {
       renderPlayerCards();
     }
   } catch (err) {
-    console.warn("Firestore scoutHighlights query notice:", err);
+    console.warn("Firestore scoutHighlights query error:", err);
   }
 }
 
-// 👕 TOP 5 CARDS: 3D CLUB JERSEY RENDERING
 function renderPlayerCards() {
   const container = $("leader-cards-container");
   if (!container || !scoutHighlightsData) return;
@@ -383,7 +400,7 @@ function renderPlayerCards() {
   const M = MODES[mode] || MODES.cap;
   const currentTabColor = M.color;
 
-  document.querySelectorAll("#leader-tabs button, .home-tabs button").forEach((b) => {
+  document.querySelectorAll("#leader-tabs button").forEach((b) => {
     const isCurrent = b.dataset.k === mode;
     b.classList.toggle("on", isCurrent);
   });
@@ -407,15 +424,12 @@ function renderPlayerCards() {
     const teamMeta = getTeamMeta(p.teamCode || p.team);
     const teamShort = teamMeta.short;
     const localBadgeUrl = teamMeta.badgePath;
-
-    // 💡 Photo မသုံးတော့ဘဲ 3D Club Jersey Path ကို တိုက်ရိုက်ခေါ်ယူသည်
     const jerseyPath = resolveClubJerseyPath(p);
 
     return `
-      <div class="top-player-card" style="border-top: 3.2px solid ${posColor};">
+      <div class="top-player-card" style="border-top: 2.8px solid ${posColor};">
         <span class="player-card-rank">${i + 1}</span>
 
-        <!-- 3D Jersey Frame (Larger & Clear) -->
         <div class="player-card-jersey-wrap">
           <img src="${jerseyPath}" 
                alt="${esc(p.name)}" 
@@ -430,7 +444,7 @@ function renderPlayerCards() {
           <div class="player-card-pos" style="color: ${posColor};">
             ${isGk ? "GK" : rawPos.toUpperCase()}
           </div>
-          <div class="player-card-pts" style="color: ${currentTabColor} !important; text-shadow: 0 0 8px color-mix(in srgb, ${currentTabColor} 45%, transparent);">
+          <div class="player-card-pts" style="color: ${currentTabColor} !important; text-shadow: 0 0 10px color-mix(in srgb, ${currentTabColor} 45%, transparent);">
             ${M.show(p)}
           </div>
         </div>
@@ -487,18 +501,19 @@ async function loadNextFixture() {
     }
 
   } catch (err) {
-    console.warn("Live fixture load notice:", err);
+    console.warn("Live fixture error:", err);
   }
 }
 
-// 🚀 HOME TAB INITIALIZATION
+// 🚀 INITIALIZE HOME TAB
 export async function initHomeTab(user, profile) {
+  decorateManagerFrame(profile);
   initDeadlineTimer();
   loadStats(user, profile);
   loadScoutHighlights();
   loadNextFixture();
 
-  const tabsContainer = $("leader-tabs") || document.querySelector(".home-tabs");
+  const tabsContainer = $("leader-tabs");
   if (tabsContainer) {
     tabsContainer.onclick = (e) => {
       const b = e.target.closest("button[data-k]");
