@@ -1,48 +1,480 @@
-* { 
-  -webkit-tap-highlight-color: transparent; 
+/* =========================================================================
+   TW FF APPLICATION — My Team Theme & Tactical Pitch
+   Style: Full Team Name Header + 5-Pill Matchday Strip & Dynamic Chip Glow
+   Standards: UI Design Knowledge Pack (8px Grid, Rounded 14-20px, Sports UI)
+   Path: css/team.css
+   ========================================================================= */
+
+* {
+  -webkit-tap-highlight-color: transparent;
   box-sizing: border-box;
 }
 
-/* 🏆 Fonts & Gradients */
-.gold-text { 
-  background: linear-gradient(135deg, #8c6dff, #b3a1ff, #6a4de0); 
-  -webkit-background-clip: text; 
-  -webkit-text-fill-color: transparent; 
-  background-clip: text; 
+:root {
+  --team-bg: #070a16;
+  --team-card: rgba(14, 18, 42, 0.94);
+  --team-inner: rgba(9, 12, 28, 0.85);
+  --team-border: rgba(255, 255, 255, 0.09);
+  --team-line-glow: rgba(140, 109, 255, 0.22);
+  --team-purple: #8c6dff;
+  --team-purple-light: #b3a1ff;
+  --team-gold: #fbbf24;
+  --team-cyan: #38bdf8;
+  --team-green: #22c55e;
+  --team-red: #ef4444;
 }
 
-/* 🔄 Make Transfers Button Style & Active Feedback */
-.btn-transfers {
-  background: linear-gradient(135deg, #8c6dff, #b3a1ff);
-  color: #14172b;
-  box-shadow: 0 4px 15px rgba(140,109,255, 0.25);
+/* 📱 1. Root Viewport */
+.team-viewport-root {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background-color: var(--team-bg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: #ffffff;
+}
+
+.safe-top {
+  padding-top: max(8px, env(safe-area-inset-top, 0px));
+}
+
+.font-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+/* =========================================================================
+   🔝 2. TOP HEADER BAR (Full Team Name Optimization)
+   ========================================================================= */
+.team-top-header {
+  background: rgba(9, 12, 25, 0.95);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  padding: max(8px, env(safe-area-inset-top, 0px)) 12px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-shrink: 0;
+  z-index: 40;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.header-left-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.header-back-btn {
+  color: var(--team-purple);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  text-decoration: none;
+  font-weight: 900;
+  transition: transform 0.15s ease;
+}
+
+.header-back-btn:active {
+  transform: scale(0.92);
+}
+
+.header-title-text {
+  margin: 0;
+  font-size: 16.5px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  background: linear-gradient(135deg, #ffffff, #c9bcff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  line-height: 1;
+}
+
+.header-right-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.header-rank-chip {
+  border-radius: 6px;
+  padding: 2.5px 6px;
+  background: rgba(0, 0, 0, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  gap: 3.5px;
+  flex-shrink: 0;
+}
+
+.rank-tag {
+  font-size: 7.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #a0c49d;
+}
+
+.rank-num {
+  font-size: 9.5px;
+  font-weight: 900;
+  color: #ffffff;
+  line-height: 1;
+}
+
+/* 🌟 Team Name Wrap: နေရာလုံလောက်စွာရရှိပြီး စာလုံးအပြည့်မြင်ရသည် */
+.header-team-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.header-team-wrap .boat-ico {
+  font-size: 11.5px;
+  flex-shrink: 0;
+}
+
+.team-name-text {
+  font-size: 11.5px;
+  font-weight: 900;
+  color: #d9d0ff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 130px;
+}
+
+.header-refresh-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(45, 51, 102, 0.6);
+  border: 1px solid rgba(140, 109, 255, 0.35);
+  color: var(--team-purple);
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  font-size: 11px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  transition: transform 0.15s ease, background 0.15s ease;
+  flex-shrink: 0;
+}
+
+.header-refresh-btn:active {
+  transform: scale(0.92);
+}
+
+/* =========================================================================
+   📊 3. MATCHDAY SUMMARY 5-PILL STRIP (GW, Hit, GWP, TTP, Chip)
+   ========================================================================= */
+.matchday-summary-container {
+  padding: 8px 12px 4px;
+  flex-shrink: 0;
+  z-index: 20;
+}
+
+.matchday-summary-capsule {
+  background: var(--team-card);
+  border: 1px solid var(--team-border);
+  border-radius: 14px;
+  padding: 4px 5px;
+  display: grid;
+  grid-template-columns: 0.9fr 1fr 1.2fr 1.2fr 1.3fr;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+}
+
+.summary-pill {
+  border-radius: 7.5px;
+  padding: 3px 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 25px;
+  text-align: center;
+  overflow: hidden;
+}
+
+/* 1. GW Pill */
+.pill-gw {
+  background: rgba(140, 109, 255, 0.14);
+  border: 1px solid rgba(140, 109, 255, 0.35);
+}
+
+.pill-gw .pill-value {
+  color: var(--team-purple-light);
+  font-size: 9.5px;
+  font-weight: 900;
+}
+
+/* 2. Hit Pill */
+.pill-hit {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+/* 3. GWP Pill */
+.pill-gwp {
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+/* 4. TTP Pill (Total Points) */
+.pill-ttp {
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.pill-title {
+  font-size: 7.5px;
+  font-weight: 800;
+  color: #94a3b8;
+  text-transform: uppercase;
+}
+
+.pill-value {
+  font-size: 11px;
+  font-weight: 900;
+  color: #ffffff;
+}
+
+.pill-gwp .pill-value { color: #86efac; }
+.pill-ttp .pill-value { color: #7dd3fc; }
+
+/* 5. Dynamic Chip Pill (Default State) */
+.pill-chip {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  transition: all 0.3s ease;
+}
+
+.chip-text {
+  font-size: 7.5px;
+  font-weight: 900;
+  color: var(--team-gold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+/* 🌟 DYNAMIC ACTIVE CHIP STATES (GLOWING EFFECTS) */
+/* Triple Captain: Gold Neon Glow */
+.pill-chip.chip-active-3xc {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.3), rgba(251, 191, 36, 0.15)) !important;
+  border: 1.5px solid #f59e0b !important;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.5), inset 0 0 6px rgba(245, 158, 11, 0.3) !important;
+}
+.pill-chip.chip-active-3xc .chip-text {
+  color: #fef08a !important;
+  font-weight: 900 !important;
+}
+
+/* Bench Boost: Cyan / Neon Teal Glow */
+.pill-chip.chip-active-bboost {
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.3), rgba(56, 189, 248, 0.15)) !important;
+  border: 1.5px solid #06b6d4 !important;
+  box-shadow: 0 0 12px rgba(6, 182, 212, 0.5), inset 0 0 6px rgba(6, 182, 212, 0.3) !important;
+}
+.pill-chip.chip-active-bboost .chip-text {
+  color: #a5f3fc !important;
+  font-weight: 900 !important;
+}
+
+/* Free Hit: Purple Neon Glow */
+.pill-chip.chip-active-freehit {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.3), rgba(140, 109, 255, 0.15)) !important;
+  border: 1.5px solid #a855f7 !important;
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.5), inset 0 0 6px rgba(168, 85, 247, 0.3) !important;
+}
+.pill-chip.chip-active-freehit .chip-text {
+  color: #f3e8ff !important;
+  font-weight: 900 !important;
+}
+
+/* Wildcard: Emerald Neon Glow */
+.pill-chip.chip-active-wildcard {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(34, 197, 94, 0.15)) !important;
+  border: 1.5px solid #10b981 !important;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.5), inset 0 0 6px rgba(16, 185, 129, 0.3) !important;
+}
+.pill-chip.chip-active-wildcard .chip-text {
+  color: #a7f3d0 !important;
+  font-weight: 900 !important;
+}
+
+/* =========================================================================
+   ⚡ 4. TRANSFER STRATEGY BUTTON
+   ========================================================================= */
+.strategy-btn-wrapper {
+  padding: 2px 12px 6px;
+  flex-shrink: 0;
+  z-index: 20;
+}
+
+.btn-transfer-strategy {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-weight: 900;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1.2px solid rgba(140, 109, 255, 0.45);
+  background: linear-gradient(135deg, rgba(140, 109, 255, 0.22), rgba(179, 161, 255, 0.1));
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(140, 109, 255, 0.2);
+  cursor: pointer;
   transition: transform 0.15s ease, filter 0.15s ease;
 }
 
-.btn-transfers:active {
+.btn-transfer-strategy:active {
   transform: scale(0.98);
-  filter: brightness(0.95);
+  filter: brightness(1.1);
 }
 
-/* 📊 Average Points Top-Left Badge (Pitch Field) */
-.avg-pts-badge {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  z-index: 20;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 10px;
-  padding: 3px 8px;
+.strategy-ico { font-size: 12px; }
+
+/* =========================================================================
+   ⚽ 5. SCROLL ENGINE & TACTICAL PITCH (DASHBOARD BACKGROUND TINT)
+   ========================================================================= */
+.pitch-scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 2px 12px 14px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  pointer-events: none;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  gap: 9px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
-/* 👕 Pitch Layout & Player Jersey Cards */
+.pitch-scroll-area::-webkit-scrollbar {
+  display: none;
+}
+
+.tactical-pitch-card {
+  position: relative;
+  background: linear-gradient(180deg, #121633 0%, #0c0f24 45%, #080a18 100%);
+  border-radius: 18px;
+  border: 1.2px solid rgba(140, 109, 255, 0.25);
+  box-shadow: 
+    0 10px 28px rgba(0, 0, 0, 0.6), 
+    inset 0 1px 1px rgba(255, 255, 255, 0.08);
+  padding: 12px 8px;
+  min-height: 400px;
+  overflow: visible !important;
+}
+
+.pitch-floodlight-flare {
+  position: absolute;
+  top: 0;
+  left: 15%;
+  right: 15%;
+  height: 95px;
+  background: radial-gradient(ellipse at top, rgba(140, 109, 255, 0.14), transparent 70%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.pitch-lines-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0.35;
+  z-index: 1;
+}
+
+.pitch-meta-badge {
+  position: absolute;
+  top: 10px;
+  z-index: 20;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-radius: 10px;
+  padding: 2px 7px;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  user-select: none;
+}
+
+.badge-left {
+  left: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  flex-direction: column;
+}
+
+.badge-right {
+  right: 10px;
+  border: 1px solid rgba(140, 109, 255, 0.3);
+}
+
+.meta-label {
+  font-size: 7px;
+  font-weight: 800;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.meta-val {
+  font-size: 11px;
+  font-weight: 900;
+  color: var(--team-purple-light);
+  line-height: 1;
+}
+
+.meta-brand {
+  font-size: 8.5px;
+  font-weight: 900;
+  color: var(--team-purple-light);
+  letter-spacing: 0.08em;
+}
+
+.pitch-formation-content {
+  position: relative;
+  z-index: 10;
+  height: 100%;
+  overflow: visible !important;
+}
+
+.pitch-loading-text {
+  text-align: center;
+  font-size: 11px;
+  padding: 90px 0;
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 600;
+}
+
+/* =========================================================================
+   👕 6. PLAYER CARDS & FORMATION ROWS
+   ========================================================================= */
 .pitch-container {
   min-height: 380px;
   display: flex;
@@ -50,6 +482,7 @@
   justify-content: space-between;
   position: relative;
   overflow: visible !important;
+  gap: 8px;
 }
 
 .pitch-row {
@@ -58,7 +491,7 @@
   align-items: center;
   width: 100%;
   gap: 6px;
-  margin: 2px 0;
+  margin: 1px 0;
   overflow: visible !important;
 }
 
@@ -74,18 +507,17 @@
   align-items: center;
   position: relative;
   cursor: pointer;
-  transition: transform 0.1s ease;
+  transition: transform 0.15s ease;
 }
 
 .pitch-row:has(> :nth-child(5)) .player-card {
-  width: 58px;
+  width: 57px;
 }
 
 .player-card:active {
-  transform: scale(0.96);
+  transform: scale(0.94);
 }
 
-/* 👕 Jersey Wrapper */
 .jersey-wrap {
   width: 44px;
   height: 44px;
@@ -105,54 +537,120 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
-  filter: drop-shadow(0px 3px 4px rgba(0, 0, 0, 0.45));
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.5));
 }
 
-/* 🌟 TW FM Watermark (အကျႌ၏ ညာဘက်ထောင့် Bottom-Right နေရာ) */
-.jersey-watermark {
-  position: absolute;
-  bottom: 2px;
-  right: 1px;
-  font-family: monospace, sans-serif;
-  font-size: 6px;
-  font-weight: 900;
-  letter-spacing: -0.2px;
-  color: rgba(255, 255, 255, 0.55);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95);
-  pointer-events: none;
-  user-select: none;
-  z-index: 10;
-  line-height: 1;
+/* =========================================================================
+   🎨 7. DISTINCT PLATE TINT: FIELD vs BENCH
+   ========================================================================= */
+
+/* 🟢 A. FIELD STARTING XI: Dashboard Clean White High-Contrast Plate */
+.player-plate-field {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  border-radius: 5px;
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* 🏷️ Info Box (Name + Fixture + Points Strip) */
-.player-name-box {
+.player-plate-field .player-name-box {
   width: 100%;
   background: #ffffff;
-  padding: 1px 2px;
+  padding: 1.5px 2px;
   text-align: center;
-  height: 15px;
+  height: 14.5px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-top-left-radius: 3px;
-  border-top-right-radius: 3px;
 }
 
-.player-name-box p {
-  color: #14172b;
-  font-weight: 900;
-  font-size: 7.5px;
+.player-plate-field .player-name-box p {
+  color: #070a16 !important;
+  font-weight: 900 !important;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  line-height: 1;
+  line-height: 1.1;
   width: 100%;
+  letter-spacing: -0.01em;
 }
 
+.player-plate-field .player-point-circle {
+  background-color: #050711;
+  color: #ffffff;
+  font-weight: 900;
+  font-size: 9.5px;
+  width: 100%;
+  height: 13.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: ui-monospace, monospace;
+}
+
+/* 🔵 B. BENCH BOOTH: မသိမသာ ခွဲခြားထားသော Subdued Slate Glass Plate */
+.player-plate-bench {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  border-radius: 5px;
+  overflow: hidden;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(140, 109, 255, 0.28);
+}
+
+.player-plate-bench .player-name-box {
+  width: 100%;
+  background: rgba(28, 35, 64, 0.95);
+  padding: 1.5px 2px;
+  text-align: center;
+  height: 14.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.player-plate-bench .player-name-box p {
+  color: #e2e8f0 !important;
+  font-weight: 800 !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.1;
+  width: 100%;
+  letter-spacing: -0.01em;
+}
+
+.player-plate-bench .player-point-circle {
+  background-color: #0d1124;
+  color: #94a3b8;
+  font-weight: 800;
+  font-size: 9px;
+  width: 100%;
+  height: 13.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: ui-monospace, monospace;
+}
+
+/* 🌟 Bench Boost သုံးထားချိန်တွင် Bench Points အား Active Glow ဖြစ်စေခြင်း */
+.bench-boost-active .player-plate-bench {
+  border-color: #06b6d4 !important;
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.4) !important;
+}
+.bench-boost-active .player-plate-bench .player-point-circle {
+  background-color: #083344 !important;
+  color: #67e8f9 !important;
+  font-weight: 900 !important;
+}
+
+/* Common Fixture Strip */
 .player-fixture-box {
   width: 100%;
-  background: #b3a1ff;
   padding: 1px 2px;
   text-align: center;
   height: 12px;
@@ -162,8 +660,7 @@
 }
 
 .player-fixture-box span {
-  color: #14172b;
-  font-weight: 800;
+  font-weight: 900;
   font-size: 7px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -171,93 +668,130 @@
   line-height: 1;
 }
 
-.player-point-circle {
-  background-color: #000000;
-  color: #ffffff;
-  font-weight: 900;
-  font-size: 9px;
-  width: 100%;
-  height: 14px;
-  border-bottom-left-radius: 3px;
-  border-bottom-right-radius: 3px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
-}
-
-/* 👑 Captain (C) / Vice-Captain (V) Badges */
+/* Badges (C, 3x, V, Status) */
 .captain-badge {
   position: absolute;
-  top: -4px;
-  right: -2px;
-  background: #b3a1ff;
-  color: #14172b;
-  font-size: 8px;
+  top: -3px;
+  right: -3px;
+  background: var(--team-purple-light);
+  color: #070a16;
+  font-size: 7.5px;
   font-weight: 900;
-  width: 16px;
-  height: 16px;
-  border-radius: 9999px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 25;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.6);
+  border: 1px solid #ffffff;
+}
+
+/* 🌟 Triple Captain Active Badge */
+.captain-badge.triple-active {
+  background: #f59e0b !important;
+  color: #070a16 !important;
+  border-color: #fef08a !important;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.8) !important;
+  font-weight: 950 !important;
 }
 
 .vice-badge {
   position: absolute;
-  top: -4px;
-  right: -2px;
-  background: #E2E8F0;
-  color: #14172b;
-  font-size: 8px;
+  top: -3px;
+  right: -3px;
+  background: #e2e8f0;
+  color: #070a16;
+  font-size: 7.5px;
   font-weight: 900;
-  width: 16px;
-  height: 16px;
-  border-radius: 9999px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 25;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.6);
+  border: 1px solid #94a3b8;
 }
 
-/* 🩺 Status Overlay (INJ / SUSP / Chance %) */
 .status-tag {
   position: absolute;
   top: 14px;
-  left: -2px;
+  left: -3px;
   z-index: 25;
-  font-size: 7px;
+  font-size: 6.5px;
   font-weight: 900;
   padding: 1px 3px;
   border-radius: 3px;
   line-height: 1;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
 }
 
-/* 📱 Bottom Navigation Styles */
-.nav-item { 
-  display: flex; 
-  flex-direction: column; 
-  align-items: center; 
-  gap: 2px; 
-  padding: 6px 12px; 
-  color: #8c6dff; 
-  cursor: pointer; 
-  font-size: 0.65rem; 
-  font-weight: 500; 
-  position: relative; 
+/* =========================================================================
+   🪑 8. BENCH BOOTH CARD
+   ========================================================================= */
+.bench-booth-card {
+  border-radius: 16px;
+  padding: 8px 10px 10px;
+  background: linear-gradient(180deg, rgba(14, 18, 42, 0.94) 0%, rgba(9, 12, 28, 0.98) 100%);
+  border: 1.2px solid rgba(140, 109, 255, 0.18);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.05);
+  flex-shrink: 0;
+  transition: all 0.3s ease;
 }
 
-.nav-item.active { 
-  color: #4ADE80; 
-  font-weight: 700; 
+/* 🌟 Bench Boost သုံးထားချိန်တွင် Dugout Frame တစ်ခုလုံး Neon Glow ဖြစ်ပေါ်စေခြင်း */
+.bench-booth-card.booth-boost-glow {
+  border-color: #06b6d4 !important;
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.35), inset 0 0 12px rgba(6, 182, 212, 0.15) !important;
 }
 
-/* 🚫 Scrollbar Reset */
-.scrollbar-none::-webkit-scrollbar { display: none; }
-.scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+.bench-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 6px;
+}
+
+.bench-badge-chip {
+  font-size: 8px;
+  font-weight: 900;
+  color: var(--team-purple-light);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  background: rgba(140, 109, 255, 0.1);
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(140, 109, 255, 0.25);
+  transition: all 0.3s ease;
+}
+
+.bench-badge-chip.boost-label-active {
+  color: #67e8f9 !important;
+  background: rgba(6, 182, 212, 0.2) !important;
+  border-color: #06b6d4 !important;
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.5) !important;
+}
+
+.bench-grid-row {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  width: 100%;
+}
+
+.bench-player-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.bench-pos-label {
+  font-size: 8px;
+  font-weight: 900;
+  color: #64748b;
+  text-transform: uppercase;
+}
