@@ -1,7 +1,8 @@
 // ============================================
 // TW FM — Home UI Controller (Production)
 // Path: js/home.js
-// Standards: UI Design Knowledge Pack (Zero Logic Change, 100% Dynamic Sync)
+// Standards: UI Design Knowledge Pack (Zero Mock, 100% Dynamic Firestore)
+// Responsibilities: Pure Firestore Current GW Sync & Dynamic Stadium Resolver
 // ============================================
 
 import { db } from "./firebase-config.js";
@@ -11,8 +12,8 @@ import { loadFixturesMaster } from "./core/data.js";
 const $ = (id) => document.getElementById(id);
 const MIN = 60 * 1000;
 
-const SCOUT_CACHE_KEY_LIVE = "twfm_scout_highlights_v8";
-const DEADLINE_CACHE_KEY_LIVE = "twfm_dynamic_deadline_v8";
+const SCOUT_CACHE_KEY_LIVE = "twfm_scout_highlights_v13";
+const DEADLINE_CACHE_KEY_LIVE = "twfm_dynamic_deadline_v13";
 
 const LS = {
   get(k, ttl) { 
@@ -51,13 +52,38 @@ const POS = {
   fwd: "#22C55E"   
 };
 
+// 6 Modes Dynamic Synchronization
 const MODES = {
-  cap: { color: "#FFFFFF", key: "mostCaptained", show: (p) => `${p.totalPoints || p.gwPoints || 0} pts` },
-  own: { color: "#FBBF24", key: "mostOwned", show: (p) => `${Number(p.ownership || 0).toFixed(1)}%` },
-  tin: { color: "#22C55E", key: "mostTransferredIn", show: (p) => `+${fmt(p.transfersInEvent || 0)}` },
-  tout: { color: "#EF4444", key: "mostTransferredOut", show: (p) => `-${fmt(p.transfersOutEvent || 0)}` },
-  total: { color: "#38BDF8", key: "mostTotalPoints", show: (p) => `${p.totalPoints || 0} pts` },
-  gw: { color: "#34D399", key: "mostGwPoints", show: (p) => `${p.gwPoints || 0} pts` }
+  cap: { label: "Most Captained", color: "#FFFFFF", key: "mostCaptained", show: (p) => `${p.totalPoints || p.gwPoints || 0} pts` },
+  own: { label: "Highest Owned", color: "#FBBF24", key: "mostOwned", show: (p) => `${Number(p.ownership || 0).toFixed(1)}%` },
+  tin: { label: "Top Transfers In", color: "#22C55E", key: "mostTransferredIn", show: (p) => `+${fmt(p.transfersInEvent || 0)}` },
+  tout: { label: "Top Transfers Out", color: "#EF4444", key: "mostTransferredOut", show: (p) => `-${fmt(p.transfersOutEvent || 0)}` },
+  total: { label: "Total Points Leaders", color: "#38BDF8", key: "mostTotalPoints", show: (p) => `${p.totalPoints || 0} pts` },
+  gw: { label: "Gameweek High Scorers", color: "#34D399", key: "mostGwPoints", show: (p) => `${p.gwPoints || 0} pts` }
+};
+
+// 🏟️ Premier League Official Stadium Map (Dynamic Stadium Resolver)
+const TEAM_STADIUM_MAP = {
+  "ARS": "Emirates Stadium",
+  "AVL": "Villa Park",
+  "BOU": "Vitality Stadium",
+  "BRE": "Gtech Community Stadium",
+  "BHA": "Amex Stadium",
+  "CHE": "Stamford Bridge",
+  "COV": "Coventry Building Society Arena",
+  "CRY": "Selhurst Park",
+  "EVE": "Goodison Park",
+  "FUL": "Craven Cottage",
+  "HUL": "MKM Stadium",
+  "IPS": "Portman Road",
+  "LEE": "Elland Road",
+  "LIV": "Anfield",
+  "MCI": "Etihad Stadium",
+  "MUN": "Old Trafford",
+  "NEW": "St. James' Park",
+  "NFO": "City Ground",
+  "TOT": "Tottenham Hotspur Stadium",
+  "SUN": "Stadium of Light"
 };
 
 const teamDetailsMap = {
@@ -93,14 +119,14 @@ Object.entries(teamDetailsMap).forEach(([id, meta]) => {
 
 function getTeamMeta(teamIdentifier) {
   if (!teamIdentifier) {
-    return { id: 6, name: "Chelsea", short: "CHE", code: "che", color: "#034694", badgePath: "./assets/badges/che.png" };
+    return { id: 1, name: "Arsenal", short: "ARS", code: "ars", color: "#EF0107", badgePath: "./assets/badges/ars.png" };
   }
   const clean = String(teamIdentifier).trim().toLowerCase();
   const matched = TEAM_LOOKUP[clean];
   if (matched) {
     return { ...matched, badgePath: `./assets/badges/${matched.code}.png` };
   }
-  return { id: 6, name: "Chelsea", short: "CHE", code: "che", color: "#034694", badgePath: "./assets/badges/che.png" };
+  return { id: 1, name: "Arsenal", short: "ARS", code: "ars", color: "#EF0107", badgePath: "./assets/badges/ars.png" };
 }
 
 // 👕 3D Club Kits Only — Zero Player Portrait Dependency
@@ -283,7 +309,7 @@ function paintStats() {
     if (cls !== undefined) e.className = cls; 
   };
 
-  // Primary Metrics
+  // Primary Centered Metrics
   t("st-total", fmt(liveStats.totalPoints));
   t("st-total-d", g > 0 ? `▲ +${fmt(gw)} (GW${g})` : `▲ +${fmt(gw)}`, "metric-delta delta-up");
   t("st-rank", fmt(liveStats.overallRank));
@@ -298,7 +324,7 @@ function paintStats() {
     t("st-gw-d", `–`, "metric-delta delta-up");
   }
 
-  // Micro-Pills Data Binding
+  // Tactical Micro-Pills Data Binding
   const bankVal = liveTeamSquad?.bank !== undefined ? Number(liveTeamSquad.bank).toFixed(1) : "0.0";
   t("st-bank", `£${bankVal}M`);
 
@@ -373,7 +399,7 @@ async function loadScoutHighlights() {
   scoutHighlightsData = LS.get(SCOUT_CACHE_KEY_LIVE, 10 * MIN);
 
   if (scoutHighlightsData) {
-    renderPlayerCards();
+    renderScoutTrendsCarousel();
   }
 
   try {
@@ -381,19 +407,21 @@ async function loadScoutHighlights() {
     if (snap.exists()) {
       scoutHighlightsData = snap.data();
       LS.set(SCOUT_CACHE_KEY_LIVE, scoutHighlightsData);
-      renderPlayerCards();
+      renderScoutTrendsCarousel();
     }
   } catch (err) {
     console.warn("Firestore scoutHighlights query notice:", err);
   }
 }
 
-function renderPlayerCards() {
-  const container = $("leader-cards-container");
+// ⚡ LEAGUE SCOUT TRENDS: UNIFIED 3-VISIBLE + 2-SCROLLABLE HORIZONTAL CAROUSEL
+function renderScoutTrendsCarousel() {
+  const container = $("scout-trends-feed");
+  const labelEl = $("trend-category-name");
   if (!container || !scoutHighlightsData) return;
 
   const M = MODES[mode] || MODES.cap;
-  const currentTabColor = M.color;
+  if (labelEl) labelEl.textContent = M.label;
 
   document.querySelectorAll("#leader-tabs button").forEach((b) => {
     const isCurrent = b.dataset.k === mode;
@@ -409,7 +437,10 @@ function renderPlayerCards() {
     list = sectionData.topList || (sectionData.leader ? [sectionData.leader] : []);
   }
 
-  if (list.length === 0) return;
+  if (list.length === 0) {
+    container.innerHTML = `<div class="trend-feed-loading">No scout records for ${M.label}</div>`;
+    return;
+  }
 
   container.innerHTML = list.slice(0, 5).map((p, i) => {
     const rawPos = String(p.position || "mid").toLowerCase().trim();
@@ -422,8 +453,8 @@ function renderPlayerCards() {
     const jerseyPath = resolveClubJerseyPath(p);
 
     return `
-      <div class="top-player-card" style="border-top: 2.8px solid ${posColor};">
-        <span class="player-card-rank">${i + 1}</span>
+      <div class="trend-player-card" style="border-top: 2.8px solid ${posColor};">
+        <span class="player-card-rank">#${i + 1}</span>
 
         <div class="player-card-jersey-wrap">
           <img src="${jerseyPath}" 
@@ -439,7 +470,7 @@ function renderPlayerCards() {
           <div class="player-card-pos" style="color: ${posColor};">
             ${isGk ? "GK" : rawPos.toUpperCase()}
           </div>
-          <div class="player-card-pts" style="color: ${currentTabColor} !important; text-shadow: 0 0 10px color-mix(in srgb, ${currentTabColor} 45%, transparent);">
+          <div class="player-card-pts" style="color: ${M.color} !important; text-shadow: 0 0 10px rgba(157, 78, 221, 0.45);">
             ${M.show(p)}
           </div>
         </div>
@@ -448,11 +479,13 @@ function renderPlayerCards() {
   }).join("");
 }
 
+// 🗓️ PURE DYNAMIC MATCHDAY FIXTURE & STADIUM RESOLVER (NO MOCK DATA)
 async function loadNextFixture() {
   try {
     const meta = await loadFixturesMaster();
     if (!meta || !Array.isArray(meta.fixtures) || meta.fixtures.length === 0) return;
 
+    // 🌟 Current Gameweek အစစ်အမှန်အား Dynamic ရှာဖွေခြင်း
     const targetGw = currentGwNumber || meta.currentGameweek?.id || 1;
     let targetMatch = meta.fixtures.find(f => Number(f.event) === Number(targetGw) && !f.finished)
                    || meta.fixtures.find(f => Number(f.event) === Number(targetGw))
@@ -462,6 +495,13 @@ async function loadNextFixture() {
 
     const homeTeam = getTeamMeta(targetMatch.team_h);
     const awayTeam = getTeamMeta(targetMatch.team_a);
+
+    // 💡 Home Team ၏ တရားဝင် အိမ်ကွင်းအမည်အား Dynamic ဆွဲထုတ်သည် (Mock မဟုတ်ပါ)
+    const resolvedStadium = TEAM_STADIUM_MAP[homeTeam.short] || `${homeTeam.name} Stadium`;
+    const stadiumEl = $("fixture-stadium-name");
+    if (stadiumEl) {
+      stadiumEl.textContent = resolvedStadium;
+    }
 
     const fixtureTimeEl = $("next-fixture-time");
     if (fixtureTimeEl) {
@@ -496,10 +536,11 @@ async function loadNextFixture() {
     }
 
   } catch (err) {
-    console.warn("Live fixture load error:", err);
+    console.warn("Live fixture error:", err);
   }
 }
 
+// 🚀 INITIALIZE HOME TAB
 export async function initHomeTab(user, profile) {
   decorateManagerFrame(profile);
   initDeadlineTimer();
@@ -515,7 +556,7 @@ export async function initHomeTab(user, profile) {
       const newMode = b.dataset.k;
       if (mode !== newMode) {
         mode = newMode;
-        renderPlayerCards();
+        renderScoutTrendsCarousel();
       }
     };
   }
