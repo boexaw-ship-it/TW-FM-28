@@ -1,7 +1,8 @@
 // ============================================
-// TW Fantasy Official League — Home UI Controller
+// TW FF APPLICATION — Home UI Controller
 // Path: js/home.js
-// Standards: UI Design Knowledge Pack (Zero Mock, 100% Dynamic Firestore)
+// Standards: UI Design Knowledge Pack (Zero Console Errors, Robust Fallback)
+// Fix: Clean Image Resolution & Graceful 403 Recovery
 // ============================================
 
 import { db } from "./firebase-config.js";
@@ -11,8 +12,8 @@ import { loadFixturesMaster } from "./core/data.js";
 const $ = (id) => document.getElementById(id);
 const MIN = 60 * 1000;
 
-const SCOUT_CACHE_KEY_LIVE = "twfm_scout_highlights_live";
-const DEADLINE_CACHE_KEY_LIVE = "twfm_dynamic_deadline_live";
+const SCOUT_CACHE_KEY_LIVE = "twfm_scout_highlights_live_v2";
+const DEADLINE_CACHE_KEY_LIVE = "twfm_dynamic_deadline_live_v2";
 
 const LS = {
   get(k, ttl) { 
@@ -42,7 +43,7 @@ let scoutHighlightsData = null;
 let mode = "cap";
 let timerInterval = null;
 
-// Official FPL Position Colors
+// FPL Position Colors
 const POS = { 
   gk: "#2563EB",   
   gkp: "#2563EB",  
@@ -101,14 +102,20 @@ function getTeamMeta(teamIdentifier) {
   if (matched) {
     return { ...matched, badgePath: `./assets/badges/${matched.code}.png` };
   }
-  return { id: 6, name: "Chelsea", short: "CHE", code: "che", color: "#034694", badgePath: `./assets/badges/che.png` };
+  return { id: 6, name: "Chelsea", short: "CHE", code: "che", color: "#034694", badgePath: "./assets/badges/che.png" };
 }
 
+// 🛡️ CDN PHOTO RESOLVER (403 Forbidden Query String Prevention)
 function resolvePlayerPhotoUrl(p) {
   if (!p) return "";
-  if (p.photoUrl && typeof p.photoUrl === "string" && p.photoUrl.startsWith("http")) {
-    return p.photoUrl;
+  
+  let rawUrl = p.photoUrl || "";
+  if (rawUrl && typeof rawUrl === "string") {
+    // 💡 ?v=2026_27 ကဲ့သို့ CDN error ဖြစ်စေသော parameter များကို သန့်စင်ပစ်သည်
+    rawUrl = rawUrl.split("?")[0].trim();
+    if (rawUrl.startsWith("http")) return rawUrl;
   }
+
   const rawCode = p.photoCode || p.photo || p.opta_code;
   if (!rawCode) return "";
   const clean = String(rawCode).replace(/\.(jpg|jpeg|png)$/i, "").replace(/^p/i, "").trim();
@@ -219,7 +226,7 @@ function initDeadlineTimer() {
       tick();
       paintStats();
     }
-  }).catch(err => console.warn("Live deadline resolver error:", err));
+  }).catch(err => console.warn("Live deadline resolver notice:", err));
 }
 
 function tick() {
@@ -325,7 +332,7 @@ async function loadStats(user, profile) {
       }
     }
   } catch (e) { 
-    console.warn("Firestore livePoints query note:", e); 
+    console.warn("Firestore livePoints notice:", e); 
   }
 }
 
@@ -344,7 +351,7 @@ async function loadScoutHighlights() {
       renderPlayerCards();
     }
   } catch (err) {
-    console.warn("Firestore scoutHighlights query note:", err);
+    console.warn("Firestore scoutHighlights query notice:", err);
   }
 }
 
@@ -383,33 +390,20 @@ function renderPlayerCards() {
 
     const photoUrl = resolvePlayerPhotoUrl(p);
 
-    const fallbackSvg = `
-      <div class="home-animated-badge-wrap" style="--tc:${teamColor}; width:44px; height:44px; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-        <svg style="width:24px; height:24px;" viewBox="0 0 24 24" fill="none" stroke="${teamColor}">
-          <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <circle cx="12" cy="12" r="3.5" fill="${teamColor}"/>
-        </svg>
-        <span style="color:${teamColor}; font-size:8px; font-weight:900;">${esc(teamShort)}</span>
-      </div>
-    `;
-
     return `
       <div class="top-player-card" style="border-top: 3.2px solid ${posColor};">
         <span class="player-card-rank">${i + 1}</span>
 
         <div class="player-card-photo-wrap">
+          <!-- 💡 403 Forbidden ကြုံတွေ့ပါက Local Club Badge သို့ အလိုအလျောက် သန့်ရှင်းစွာ fallback လုပ်ခြင်း -->
           <img src="${photoUrl || localBadgeUrl}" 
                alt="${esc(p.name)}" 
                loading="lazy" 
                class="player-card-photo"
                onerror="
-                 if (!this.dataset.triedLocalBadge) {
-                   this.dataset.triedLocalBadge = '1';
-                   this.src = '${localBadgeUrl}';
-                   this.style.maxHeight = '65%';
-                 } else {
-                   this.parentElement.innerHTML = \`${fallbackSvg.replace(/\n/g, '').replace(/"/g, "'")}\`;
-                 }
+                 this.onerror = null;
+                 this.src = '${localBadgeUrl}';
+                 this.style.maxHeight = '65%';
                ">
           <img src="${localBadgeUrl}" alt="${esc(teamShort)}" class="player-card-club-badge" onerror="this.style.display='none';">
         </div>
@@ -476,10 +470,11 @@ async function loadNextFixture() {
     }
 
   } catch (err) {
-    console.warn("Live fixture load note:", err);
+    console.warn("Live fixture load notice:", err);
   }
 }
 
+// 🚀 HOME TAB INITIALIZATION
 export async function initHomeTab(user, profile) {
   initDeadlineTimer();
   loadStats(user, profile);
