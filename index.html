@@ -4,49 +4,110 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#0b0d1a" />
+  
+  <!-- 📱 Standard PWA & Web App Meta Tags -->
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>TW FM</title>
-  <link rel="manifest" href="./public/manifest.json" />
-  <link rel="apple-touch-icon" href="./public/icons/icon-192x192.png" />
+  <meta name="apple-mobile-web-app-title" content="TW FF" />
+  <meta name="application-name" content="TW FF APPLICATION" />
+  <meta name="description" content="TW FF Official Fantasy Football & Sports Analytics Application" />
 
+  <title>TW FF APPLICATION</title>
+
+  <!-- 📦 PWA Web App Manifest & Favicons -->
+  <link rel="manifest" href="./public/manifest.json" />
+  <link rel="icon" type="image/png" sizes="192x192" href="./public/icons/icon-192x192.png" />
+  <link rel="apple-touch-icon" sizes="192x192" href="./public/icons/icon-192x192.png" />
+
+  <!-- 🌐 DNS Preconnects for High Performance -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin />
 
-  <!-- global -> app shell -> (page css ကို router ထည့်) -> tailwind utilities (နောက်ဆုံး) -->
+  <!-- 🎨 Stylesheets Hierarchy (Global -> App Shell -> Tailwind Utilities) -->
   <link rel="stylesheet" href="./css/style.css" />
   <link rel="stylesheet" href="./css/app.css" />
   <link rel="stylesheet" id="tw-utilities" href="./css/tailwind.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Bebas+Neue&family=Noto+Sans+Myanmar:wght@400;600;700&display=swap" />
 
+  <!-- ⚡ Module Preloading -->
   <link rel="modulepreload" href="./js/app.js" />
   <link rel="modulepreload" href="./js/firebase-config.js" />
 </head>
-<body>
-  <div id="boot" aria-hidden="true">TW FM</div>
+<body class="bg-[#0b0d1a] text-white antialiased select-none">
+  <!-- Boot Splash Screen -->
+  <div id="boot" aria-hidden="true">TW FF</div>
   <div id="bar"></div>
 
+  <!-- Main SPA Container -->
   <div id="app">
-    <!-- Page တွေကို router က ဒီထဲ လဲထည့်မယ် -->
-    <div id="view"></div>
+    <!-- Router Target View -->
+    <div id="view" role="main"></div>
 
-    <!-- Bottom tab bar (TW FM UI) -->
-    <nav id="tabbar" aria-label="Main" hidden>
-      <a href="#/dashboard" data-tab="dashboard"><i>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></i><span>Home</span></a>
-      <a href="#/team" data-tab="team"><i>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3l-5 3 2 5 3-1v11h8V10l3 1 2-5-5-3a4 4 0 0 1-8 0z"/></svg></i><span>My Team</span></a>
-      <a href="#/live" data-tab="live"><i>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg></i><span>Points</span></a>
-      <a href="#/leagues" data-tab="leagues"><i>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v5a5 5 0 0 1-10 0zM7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4M12 14v4M8 21h8"/></svg></i><span>Leagues</span></a>
-      <a href="#/more" data-tab="more"><i>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg></i><span>More</span></a>
+    <!-- Bottom Tab Navigation Bar (TW FM UI) -->
+    <nav id="tabbar" aria-label="Main Navigation" hidden>
+      <a href="#/dashboard" data-tab="dashboard">
+        <i>
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>
+          </svg>
+        </i>
+        <span>Home</span>
+      </a>
+      <a href="#/team" data-tab="team">
+        <i>
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M8 3l-5 3 2 5 3-1v11h8V10l3 1 2-5-5-3a4 4 0 0 1-8 0z"/>
+          </svg>
+        </i>
+        <span>My Team</span>
+      </a>
+      <a href="#/live" data-tab="live">
+        <i>
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>
+          </svg>
+        </i>
+        <span>Points</span>
+      </a>
+      <a href="#/leagues" data-tab="leagues">
+        <i>
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M7 4h10v5a5 5 0 0 1-10 0zM7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4M12 14v4M8 21h8"/>
+          </svg>
+        </i>
+        <span>Leagues</span>
+      </a>
+      <a href="#/more" data-tab="more">
+        <i>
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <circle cx="5" cy="12" r="1.6"/>
+            <circle cx="12" cy="12" r="1.6"/>
+            <circle cx="19" cy="12" r="1.6"/>
+          </svg>
+        </i>
+        <span>More</span>
+      </a>
     </nav>
   </div>
 
+  <!-- ⚙️ Service Worker Registration Script -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js', { scope: './' })
+          .then((reg) => {
+            console.log('[TW FF PWA] Service Worker registered successfully:', reg.scope);
+          })
+          .catch((err) => {
+            console.warn('[TW FF PWA] Service Worker registration failed:', err);
+          });
+      });
+    }
+  </script>
+
+  <!-- Main Application Entry Script -->
   <script type="module" src="./js/app.js"></script>
 </body>
 </html>
