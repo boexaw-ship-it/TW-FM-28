@@ -1,8 +1,8 @@
 // ============================================
-// TW FM — Home UI Controller (Production)
+// TW FM — Home UI Controller (Production-Ready)
 // Path: js/home.js
 // Standards: UI Design Knowledge Pack (Zero Logic Change, 100% Dynamic Sync)
-// Feature: Official Captaincy % Display Support
+// Status: Fully Compatible with css/inline/dashboard.css & dashboard.html
 // ============================================
 
 import { db } from "./firebase-config.js";
@@ -12,8 +12,8 @@ import { loadFixturesMaster } from "./core/data.js";
 const $ = (id) => document.getElementById(id);
 const MIN = 60 * 1000;
 
-const SCOUT_CACHE_KEY_LIVE = "twfm_scout_highlights_v14";
-const DEADLINE_CACHE_KEY_LIVE = "twfm_dynamic_deadline_v14";
+const SCOUT_CACHE_KEY_LIVE = "twfm_scout_highlights_v17";
+const DEADLINE_CACHE_KEY_LIVE = "twfm_dynamic_deadline_v17";
 
 const LS = {
   get(k, ttl) { 
@@ -45,26 +45,51 @@ let mode = "cap";
 let timerInterval = null;
 
 const POS = { 
-  gk: "#2563EB",   
-  gkp: "#2563EB",  
-  def: "#EF4444",  
-  mid: "#F59E0B",  
-  fwd: "#22C55E"   
+  gk: "#38BDF8",   
+  gkp: "#38BDF8",  
+  def: "#F87171",  
+  mid: "#FBBF24",  
+  fwd: "#4ADE80"   
 };
 
-// 6 Modes Dynamic Synchronization (💡 Captaincy % Display Integrated)
+// 🌟 6 Modes Dynamic Synchronization (High-Contrast for Clean White Cards)
 const MODES = {
   cap: { 
     label: "Most Captained", 
-    color: "#FFFFFF", 
+    color: "#6b21a8", 
     key: "mostCaptained", 
     show: (p) => `${p.captainPercent !== undefined && p.captainPercent !== null ? p.captainPercent : Number(p.ownership || 0).toFixed(1)}%` 
   },
-  own: { label: "Highest Owned", color: "#FBBF24", key: "mostOwned", show: (p) => `${Number(p.ownership || 0).toFixed(1)}%` },
-  tin: { label: "Top Transfers In", color: "#22C55E", key: "mostTransferredIn", show: (p) => `+${fmt(p.transfersInEvent || 0)}` },
-  tout: { label: "Top Transfers Out", color: "#EF4444", key: "mostTransferredOut", show: (p) => `-${fmt(p.transfersOutEvent || 0)}` },
-  total: { label: "Total Points Leaders", color: "#38BDF8", key: "mostTotalPoints", show: (p) => `${p.totalPoints || 0} pts` },
-  gw: { label: "Gameweek High Scorers", color: "#34D399", key: "mostGwPoints", show: (p) => `${p.gwPoints || 0} pts` }
+  own: { 
+    label: "Highest Owned", 
+    color: "#b45309", 
+    key: "mostOwned", 
+    show: (p) => `${Number(p.ownership || 0).toFixed(1)}%` 
+  },
+  tin: { 
+    label: "Top Transfers In", 
+    color: "#15803d", 
+    key: "mostTransferredIn", 
+    show: (p) => `+${fmt(p.transfersInEvent || 0)}` 
+  },
+  tout: { 
+    label: "Top Transfers Out", 
+    color: "#b91c1c", 
+    key: "mostTransferredOut", 
+    show: (p) => `-${fmt(p.transfersOutEvent || 0)}` 
+  },
+  total: { 
+    label: "Total Points Leaders", 
+    color: "#0369a1", 
+    key: "mostTotalPoints", 
+    show: (p) => `${p.totalPoints || 0} pts` 
+  },
+  gw: { 
+    label: "Gameweek High Scorers", 
+    color: "#0f766e", 
+    key: "mostGwPoints", 
+    show: (p) => `${p.gwPoints || 0} pts` 
+  }
 };
 
 const TEAM_STADIUM_MAP = {
@@ -312,7 +337,6 @@ function paintStats() {
     if (cls !== undefined) e.className = cls; 
   };
 
-  // Primary Centered Metrics
   t("st-total", fmt(liveStats.totalPoints));
   t("st-total-d", g > 0 ? `▲ +${fmt(gw)} (GW${g})` : `▲ +${fmt(gw)}`, "metric-delta delta-up");
   t("st-rank", fmt(liveStats.overallRank));
@@ -327,7 +351,6 @@ function paintStats() {
     t("st-gw-d", `–`, "metric-delta delta-up");
   }
 
-  // Tactical Micro-Pills Data Binding
   const bankVal = liveTeamSquad?.bank !== undefined ? Number(liveTeamSquad.bank).toFixed(1) : "0.0";
   t("st-bank", `£${bankVal}M`);
 
@@ -417,7 +440,7 @@ async function loadScoutHighlights() {
   }
 }
 
-// ⚡ LEAGUE SCOUT TRENDS: UNIFIED 3-VISIBLE + 2-SCROLLABLE HORIZONTAL CAROUSEL
+// ⚡ LEAGUE SCOUT TRENDS: ENLARGED 3D KITS + BOTTOM-ANCHORED NAMEPLATES
 function renderScoutTrendsCarousel() {
   const container = $("scout-trends-feed");
   const labelEl = $("trend-category-name");
@@ -441,27 +464,26 @@ function renderScoutTrendsCarousel() {
   }
 
   if (list.length === 0) {
-    container.innerHTML = `<div class="trend-feed-loading">No scout records for ${M.label}</div>`;
+    container.innerHTML = `<div class="trend-feed-loading" style="color:#64748b; font-weight:700;">No scout records for ${M.label}</div>`;
     return;
   }
 
   container.innerHTML = list.slice(0, 5).map((p, i) => {
     const rawPos = String(p.position || "mid").toLowerCase().trim();
     const isGk = rawPos === "gk" || rawPos === "gkp";
-    const posColor = POS[rawPos] || "#F59E0B";
+    const posColor = POS[rawPos] || "#FBBF24";
 
     const teamMeta = getTeamMeta(p.teamCode || p.team);
     const teamShort = teamMeta.short;
     const localBadgeUrl = teamMeta.badgePath;
     const jerseyPath = resolveClubJerseyPath(p);
-
-    // 💡 Value Formatting: Captain Tab တွင် ရာခိုင်နှုန်း (%) ပြသပြီး ကျန် Tab များတွင် ပုံမှန်တိုင်း သက်ဆိုင်ရာ Metrics အတိုင်း ပြသသည်
     const metricDisplay = M.show(p);
 
     return `
-      <div class="trend-player-card" style="border-top: 2.8px solid ${posColor};">
+      <div class="trend-player-card" style="border-top: 3.5px solid ${M.color};">
         <span class="player-card-rank">#${i + 1}</span>
 
+        <!-- 🌟 ဂျာစီကြီးကြီး (86px Viewport) -->
         <div class="player-card-jersey-wrap">
           <img src="${jerseyPath}" 
                alt="${esc(p.name)}" 
@@ -471,13 +493,14 @@ function renderScoutTrendsCarousel() {
           <img src="${localBadgeUrl}" alt="${esc(teamShort)}" class="player-card-club-badge" onerror="this.style.display='none';">
         </div>
 
-        <div class="player-nameplate-frame">
-          <div class="player-card-name">${esc(p.name)}</div>
-          <div class="player-card-pos" style="color: ${posColor};">
-            ${isGk ? "GK" : rawPos.toUpperCase()}
+        <!-- 🌟 အောက်ခြေ frame နားသို့ ကပ်ဆင်းသွားသော NAMEPLATE CAPSULE -->
+        <div class="scout-nameplate-capsule">
+          <div class="name-row">
+            <span class="p-name truncate" title="${esc(p.name)}">${esc(p.name)}</span>
+            <span class="p-pos" style="color: ${posColor};">${isGk ? "GK" : rawPos.toUpperCase()}</span>
           </div>
-          <div class="player-card-pts" style="color: ${M.color} !important; text-shadow: 0 0 10px rgba(157, 78, 221, 0.45);">
-            ${metricDisplay}
+          <div class="metric-row">
+            <span class="p-val" style="color: ${M.color};">${metricDisplay}</span>
           </div>
         </div>
       </div>
@@ -485,7 +508,7 @@ function renderScoutTrendsCarousel() {
   }).join("");
 }
 
-// 🗓️ PURE DYNAMIC MATCHDAY FIXTURE & STADIUM RESOLVER
+// 🗓️ PURE DYNAMIC MATCHDAY FIXTURE & CRISP STADIUM RESOLVER
 async function loadNextFixture() {
   try {
     const meta = await loadFixturesMaster();
