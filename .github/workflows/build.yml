@@ -1,6 +1,6 @@
 name: Build (Tailwind CSS + Service Worker)
 
-# push တင်တိုင်း GitHub ကပဲ  `node tools/build.js`  run ပေးပြီး
+# push တင်တိုင်း GitHub ကပဲ node tools/build.js run ပေးပြီး
 # css/tailwind.css နဲ့ sw.js ကို auto commit လုပ်ပေးတယ် (ဖုန်း/Spck ကနေ build မလုပ်နိုင်လည်း ရ)
 
 on:
@@ -11,6 +11,11 @@ on:
       - "sw.js"
   workflow_dispatch:
 
+# 🔒 ၁။ Push အပြိုင်တက်ခြင်းကို တားဆီးရန် Concurrency Lock ထည့်သွင်းခြင်း
+concurrency:
+  group: build-tailwind-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
@@ -18,9 +23,15 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # 📥 ၂။ Git rebase ပြုလုပ်နိုင်ရန် History အပြည့် (fetch-depth: 0) ရယူခြင်း
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 20
 
@@ -30,9 +41,22 @@ jobs:
       - name: Build
         run: node tools/build.js
 
+      # 🚀 ၃။ Push Conflict ကင်းစင်သော Auto Commit & Pull-Rebase Engine
       - name: Commit generated files
         run: |
-          git config user.name  "github-actions[bot]"
+          git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          
           git add css/tailwind.css sw.js
-          git diff --cached --quiet || (git commit -m "build: tailwind.css + sw.js" && git push)
+          
+          # ဖိုင်အပြောင်းအလဲ ရှိမှသာ commit & push ပြုလုပ်မည်
+          if ! git diff --cached --quiet; then
+            # [skip ci] ထည့်သွင်းခြင်းဖြင့် bot commit ကြောင့် workflow အဆုံးမရှိ ပြန်လည်မပတ်စေရန် ကာကွယ်သည်
+            git commit -m "build: tailwind.css + sw.js [skip ci]"
+            
+            # 💡 Remote မှ commit အသစ်များကို အလိုအလျောက် ပေါင်းစပ်ပြီးမှ push ပြုလုပ်သည်
+            git pull --rebase origin main
+            git push origin main
+          else
+            echo "No changes detected in tailwind.css or sw.js. Skipping commit."
+          fi
