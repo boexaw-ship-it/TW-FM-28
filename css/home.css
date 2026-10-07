@@ -1,6 +1,6 @@
 /* =========================================================================
    TW FM — High-Contrast Modern Dashboard Stylesheet
-   Theme: Deep Violet Accent + Bold Balanced Typography & Centered Nameplates
+   Theme: Deep Violet Accent + Bold Center-Locked Typography & Nameplates
    Standards: UI Design Knowledge Pack (8px Grid, Rounded Radii, Strong Contrast)
    Path: css/home.css
    ========================================================================= */
@@ -424,10 +424,9 @@ html, body {
 
 .metric-ico { font-size: 9px; }
 
-/* 🌟 စာသားလေးများ မပါးစေရန် Bold ထည့်သွင်းထားသည် */
 .metric-tag {
   font-size: 8px !important;
-  font-weight: 800 !important;
+  font-weight: 850 !important;
   text-transform: uppercase;
   letter-spacing: 0.03em;
   line-height: 1;
@@ -446,10 +445,9 @@ html, body {
   text-align: center;
 }
 
-/* 🌟 ဒယ်လ်တာစာသားများကိုပါ Bold ပါးပါး ထည့်သွင်းထားသည် */
 .metric-delta {
   font-size: 8px !important;
-  font-weight: 800 !important;
+  font-weight: 850 !important;
   font-style: normal;
   white-space: nowrap;
   overflow: hidden;
@@ -461,7 +459,7 @@ html, body {
 .delta-dn { color: #b91c1c !important; font-weight: 850 !important; }
 
 /* =========================================================================
-   🏷️ TACTICAL MICRO-PILLS: PERFECTLY CENTERED & BOLD NAMEPLATES
+   🏷️ TACTICAL MICRO-PILLS: ABSOLUTE DEAD-CENTER & BOLD LETTERS
    ========================================================================= */
 .tactical-micro-grid {
   display: grid;
@@ -474,77 +472,87 @@ html, body {
   background: #ffffff !important;
   border-radius: 12px;
   padding: 0 !important;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: space-between;
-  text-align: center;
+  margin: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: space-between !important;
+  text-align: center !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28);
-  min-height: 52px;
+  min-height: 54px;
   width: 100%;
   border: 1px solid rgba(203, 213, 225, 0.95);
   overflow: hidden;
 }
 
-/* 🌟 Bank, Free Transfers, Captain စာသားများ အလယ်ဗဟို Center တည့်တည့်ကျစေသော Header */
+/* 🌟 ၁။ အလယ်ဗဟို Dead-Center ကျစေသော Nameplate Header Strip */
 .pill-head-center {
   width: 100% !important;
-  padding: 4px 4px !important;
+  margin: 0 !important;
+  padding: 4.5px 2px !important;
   display: flex !important;
   align-items: center !important;
-  justify-content: center !important;
+  justify-content: center !important; /* 💡 Horizontally Center */
   text-align: center !important;
-  border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.95);
+  box-sizing: border-box !important;
 }
 
-/* 🌟 စာသား Bold Letter လေး ထည့်သွင်းပြီး Center တည့်တည့် ထားရှိသည် */
+/* 🌟 ၂။ စာလုံး မပါးစေရန် BOLD LETTERS စစ်စစ် (font-weight: 900) + Center Lock */
 .pill-title {
   font-size: 8.5px !important;
-  font-weight: 850 !important;
+  font-weight: 900 !important; /* 💡 စာလုံး Bold အထူစစ်စစ် */
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1;
+  line-height: 1.1;
   text-align: center !important;
+  margin: 0 auto !important;
+  padding: 0 !important;
   width: 100% !important;
   display: block !important;
 }
 
-/* 🌟 တန်ဖိုးများကိုပါ Center တည့်တည့် ထားရှိသည် */
+/* 🌟 ၃။ တန်ဖိုးကိန်းဂဏန်းများ Dead-Center နှင့် Bold တည်ငြိမ်မှု */
 .pill-val {
-  font-size: 13px !important;
+  font-size: 13.5px !important;
   font-weight: 900 !important;
   color: var(--card-dark-ink) !important;
-  line-height: 1.1;
-  padding: 4px 2px 5px;
+  line-height: 1;
+  margin: 0 auto !important;
+  padding: 6px 2px 7px !important;
   text-align: center !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important; /* 💡 တန်ဖိုးဂဏန်း Center */
   width: 100% !important;
+  flex: 1 !important;
 }
 
-/* 💛 Bank: Amber / Gold Centered Nameplate */
+/* 💛 Bank: Amber / Gold Header Nameplate */
 .tactical-micro-pill.card-bank .pill-head-center {
-  background: linear-gradient(135deg, #fef3c7, #fde68a) !important;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%) !important;
 }
 .tactical-micro-pill.card-bank .pill-title {
-  color: #b45309 !important;
+  color: #b45309 !important; /* Rich Dark Gold */
 }
 
-/* ❤️ Free Transfers: Crimson Red Centered Nameplate */
+/* ❤️ Free Transfers: Crimson Red Header Nameplate */
 .tactical-micro-pill.card-ft .pill-head-center {
-  background: linear-gradient(135deg, #fee2e2, #fecaca) !important;
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%) !important;
 }
 .tactical-micro-pill.card-ft .pill-title {
-  color: #b91c1c !important;
+  color: #b91c1c !important; /* Rich Dark Red */
 }
 
-/* 💚 Captain (Erling Haaland): Emerald Green Centered Nameplate */
+/* 💚 Captain (Erling Haaland): Emerald Green Header Nameplate */
 .tactical-micro-pill.card-captain .pill-head-center {
-  background: linear-gradient(135deg, #dcfce7, #bbf7d0) !important;
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%) !important;
 }
 .tactical-micro-pill.card-captain .pill-title {
-  color: #15803d !important;
+  color: #15803d !important; /* Rich Dark Green */
 }
 
 /* =========================================================================
@@ -698,7 +706,7 @@ html, body {
   display: none;
 }
 
-/* 👕 Clean White Card (Seamless & Perfectly Spaced) */
+/* 👕 Clean White Card */
 .trend-player-card {
   flex: 0 0 calc(33.333% - 6px);
   min-width: 108px;
