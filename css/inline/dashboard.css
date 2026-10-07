@@ -1,0 +1,68 @@
+/* =========================================================================
+   TW FM — Dashboard Page Inline Styles (Extracted View Scaffolding)
+   Target View: views/dashboard.html
+   Responsibilities:
+     1. Base Setup: Mobile & Native Android APK (100% Full View)
+     2. Desktop Browser: 9:16 Aspect Frame Container (768px+)
+     3. Android Native Safe Area Insets (Notch & Nav-bar Protection)
+     4. Home Scroll Engine (Zero Horizontal Movement)
+   Standards: UI Design Knowledge Pack (Mobile-First, 8px Grid)
+   Path: css/inline/dashboard.css
+   ========================================================================= */
+
+/* 📱 ၁။ Base Setup: Mobile & Native Android APK (100% Full View) */
+.home-root,
+.app-viewport-9-16 {
+  width: 100%;
+  height: 100%;
+  min-height: 100vh;
+  position: relative;
+  background-color: #080a18;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* 💻 ၂။ PC / Laptop Browser စစ်စစ် (Mouse pointer + အကျယ် 768px အထက်) တွင်သာ 9:16 ဖြစ်စေမည် */
+@media screen and (min-width: 768px) and (pointer: fine) {
+  .home-root,
+  .app-viewport-9-16 {
+    max-width: 440px;
+    height: 92vh;
+    min-height: auto;
+    margin: 4vh auto;
+    border-radius: 24px;
+    border: 1.5px solid rgba(139, 92, 246, 0.35);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85), 0 0 35px rgba(109, 40, 217, 0.25);
+    overflow: hidden;
+  }
+}
+
+/* 📱 ၃။ Android Safe Areas (Notch & Navigation Bar Protection) */
+.safe-top {
+  padding-top: max(8px, env(safe-area-inset-top, 0px));
+}
+
+.safe-bottom {
+  padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
+}
+
+/* 📜 ၄။ Dashboard Scroll Engine (ဒေါင်လိုက် Scroll သီးသန့် + Zero Horizontal Movement) */
+.home-scroll {
+  flex: 1;
+  width: 100%;
+  max-width: 100%;
+  overflow-y: auto;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.home-scroll::-webkit-scrollbar {
+  display: none;
+}
