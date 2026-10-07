@@ -2,11 +2,9 @@
   TW FM — Luxury Sports Dashboard View
   Design System: Modern Clean Glassmorphism + Violet Accent
   Standards: UI Design Knowledge Pack (Zero Mock Data, Pure Dynamic Firestore)
-  Sync: Aligned with css/inline/dashboard.css & css/home.css
   Path: views/dashboard.html
 ============================================ -->
 
-<!-- 📱 9:16 Frame Container (Mobile တွင် 100% ပြည့်ပြီး PC တွင် 9:16 Aspect Frame ဖြစ်သည်) -->
 <div class="home-root app-viewport-9-16">
   <!-- 🌌 Stadium Ambient Blurred Background Mesh -->
   <div class="stadium-ambient-mesh" aria-hidden="true">
@@ -38,13 +36,13 @@
     </div>
   </header>
   
-  <!-- 📜 Main Scroll Arena (Smooth Touch Engine) -->
+  <!-- 📜 Main Scroll Arena -->
   <main class="home-scroll">
-    <!-- 👑 2. Hero Matchday Hub (ဖလားရုပ် မပါဝင်သော Clean Typography + Deep Violet Accent) -->
+    <!-- 👑 2. Hero Matchday Hub -->
     <section class="hero-showcase-card" id="hero-deadline-card" aria-label="Manager & Gameweek Hub">
       <div class="hero-card-glow" aria-hidden="true"></div>
 
-      <!-- Top Row: Team Name & Manager (No Trophy Icon) + Deadline Chip -->
+      <!-- Top Row: Team Name & Manager + Deadline Chip -->
       <div class="hero-top-row">
         <div class="hero-identity-clean">
           <span id="welcome-name" class="hero-team-title">Loading...</span>
@@ -69,9 +67,9 @@
       </div>
     </section>
 
-    <!-- 📊 3. Performance & Tactical Squad Matrix (Center Aligned) -->
+    <!-- 📊 3. Performance & Tactical Squad Matrix -->
     <section class="performance-matrix-section" aria-label="Performance Metrics">
-      <!-- Tier A: Primary Scores (Total Points, Overall Rank, GW Score) -->
+      <!-- Tier A: Primary Scores -->
       <div class="metrics-primary-grid">
         <div class="metric-card card-total">
           <div class="metric-header">
@@ -101,7 +99,7 @@
         </div>
       </div>
 
-      <!-- Tier B: Tactical Micro-Cards (Bank, FT, Captain With Header Nameplates) -->
+      <!-- Tier B: Tactical Micro-Cards (Nameplate Styled) -->
       <div class="tactical-micro-grid">
         <div class="tactical-micro-pill card-bank">
           <div class="pill-head-center">
@@ -126,7 +124,7 @@
       </div>
     </section>
 
-    <!-- ⚡ 4. LEAGUE SCOUT TRENDS & UNIFIED HORIZONTAL CAROUSEL (3 VISIBLE + 2 SCROLLABLE) -->
+    <!-- ⚡ 4. LEAGUE SCOUT TRENDS & UNIFIED HORIZONTAL CAROUSEL -->
     <section class="quick-stats-section" aria-label="League Scout Trends">
       <div class="section-headline">
         <h3 class="section-title">
@@ -139,7 +137,7 @@
         </div>
       </div>
 
-      <!-- 6 Tabs Strip (Vibrant Multi-Color Status System) -->
+      <!-- 6 Tabs Strip -->
       <div class="vibrant-tabs-strip" id="leader-tabs" role="tablist">
         <button class="on tab-cap" data-k="cap" role="tab" aria-selected="true" type="button">
           <span class="tab-ico">👑</span><span class="tab-txt">Captain</span>
@@ -161,7 +159,7 @@
         </button>
       </div>
 
-      <!-- 3-Visible Horizontal Carousel Track (3D Kits - Zero Face Photos) -->
+      <!-- 3-Visible Horizontal Carousel Track -->
       <div class="trend-players-carousel-track" id="scout-trends-feed" aria-live="polite">
         <div class="player-card-skel"></div>
         <div class="player-card-skel"></div>
@@ -169,7 +167,7 @@
       </div>
     </section>
 
-    <!-- 🗓️ 5. SLEEK RESIZED MATCHDAY FIXTURE CARD (PURE DYNAMIC DATA) -->
+    <!-- 🗓️ 5. SLEEK MATCHDAY FIXTURE CARD -->
     <a class="grand-fixture-card compact-fixture" id="next-fixture-card-link" href="#/fixtures" aria-label="Open Full Fixtures">
       <div class="fixture-glow-flare" aria-hidden="true"></div>
 
