@@ -2,10 +2,12 @@
   TW FM — Luxury Sports Dashboard View
   Design System: Modern Clean Glassmorphism + Violet Accent
   Standards: UI Design Knowledge Pack (Zero Mock Data, Pure Dynamic Firestore)
+  Sync: Aligned with css/inline/dashboard.css & css/home.css
   Path: views/dashboard.html
 ============================================ -->
 
-<div class="home-root">
+<!-- 📱 9:16 Frame Container (Mobile တွင် 100% ပြည့်ပြီး PC တွင် 9:16 Aspect Frame ဖြစ်သည်) -->
+<div class="home-root app-viewport-9-16">
   <!-- 🌌 Stadium Ambient Blurred Background Mesh -->
   <div class="stadium-ambient-mesh" aria-hidden="true">
     <div class="mesh-orb orb-primary"></div>
@@ -36,7 +38,7 @@
     </div>
   </header>
   
-  <!-- 📜 Main Scroll Arena -->
+  <!-- 📜 Main Scroll Arena (Smooth Touch Engine) -->
   <main class="home-scroll">
     <!-- 👑 2. Hero Matchday Hub (ဖလားရုပ် မပါဝင်သော Clean Typography + Deep Violet Accent) -->
     <section class="hero-showcase-card" id="hero-deadline-card" aria-label="Manager & Gameweek Hub">
@@ -99,7 +101,7 @@
         </div>
       </div>
 
-      <!-- Tier B: Tactical Micro-Cards (Bank: Yellow, FT: Red, Captain: Green) -->
+      <!-- Tier B: Tactical Micro-Cards (Bank, FT, Captain With Header Nameplates) -->
       <div class="tactical-micro-grid">
         <div class="tactical-micro-pill card-bank">
           <div class="pill-head-center">
